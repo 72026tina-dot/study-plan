@@ -169,14 +169,26 @@
   .rule-block.red { border-left-color: #c0392b; }
 
   /* Countdown */
+  .cd-row { display: flex; gap: 10px; margin-top: 18px; }
   .cd {
-    background: linear-gradient(135deg, #fdecea, #fde8e8);
-    border: 1.5px solid #f0a0a0; border-radius: 12px;
-    padding: 12px 16px; margin-top: 18px; text-align: center;
-    box-shadow: 0 2px 8px rgba(192,57,43,0.08);
+    flex: 1; border-radius: 12px;
+    padding: 12px 16px; text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
   }
-  .cd-l { font-size: 0.65rem; color: #b83030; font-family: 'DM Mono', monospace; letter-spacing: 0.1em; margin-bottom: 3px; }
-  .cd-n { font-size: 1.5rem; font-weight: 900; color: #b83030; }
+  .cd.exam {
+    background: linear-gradient(135deg, #fdecea, #fde8e8);
+    border: 1.5px solid #f0a0a0;
+  }
+  .cd.guan {
+    background: linear-gradient(135deg, #eaf0fb, #e4ecf8);
+    border: 1.5px solid #a0b8e8;
+  }
+  .cd-l { font-size: 0.65rem; font-family: 'DM Mono', monospace; letter-spacing: 0.1em; margin-bottom: 3px; }
+  .cd.exam .cd-l { color: #b83030; }
+  .cd.guan .cd-l { color: #2a5caa; }
+  .cd-n { font-size: 1.5rem; font-weight: 900; }
+  .cd.exam .cd-n { color: #b83030; }
+  .cd.guan .cd-n { color: #2a5caa; }
   .cd-n span { font-size: 0.85rem; font-weight: 400; color: var(--muted); }
 
   /* Modal */
@@ -250,6 +262,11 @@
   .pw-input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 9px; font-family: 'DM Mono', monospace; font-size: 1.2rem; text-align: center; letter-spacing: 0.2em; margin-bottom: 10px; background: var(--bg); }
   .pw-input:focus { outline: none; border-color: #3a7d44; }
   .pw-error { font-size: 0.75rem; color: #b83030; text-align: center; margin-bottom: 8px; min-height: 18px; }
+
+  #history-table th, #history-table td { border: 1px solid var(--border); white-space: nowrap; }
+  #history-table thead th { font-weight: 700; font-size: 0.75rem; color: var(--accent); }
+  #history-table tbody td:first-child { font-size: 0.73rem; color: var(--text); white-space: nowrap; }
+  #history-table tbody td { font-family: 'DM Mono', monospace; font-size: 0.78rem; color: var(--text); }
 </style>
 </head>
 <body>
@@ -272,6 +289,7 @@
 <div class="tabs">
   <button class="tab active" onclick="sw('daily')">📖 每日記錄</button>
   <button class="tab" onclick="sw('exam')">📝 段考成績</button>
+  <button class="tab" onclick="sw('history')">📊 歷史成績</button>
   <button class="tab" onclick="sw('rules')">📋 規則</button>
 </div>
 
@@ -294,6 +312,13 @@
 <!-- Exam -->
 <div class="section" id="s-exam">
   <div id="exam-cards"></div>
+</div>
+
+<!-- History -->
+<div class="section" id="s-history">
+  <div style="overflow-x:auto;">
+    <table id="history-table" style="width:100%;border-collapse:collapse;font-size:0.78rem;"></table>
+  </div>
 </div>
 
 <!-- Rules -->
@@ -333,9 +358,15 @@
   </div>
 </div>
 
-<div class="cd">
-  <div class="cd-l">⚠ 段考倒數</div>
-  <div class="cd-n" id="cd-n">— <span>天</span></div>
+<div class="cd-row">
+  <div class="cd exam">
+    <div class="cd-l">⚠ 段考倒數</div>
+    <div class="cd-n" id="cd-n">— <span>天</span></div>
+  </div>
+  <div class="cd guan">
+    <div class="cd-l">🎯 會考倒數</div>
+    <div class="cd-n" id="cd-guan">— <span>天</span></div>
+  </div>
 </div>
 
 <!-- Daily modal -->
@@ -402,7 +433,7 @@
     <div class="mslabel">實際成績</div>
     <div class="em-row">
       <label>分數</label>
-      <input type="number" id="em-sc" min="0" max="100" placeholder="分" />
+      <input type="number" id="em-sc" min="0" max="100" step="0.5" placeholder="分" />
       <span class="em-pts" id="em-pts"></span>
     </div>
     <div class="mbtns" id="em-btns"></div>
@@ -416,17 +447,33 @@ const today = new Date(); today.setHours(0,0,0,0);
 const testExam = new Date(today.getFullYear(), 5, 25);
 if (testExam < today) testExam.setFullYear(today.getFullYear() + 1);
 const examDay = testExam;
+const guanKaoDay = new Date(2028, 4, 20); // 2028/5/20 predicted
 
 const planStart = new Date(2026, 4, 18);
 const planEnd = new Date(2026, 5, 27);
 const sprintStart = new Date(2026, 5, 11); // 2 weeks before 6/25 = 6/11
 
-const EXAM_CFG = { key:'math', lbl:'數學', target:60, base:10, step:1, bonus:1, col:'var(--accent)' };
+const SUBJECTS = [
+  {key:'ch',   lbl:'國文', target:60, base:10, step:5, bonus:5},
+  {key:'math', lbl:'數學', target:60, base:10, step:1, bonus:1},
+  {key:'eng',  lbl:'英文', target:60, base:10, step:1, bonus:1},
+  {key:'natl', lbl:'自然', target:60, base:10, step:5, bonus:5},
+  {key:'soc',  lbl:'社會', target:60, base:10, step:5, bonus:5},
+];
+const SEMESTERS = [
+  {key:'1a',lbl:'國一上'},{key:'1b',lbl:'國一下'},
+  {key:'2a',lbl:'國二上'},{key:'2b',lbl:'國二下'},
+  {key:'3a',lbl:'國三上'},{key:'3b',lbl:'國三下'},
+];
+const EXAM_TIMES = [{key:'1',lbl:'第一次'},{key:'2',lbl:'第二次'},{key:'3',lbl:'第三次'}];
+// Legacy single-subject ePts (for updSum compatibility)
+const EXAM_CFG = SUBJECTS.find(s=>s.key==='math');
 
-function ePts(score) {
+function ePts(score, cfg) {
+  cfg = cfg || EXAM_CFG;
   if (score === null || score === undefined || score === '') return 0;
-  const s = parseInt(score); if (isNaN(s) || s < EXAM_CFG.target) return 0;
-  return EXAM_CFG.base + Math.floor((s - EXAM_CFG.target) / EXAM_CFG.step) * EXAM_CFG.bonus;
+  const s = parseInt(score); if (isNaN(s) || s < cfg.target) return 0;
+  return cfg.base + Math.floor((s - cfg.target) / cfg.step) * cfg.bonus;
 }
 
 function dk(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
@@ -449,7 +496,7 @@ async function load() {
   } catch(e) { console.warn('Firebase load failed:', e); }
   if (!data.daily) data.daily = {};
   if (!data.exam) data.exam = {};
-  buildCal(); buildExam(); updSum();
+  buildCal(); buildExam(); updSum(); buildHistory();
 }
 
 async function save() {
@@ -498,7 +545,8 @@ function isWeekComplete(weekMonday) {
 }
 
 function sw(t) {
-  ['daily','exam','rules'].forEach((id,i) => {
+  if (t === 'history') buildHistory();
+  ['daily','exam','history','rules'].forEach((id,i) => {
     document.querySelectorAll('.tab')[i].classList.toggle('active', id===t);
     document.getElementById('s-'+id).classList.toggle('active', id===t);
   });
@@ -573,20 +621,34 @@ function buildCal() {
   if (currentSec && currentGrid) { currentSec.appendChild(currentGrid); cal.appendChild(currentSec); }
 }
 
+// Populate semester selector
+function initSemSel() {
+  const sel = document.getElementById('sem-sel');
+  sel.innerHTML = '<option value="">選擇學期</option>';
+  SEMESTERS.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s.key; o.textContent = s.lbl;
+    sel.appendChild(o);
+  });
+  sel.onchange = buildExam;
+  document.getElementById('time-sel').onchange = buildExam;
+}
+
 function buildExam() {
   const c = document.getElementById('exam-cards'); c.innerHTML = '';
-  const score = data.exam[EXAM_CFG.key];
-  const pts = ePts(score);
+  const MATH = SUBJECTS.find(s => s.key === 'math');
+  const score = data.exam[MATH.key];
+  const pts = ePts(score, MATH);
   const has = score !== null && score !== undefined && score !== '';
   const pct = has ? Math.min(100, parseInt(score)) : 0;
   const card = document.createElement('div'); card.className = 'exam-card';
   card.innerHTML = `
     <div class="ec-top">
-      <span class="ec-name">${EXAM_CFG.lbl} 段考</span>
+      <span class="ec-name">${MATH.lbl} 段考</span>
       ${pts > 0 ? `<span class="ec-pts">+${pts} 點</span>` : ''}
     </div>
     <div class="ec-info">
-      <span>目標 ${EXAM_CFG.target} 分・達標 ${EXAM_CFG.base} 點・超標每1分+1點</span>
+      <span>目標 ${MATH.target} 分・達標 ${MATH.base} 點・超標每1分+1點</span>
       ${has ? `<span class="ec-score">${score} 分</span>` : '<span style="color:var(--border)">未輸入</span>'}
     </div>
     <div class="ec-prog"><div class="ec-pf" style="width:${pct}%"></div></div>
@@ -595,10 +657,134 @@ function buildExam() {
   c.appendChild(card);
 }
 
+function buildHistory() {
+  const tbl = document.getElementById('history-table');
+  tbl.innerHTML = '';
+  const allKeys = [];
+  SEMESTERS.forEach(s => EXAM_TIMES.forEach(t => allKeys.push({sem: s.key, t: t.key})));
+
+  // Header row
+  let thead = `<thead><tr>
+    <th style="text-align:left;padding:8px 10px;background:#f5ede6;position:sticky;left:0;z-index:2;min-width:72px;font-size:0.75rem;color:var(--muted);">學期</th>
+    <th style="padding:8px 6px;background:#f5ede6;text-align:center;min-width:48px;font-size:0.75rem;color:var(--muted);">次</th>`;
+  SUBJECTS.forEach(s => {
+    const isMath = s.key === 'math';
+    thead += `<th style="padding:8px 6px;background:#f5ede6;text-align:center;min-width:58px;font-weight:700;${isMath ? 'color:var(--accent);' : 'color:var(--text);'}">${s.lbl}${isMath ? ' ⭐' : ''}</th>`;
+  });
+  thead += '<th style="padding:8px 6px;background:#f0e8dc;text-align:center;min-width:52px;font-weight:700;color:var(--text);">總分</th>';
+  thead += '</tr></thead>';
+  tbl.innerHTML = thead;
+  const tbody = document.createElement('tbody');
+
+  SEMESTERS.forEach((sem, si) => {
+    EXAM_TIMES.forEach((t, ti) => {
+      const tr = document.createElement('tr');
+      // Semester label cell — only show on first row of each semester, spans 3 rows
+      if (ti === 0) {
+        const semTd = document.createElement('td');
+        semTd.rowSpan = 3;
+        semTd.style.cssText = 'padding:8px 10px;background:#fdf8f3;position:sticky;left:0;z-index:1;font-weight:700;font-size:0.8rem;border-top:2px solid var(--border);vertical-align:middle;text-align:center;white-space:nowrap;';
+        semTd.textContent = sem.lbl;
+        tr.appendChild(semTd);
+      }
+      // Time label
+      const timeTd = document.createElement('td');
+      timeTd.style.cssText = `padding:8px 6px;background:#fafafa;text-align:center;font-size:0.75rem;color:var(--muted);border-top:${ti===0?'2px solid var(--border)':'1px solid #f0e8e0'};white-space:nowrap;`;
+      timeTd.textContent = `第${t.key}次`;
+      tr.appendChild(timeTd);
+
+      // Subject score cells
+      SUBJECTS.forEach(sub => {
+        const k = `hist_${sub.key}_${sem.key}_${t.key}`;
+        const score = data.exam[k];
+        const has = score !== null && score !== undefined && score !== '';
+        const curIdx = allKeys.findIndex(x => x.sem === sem.key && x.t === t.key);
+        let prevScore = null;
+        for (let i = curIdx - 1; i >= 0; i--) {
+          const pk = `hist_${sub.key}_${allKeys[i].sem}_${allKeys[i].t}`;
+          if (data.exam[pk] !== null && data.exam[pk] !== undefined && data.exam[pk] !== '') {
+            prevScore = parseInt(data.exam[pk]); break;
+          }
+        }
+        let arrowHtml = '';
+        if (has && prevScore !== null) {
+          const diff = parseInt(score) - prevScore;
+          arrowHtml = diff > 0
+            ? `&nbsp;&nbsp;<span style="color:#3a7d44;font-size:0.68rem;">▲${diff}</span>`
+            : diff < 0
+              ? `&nbsp;&nbsp;<span style="color:#d4521a;font-size:0.68rem;">▼${Math.abs(diff)}</span>`
+              : '';
+        }
+        const isMath = sub.key === 'math';
+        const td = document.createElement('td');
+        td.style.cssText = `text-align:center;padding:6px 4px;border-top:${ti===0?'2px solid var(--border)':'1px solid #f0e8e0'};cursor:pointer;transition:background 0.12s;${isMath?'background:#fff8f5;':''}`;
+        td.onmouseover = () => { td.style.background = '#fdebd8'; };
+        td.onmouseout = () => { td.style.background = isMath ? '#fff8f5' : ''; };
+        td.innerHTML = has
+          ? `<span style="font-weight:700;font-size:0.82rem;">${score}</span>${arrowHtml}`
+          : `<span style="color:#ddd;font-size:0.75rem;">—</span>`;
+        td.title = `點擊輸入 ${sub.lbl} ${sem.lbl}第${t.key}次`;
+        td.addEventListener('click', () => openHistoryEM(sub, sem.key, t.key));
+        tr.appendChild(td);
+      });
+      // Total score cell
+      let total = 0, hasAny = false;
+      SUBJECTS.forEach(sub => {
+        const k = `hist_${sub.key}_${sem.key}_${t.key}`;
+        const sc = data.exam[k];
+        if (sc !== null && sc !== undefined && sc !== '') { total += parseInt(sc); hasAny = true; }
+      });
+      const totalTd = document.createElement('td');
+      totalTd.style.cssText = `text-align:center;padding:6px 4px;border-top:${ti===0?'2px solid var(--border)':'1px solid #f0e8e0'};background:#fdf5ec;font-weight:700;font-size:0.82rem;`;
+      totalTd.textContent = hasAny ? total : '—';
+      tr.appendChild(totalTd);
+      tbody.appendChild(tr);
+    });
+  });
+  tbl.appendChild(tbody);
+}
+
+
+function openHistoryEM(sub, semKey, timeKey) {
+  const semLbl = SEMESTERS.find(s => s.key === semKey)?.lbl || semKey;
+  const timeLbl = EXAM_TIMES.find(t => t.key === timeKey)?.lbl || `第${timeKey}次`;
+  const k = `hist_${sub.key}_${semKey}_${timeKey}`;
+  document.getElementById('em-t').textContent = `${sub.lbl} — ${semLbl}${timeLbl}`;
+  document.getElementById('em-s').textContent = '';
+  document.getElementById('em-p').textContent = '';
+  document.getElementById('em-p').style.display = 'none';
+  const cur = data.exam[k] ?? '';
+  document.getElementById('em-sc').value = cur; updHistoryEMPrev(sub);
+  document.getElementById('em-sc').oninput = () => updHistoryEMPrev(sub);
+  const hasD = cur !== '';
+  const btns = document.getElementById('em-btns');
+  btns.innerHTML = hasD
+    ? `<button class="btn btn-x" id="em-x">清除</button><button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`
+    : `<button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`;
+  if (hasD) document.getElementById('em-x').onclick = async () => {
+    delete data.exam[k]; await save(); buildHistory(); updSum(); closeEM();
+  };
+  document.getElementById('em-c').onclick = closeEM;
+  document.getElementById('em-sv').onclick = async () => {
+    const v = document.getElementById('em-sc').value;
+    if (v !== '') data.exam[k] = parseFloat(v);
+    await save(); buildHistory(); updSum(); closeEM();
+  };
+  document.getElementById('em-pts').textContent = '';
+  document.getElementById('oe').classList.add('show');
+}
+
+function updHistoryEMPrev(sub) {
+  document.getElementById('em-p').textContent = '';
+  document.getElementById('em-pts').textContent = '';
+}
+
 function updSum() {
   const weekPts = calcWeekPts();
   const freePts = calcFreePts();
-  const examPts = ePts(data.exam[EXAM_CFG.key]);
+  // Math exam points — uses the original single key 'math' (current exam only)
+  const mathSub = SUBJECTS.find(s => s.key === 'math');
+  const examPts = ePts(data.exam[mathSub.key], mathSub);
   const tot = weekPts + freePts + examPts;
 
   document.getElementById('tot-pts').textContent = tot;
@@ -609,6 +795,8 @@ function updSum() {
 
   const diff = Math.ceil((examDay - today) / 86400000);
   document.getElementById('cd-n').innerHTML = `${diff} <span>天</span>`;
+  const guanDiff = Math.ceil((guanKaoDay - today) / 86400000);
+  document.getElementById('cd-guan').innerHTML = `${guanDiff} <span>天</span>`;
 }
 
 // Daily modal
@@ -806,11 +994,13 @@ function openTeacherEditModal(key) {
   setTimeout(() => document.getElementById('pw-input').focus(), 100);
 }
 
-// Exam modal
+// Exam modal (math only — current exam)
+const MATH_CFG = SUBJECTS.find(s => s.key === 'math');
 function openEM() {
   document.getElementById('em-t').textContent = '數學段考成績';
-  document.getElementById('em-s').textContent = `目標 ${EXAM_CFG.target} 分・達標 ${EXAM_CFG.base} 點・超標每1分+1點`;
-  const cur = data.exam[EXAM_CFG.key] ?? '';
+  document.getElementById('em-p').style.display = '';
+  document.getElementById('em-s').textContent = `目標 ${MATH_CFG.target} 分・達標 ${MATH_CFG.base} 點・超標每1分+1點`;
+  const cur = data.exam[MATH_CFG.key] ?? '';
   document.getElementById('em-sc').value = cur; updEMPrev();
   document.getElementById('em-sc').oninput = updEMPrev;
   const hasD = cur !== '';
@@ -819,22 +1009,22 @@ function openEM() {
     ? `<button class="btn btn-x" id="em-x">清除</button><button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`
     : `<button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`;
   if (hasD) document.getElementById('em-x').onclick = async () => {
-    delete data.exam[EXAM_CFG.key]; await save(); buildExam(); updSum(); closeEM();
+    delete data.exam[MATH_CFG.key]; await save(); buildExam(); updSum(); closeEM();
   };
   document.getElementById('em-c').onclick = closeEM;
   document.getElementById('em-sv').onclick = async () => {
     const v = document.getElementById('em-sc').value;
-    if (v !== '') data.exam[EXAM_CFG.key] = parseInt(v);
+    if (v !== '') data.exam[MATH_CFG.key] = parseFloat(v);
     await save(); buildExam(); updSum(); closeEM();
   };
   document.getElementById('oe').classList.add('show');
 }
 function updEMPrev() {
   const v = document.getElementById('em-sc').value;
-  const pts = ePts(v); const s = parseInt(v);
+  const pts = ePts(v, MATH_CFG); const s = parseInt(v);
   if (!v) { document.getElementById('em-p').textContent = '輸入分數後顯示點數'; document.getElementById('em-pts').textContent = ''; return; }
-  if (isNaN(s) || s < EXAM_CFG.target) {
-    document.getElementById('em-p').textContent = `未達標（差 ${EXAM_CFG.target - s} 分）`;
+  if (isNaN(s) || s < MATH_CFG.target) {
+    document.getElementById('em-p').textContent = `未達標（差 ${MATH_CFG.target - s} 分）`;
     document.getElementById('em-pts').textContent = '';
   } else {
     document.getElementById('em-p').textContent = `達標！可得 ${pts} 點 ⭐`;
