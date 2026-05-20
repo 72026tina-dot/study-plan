@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>學習計畫</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Playfair+Display:wght@700&family=DM+Mono:wght@400;500&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #fdf8f3;
+    color: #2a1a0e;
+    font-family: 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: #d4521a;
+    margin-bottom: 6px;
+  }
+
+  .header p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: #9a8070;
+    letter-spacing: 0.05em;
+  }
+
+  .deco {
+    width: 40px;
+    height: 3px;
+    background: linear-gradient(90deg, #d4521a, #e8962a);
+    border-radius: 2px;
+    margin: 12px auto 0;
+  }
+
+  .cards {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    max-width: 340px;
+  }
+
+  .card {
+    background: white;
+    border: 1.5px solid #ecddd0;
+    border-radius: 16px;
+    padding: 20px 22px;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 2px 12px rgba(212,82,26,0.07);
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(212,82,26,0.13);
+    border-color: #d4521a;
+  }
+
+  .card-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .card-body { flex: 1; }
+
+  .card-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #2a1a0e;
+    margin-bottom: 3px;
+  }
+
+  .card-sub {
+    font-size: 0.72rem;
+    color: #9a8070;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .card-arrow {
+    font-size: 1rem;
+    color: #d4521a;
+    opacity: 0.6;
+  }
+
+  .footer {
+    margin-top: 36px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: #c5b0a0;
+    letter-spacing: 0.08em;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>學習計畫表</h1>
+  <p>STUDY PLAN DASHBOARD</p>
+  <div class="deco"></div>
+</div>
+
+<div class="cards">
+  <a class="card" href="math-plan.html">
+    <div class="card-icon">📐</div>
+    <div class="card-body">
+      <div class="card-title">數學計畫</div>
+      <div class="card-sub">每日練習・段考成績・歷史記錄</div>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+
+  <a class="card" href="study-plan-s2.html">
+    <div class="card-icon">📚</div>
+    <div class="card-body">
+      <div class="card-title">全科計畫 S2</div>
+      <div class="card-sub">上課記錄・段考成績・歷史記錄</div>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+
+  <a class="card" href="study-plan-s3.html">
+    <div class="card-icon">✏️</div>
+    <div class="card-body">
+      <div class="card-title">全科計畫 S3</div>
+      <div class="card-sub">每日記錄・段考成績・歷史記錄</div>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+</div>
+
+<div class="footer">72026tina · study plan</div>
+
+</body>
+</html>
