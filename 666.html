@@ -144,9 +144,10 @@
   .chart-modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card);z-index:2;}
   .chart-modal-header h3{font-family:'Outfit',sans-serif;font-size:1rem;font-weight:700;color:var(--accent);}
   .chart-modal-close{width:30px;height:30px;border-radius:50%;border:none;background:var(--bg);color:var(--muted);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-  .chart-modal-body{padding:16px 14px 8px;display:flex;gap:0;}
-  .cm-filter-panel{display:flex;flex-direction:column;gap:3px;padding:0 10px 0 0;background:transparent;min-width:72px;align-items:stretch;border-right:1px solid var(--border);margin-right:14px;}
-  .cm-right{flex:1;overflow:hidden;}
+  .chart-modal-body{padding:14px 14px 8px;display:flex;flex-direction:column;gap:12px;}
+  .cm-filter-panel{display:flex;flex-direction:column;gap:6px;}
+  .cm-filter-row{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
+  .cm-right{overflow:hidden;}
   #chart-filter-panel{display:flex;flex-direction:column;gap:3px;padding:14px 10px;background:var(--accent-light);border-right:1.5px solid var(--border);min-width:72px;align-items:stretch;}
   #chart-right{flex:1;padding:14px 14px 10px;overflow:hidden;}
   #history-chart-wrap h2{font-family:'Outfit',sans-serif;font-size:0.9rem;font-weight:700;color:var(--accent);margin-bottom:8px;}
@@ -235,17 +236,15 @@
     </div>
     <div class="chart-modal-body">
       <div class="cm-filter-panel">
-        <div class="cfp-label">顯示</div>
-        <button class="cfb" data-cmfilter="total">📊 總分</button>
-        <div class="cfp-divider"></div>
-        <div class="cfp-label">單科</div>
-        <div id="cm-subj-btns"></div>
-        <div class="cfp-divider"></div>
-        <button class="cfb" data-cmfilter="all">🔀 綜合</button>
+        <div class="cm-filter-row" id="cm-type-btns">
+          <button class="cfb" data-cmfilter="total">📊 總分</button>
+          <div id="cm-subj-btns" style="display:contents;"></div>
+          <button class="cfb" data-cmfilter="all">🔀 綜合</button>
+        </div>
+        <div class="chart-sem-btns" id="cm-sem-btns"></div>
       </div>
       <div class="cm-right">
-        <div class="chart-sem-btns" id="cm-sem-btns"></div>
-        <canvas id="cm-history-chart" style="width:100%;max-height:320px;"></canvas>
+        <canvas id="cm-history-chart" style="width:100%;max-height:340px;"></canvas>
       </div>
     </div>
   </div>
@@ -1010,7 +1009,7 @@ let _cmSem = 'all';
 let _cmFilter = 'total';
 
 function buildCMChart() {
-  // Filter buttons - subjects
+  // Subject buttons (inline in the row)
   const subjBtns = document.getElementById('cm-subj-btns');
   subjBtns.innerHTML = '';
   const chartSubjs = [...ECFG.filter(s => !s.histOnly), ECFG.find(s => s.key === 'soc')];
@@ -1020,14 +1019,16 @@ function buildCMChart() {
     b.className = 'cfb' + (_cmFilter === sub.key ? ' active' : '');
     b.dataset.cmfilter = sub.key;
     b.textContent = sub.lbl;
-    if (_cmFilter === sub.key) { b.style.background = col; b.style.borderColor = col; }
+    if (_cmFilter === sub.key) { b.style.background = col; b.style.borderColor = col; b.style.color = 'white'; }
     else { b.style.borderLeftWidth = '3px'; b.style.borderLeftColor = col + '88'; }
     b.onclick = () => { _cmFilter = sub.key; buildCMChart(); };
     subjBtns.appendChild(b);
   });
-  document.querySelectorAll('.cm-filter-panel > .cfb').forEach(b => {
-    b.classList.toggle('active', b.dataset.cmfilter === _cmFilter);
-    if (b.dataset.cmfilter === _cmFilter) { b.style.background = ''; b.style.borderColor = ''; }
+  // Update total/all buttons
+  document.querySelectorAll('#cm-type-btns > .cfb').forEach(b => {
+    const isActive = b.dataset.cmfilter === _cmFilter;
+    b.classList.toggle('active', isActive);
+    if (!isActive) { b.style.background = ''; b.style.borderColor = ''; b.style.color = ''; }
   });
 
   // Sem buttons
@@ -1125,7 +1126,7 @@ document.getElementById('chart-modal-overlay').addEventListener('click', e => {
     if (_cmChart) { _cmChart.destroy(); _cmChart = null; }
   }
 });
-document.querySelectorAll('.cm-filter-panel > .cfb').forEach(b => {
+document.querySelectorAll('#cm-type-btns > .cfb').forEach(b => {
   b.onclick = () => { _cmFilter = b.dataset.cmfilter; buildCMChart(); };
 });
 
