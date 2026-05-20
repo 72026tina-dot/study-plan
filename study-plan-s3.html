@@ -3,22 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>每日練習集點</title>
+<title>詠琳 - 學習成效表</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Plus+Jakarta+Sans:wght@400;500;700;800&family=Fira+Code:wght@400;500&display=swap');
 
   :root {
-    --bg: #f0f4f5;
+    --bg: #fdf3f5;
     --card: #ffffff;
-    --border: #d0dde0;
-    --accent1: #1a9e8f;
-    --accent2: #2bbfad;
-    --accent3: #e05555;
+    --border: #f0d5db;
+    --accent1: #c4536a;
+    --accent2: #e07a90;
+    --accent3: #f5b8c4;
     --accent-warm: #e8a020;
-    --text: #1a2a2e;
-    --muted: #7a9298;
-    --phase1-bg: #e6f7f5;
-    --phase1-border: #2bbfad;
+    --accent-light: #fdeef1;
+    --text: #2a1820;
+    --muted: #9a7880;
+    --phase1-bg: #fdeef1;
+    --phase1-border: #e07a90;
     --phase2-bg: #fff8e6;
     --phase2-border: #e8a020;
     --math: #2d6fb5;
@@ -42,29 +43,29 @@
   }
 
   .header { text-align: center; margin-bottom: 24px; }
-  .header h1 { font-size: 1.7rem; font-weight: 900; color: var(--accent1); margin-bottom: 4px; }
-  .header p { font-size: 0.78rem; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .header h1 { font-size: 1.7rem; font-weight: 800; font-family: 'Plus Jakarta Sans', sans-serif; background: linear-gradient(135deg, var(--accent1), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 4px; }
+  .header p { font-size: 0.78rem; color: var(--muted); font-family: 'Fira Code', monospace; }
 
   /* Points bar */
   .pts-bar {
-    background: var(--gold-bg); border: 1.5px solid var(--gold);
+    background: var(--accent-light); border: 1.5px solid var(--accent2);
     border-radius: 14px; padding: 14px 16px; margin-bottom: 20px;
   }
   .pts-top { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 8px; }
-  .pts-num { font-family: 'Space Mono', monospace; font-size: 2rem; font-weight: 700; color: var(--gold); line-height: 1; }
+  .pts-num { font-family: 'Fira Code', monospace; font-size: 2rem; font-weight: 700; color: var(--accent1); line-height: 1; }
   .pts-sub { font-size: 0.63rem; color: var(--muted); margin-top: 2px; }
   .pts-money { text-align: right; }
-  .money-n { font-family: 'Space Mono', monospace; font-size: 1.1rem; font-weight: 700; }
+  .money-n { font-family: 'Fira Code', monospace; font-size: 1.1rem; font-weight: 700; }
   .money-l { font-size: 0.6rem; color: var(--muted); display: block; }
   .prog-w { background: var(--border); border-radius: 99px; height: 7px; overflow: hidden; }
-  .prog-f { height: 100%; background: linear-gradient(90deg, var(--gold), #e8c020); border-radius: 99px; transition: width 0.4s; }
+  .prog-f { height: 100%; background: linear-gradient(90deg, var(--accent1), var(--accent2)); border-radius: 99px; transition: width 0.4s; }
   .redeem { font-size: 0.68rem; color: var(--muted); text-align: center; margin-top: 6px; }
-  .redeem strong { color: var(--text); }
+  .redeem strong { color: var(--accent1); }
 
   /* Tabs */
   .tabs { display: flex; border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 20px; background: var(--bg); }
-  .tab { flex: 1; padding: 9px 4px; text-align: center; font-size: 0.75rem; font-weight: 700; cursor: pointer; color: var(--muted); background: var(--bg); border: none; transition: background 0.15s, color 0.15s; }
-  .tab.active { background: var(--accent1); color: white; }
+  .tab { flex: 1; padding: 9px 4px; text-align: center; font-size: 0.75rem; font-weight: 700; cursor: pointer; color: var(--muted); background: var(--bg); border: none; transition: background 0.15s, color 0.15s; font-family: 'Plus Jakarta Sans', sans-serif; }
+  .tab.active { background: var(--accent1); color: white; box-shadow: 0 2px 8px rgba(196,83,106,0.25); }
   .section { display: none; } .section.active { display: block; }
 
   /* Legend */
@@ -92,8 +93,8 @@
   .cal-cell.outrange { background: var(--bg); opacity: 0.3; cursor: default; }
   .cal-cell.off { background: var(--bg); opacity: 0.45; cursor: default; }
   .cal-cell.today { box-shadow: 0 0 0 2px var(--accent1); }
-  .cal-cell.has-data { border-color: var(--gold); }
-  .cell-date { font-family: 'Space Mono', monospace; font-size: 0.58rem; color: var(--muted); line-height: 1; margin-bottom: 1px; }
+  .cal-cell.has-data { border-color: var(--accent2); }
+  .cell-date { font-family: 'Fira Code', monospace; font-size: 0.58rem; color: var(--muted); line-height: 1; margin-bottom: 1px; }
   .cell-stars { font-size: 0.58rem; line-height: 1; text-align: center; margin-bottom: 1px; }
   .cell-pills { display: flex; flex-direction: column; gap: 1px; width: 100%; padding: 0 1px; }
   .cell-pill { font-size: 0.34rem; font-weight: 700; padding: 1px 2px; border-radius: 2px; text-align: center; }
@@ -101,37 +102,42 @@
   .cp-eng { background: var(--eng-bg); color: var(--eng); }
 
   /* Exam cards */
-  .exam-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 12px; padding: 13px 15px; margin-bottom: 10px; cursor: pointer; transition: box-shadow 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-  .exam-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.09); }
+  .exam-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 12px; padding: 13px 15px; margin-bottom: 10px; cursor: pointer; transition: box-shadow 0.15s; box-shadow: 0 1px 3px rgba(196,83,106,0.07); }
+  .exam-card:hover { box-shadow: 0 3px 10px rgba(196,83,106,0.13); }
   .ec-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
-  .ec-name { font-size: 0.9rem; font-weight: 700; }
-  .ec-pts { font-family: 'Space Mono', monospace; font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: var(--gold-bg); color: var(--gold); border: 1px solid var(--gold); }
+  .ec-name { font-size: 0.9rem; font-weight: 700; font-family: 'Plus Jakarta Sans', sans-serif; }
+  .ec-pts { font-family: 'Fira Code', monospace; font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: var(--accent-light); color: var(--accent1); border: 1px solid var(--accent2); }
   .ec-info { font-size: 0.68rem; color: var(--muted); display: flex; align-items: center; justify-content: space-between; }
-  .ec-score { font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: 700; }
+  .ec-score { font-family: 'Fira Code', monospace; font-size: 1rem; font-weight: 700; }
   .ec-prog { background: var(--border); border-radius: 99px; height: 5px; margin-top: 7px; overflow: hidden; }
   .ec-pf { height: 100%; border-radius: 99px; transition: width 0.4s; }
 
   /* Rules */
-  .rule-block { background: var(--card); border-left: 3px solid var(--accent1); border-radius: 0 8px 8px 0; padding: 14px 16px; margin-bottom: 12px; font-size: 0.76rem; color: var(--muted); line-height: 1.85; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .rule-block { background: var(--card); border-left: 3px solid var(--accent1); border-radius: 0 8px 8px 0; padding: 14px 16px; margin-bottom: 12px; font-size: 0.76rem; color: var(--muted); line-height: 1.85; box-shadow: 0 1px 3px rgba(196,83,106,0.05); }
   .rule-block strong { color: var(--text); }
-  .rule-title { font-weight: 900; color: var(--text); font-size: 0.82rem; display: block; margin-bottom: 6px; }
+  .rule-title { font-weight: 800; color: var(--text); font-size: 0.82rem; display: block; margin-bottom: 6px; font-family: 'Plus Jakarta Sans', sans-serif; }
   .rule-block.green { border-left-color: var(--green); }
   .rule-block.blue { border-left-color: var(--math); }
   .rule-block.red { border-left-color: var(--red); }
 
   /* Countdown */
-  .cd { background: #fdecea; border: 1.5px solid #f0a0a0; border-radius: 10px; padding: 11px 16px; margin-top: 16px; text-align: center; }
-  .cd-l { font-size: 0.65rem; color: var(--red); font-family: 'Space Mono', monospace; letter-spacing: 0.1em; margin-bottom: 2px; }
-  .cd-n { font-size: 1.4rem; font-weight: 900; color: var(--red); }
+  .cd-row { display: flex; gap: 10px; margin-top: 16px; }
+  .cd { flex:1; border-radius: 10px; padding: 11px 16px; margin-top: 16px; text-align: center; }
+  .cd.exam { background: linear-gradient(135deg,#fdecea,#fde8e8); border: 1.5px solid #f0a0a0; }
+  .cd.guan { background: var(--accent-light); border: 1.5px solid var(--accent2); }
+  .cd-l { font-size: 0.65rem; font-family: 'Fira Code', monospace; letter-spacing: 0.1em; margin-bottom: 2px; }
+  .cd-n { font-size: 1.4rem; font-weight: 800; font-family: 'Plus Jakarta Sans', sans-serif; }
+  .cd.exam .cd-l, .cd.exam .cd-n { color: var(--red); }
+  .cd.guan .cd-l, .cd.guan .cd-n { color: var(--accent1); }
   .cd-n span { font-size: 0.85rem; font-weight: 400; color: var(--muted); }
 
   /* Modal */
   .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
   .overlay.show { display: flex; }
-  .modal { background: white; border-radius: 16px; padding: 20px 17px 17px; width: 100%; max-width: 320px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; }
-  .modal h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 2px; color: var(--text); }
-  .msub { font-size: 0.68rem; color: var(--muted); font-family: 'Space Mono', monospace; margin-bottom: 12px; }
-  .mprev { background: var(--gold-bg); border: 1px solid var(--gold); border-radius: 8px; padding: 7px 12px; text-align: center; font-size: 0.8rem; font-weight: 700; color: var(--gold); margin-bottom: 12px; }
+  .modal { background: white; border-radius: 16px; padding: 20px 17px 17px; width: 100%; max-width: 320px; box-shadow: 0 8px 32px rgba(196,83,106,0.15); max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 2px; color: var(--accent1); font-family: 'Plus Jakarta Sans', sans-serif; }
+  .msub { font-size: 0.68rem; color: var(--muted); font-family: 'Fira Code', monospace; margin-bottom: 12px; }
+  .mprev { background: var(--accent-light); border: 1px solid var(--accent2); border-radius: 8px; padding: 7px 12px; text-align: center; font-size: 0.8rem; font-weight: 700; color: var(--accent1); margin-bottom: 12px; }
   .mslabel { font-size: 0.63rem; font-weight: 700; color: var(--muted); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 5px; margin-top: 11px; }
   .mrow { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
   .mrow label { font-size: 0.78rem; font-weight: 700; min-width: 30px; }
@@ -139,7 +145,7 @@
   .mrow input:focus, .mrow select:focus { outline: none; border-color: var(--accent1); }
   .mrow select { flex: 1; padding: 7px 8px; border: 1.5px solid var(--border); border-radius: 7px; font-family: 'Noto Sans TC', sans-serif; font-size: 0.78rem; background: var(--bg); color: var(--text); }
   .check-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-radius: 8px; border: 1.5px solid var(--border); margin-bottom: 6px; cursor: pointer; transition: background 0.12s, border-color 0.12s; }
-  .check-row.checked { border-color: var(--accent1); background: var(--phase1-bg); }
+  .check-row.checked { border-color: var(--accent1); background: var(--accent-light); }
   .check-row.math-r.checked { border-color: var(--math); background: var(--math-bg); }
   .check-row.eng-r.checked { border-color: var(--eng); background: var(--eng-bg); }
   .check-row-label { font-size: 0.82rem; font-weight: 700; }
@@ -154,15 +160,43 @@
   .btn-x { background: #fdecea; color: var(--red); border: 1px solid #f0a0a0; }
   .em-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
   .em-row label { font-size: 0.8rem; color: var(--muted); min-width: 55px; }
-  .em-row input { width: 68px; padding: 8px; border: 1.5px solid var(--border); border-radius: 7px; font-family: 'Space Mono', monospace; font-size: 1rem; text-align: center; background: var(--bg); }
+  .em-row input { width: 68px; padding: 8px; border: 1.5px solid var(--border); border-radius: 7px; font-family: 'Fira Code', monospace; font-size: 1rem; text-align: center; background: var(--bg); }
   .em-row input:focus { outline: none; border-color: var(--accent1); }
-  .em-pts { font-size: 0.82rem; color: var(--gold); font-weight: 700; }
+  .em-pts { font-size: 0.82rem; color: var(--accent2); font-weight: 700; }
+
+  .status-note{padding:6px 10px;border-radius:7px;font-size:0.78rem;font-weight:700;margin-bottom:8px;}
+  .status-note.confirmed{background:#eaf4ec;color:#3a7d44;border:1px solid #3a7d44;}
+  .status-note.pending{background:var(--accent-light);color:var(--accent1);border:1px solid var(--accent2);}
+  .cal-cell.pending{background:var(--accent-light) !important;border-color:var(--accent2) !important;}
+  .cal-cell.confirmed{background:#f0faf0 !important;border-color:#3a7d44 !important;}
+  .cell-status{font-size:0.9rem;line-height:1;margin-top:1px;}
+  .pw-input{width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:1.1rem;text-align:center;letter-spacing:0.2em;margin-bottom:8px;box-sizing:border-box;}
+  .pw-error{color:var(--accent1);font-size:0.78rem;min-height:18px;margin-bottom:4px;}
+  .teacher-modal{background:white;border-radius:18px;padding:22px 18px 18px;width:100%;max-width:300px;box-shadow:0 12px 40px rgba(196,83,106,0.2);}
+  .teacher-modal h3{font-size:0.95rem;font-weight:700;margin-bottom:12px;color:#3a7d44;font-family:'Plus Jakarta Sans',sans-serif;}
+
+  #history-chart-wrap{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:0;margin-bottom:18px;box-shadow:0 2px 8px rgba(196,83,106,0.07);display:flex;overflow:hidden;}
+  #chart-filter-panel{display:flex;flex-direction:column;gap:3px;padding:14px 10px;background:var(--accent-light);border-right:1.5px solid var(--border);min-width:72px;align-items:stretch;}
+  #chart-right{flex:1;padding:14px 14px 10px;overflow:hidden;}
+  #history-chart-wrap h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:0.9rem;font-weight:700;color:var(--accent1);margin-bottom:8px;}
+  .cfp-label{font-size:0.58rem;font-weight:700;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;padding:2px 4px;font-family:'Fira Code',monospace;}
+  .cfp-divider{height:1px;background:var(--border);margin:4px 0;}
+  .cfb{font-size:0.68rem;font-weight:700;padding:5px 6px;border-radius:7px;border:1.5px solid transparent;background:transparent;color:var(--muted);cursor:pointer;text-align:left;font-family:'Plus Jakarta Sans',sans-serif;transition:all 0.15s;white-space:nowrap;}
+  .cfb:hover{background:var(--card);color:var(--accent1);}
+  .cfb.active{background:var(--accent1);color:white;border-color:var(--accent1);}
+  #chart-subj-btns{display:flex;flex-direction:column;gap:2px;}
+  .chart-sem-btns{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;}
+  .csb{font-size:0.68rem;font-weight:700;padding:3px 9px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;font-family:'Fira Code',monospace;transition:all 0.15s;}
+  .csb.active{background:var(--accent1);color:white;border-color:var(--accent1);}
+  #history-table th, #history-table td { border: 1px solid var(--border); white-space: nowrap; }
+  #history-table thead th { font-weight: 700; font-size: 0.75rem; color: var(--accent1); }
+  #history-table tbody td { font-family: 'Fira Code', monospace; font-size: 0.78rem; }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>📐 每日練習集點</h1>
+  <h1>📐 詠琳 - 學習成效表</h1>
   <p>每點 10 元 · 段考後換錢或選商品</p>
 </div>
 
@@ -178,6 +212,7 @@
 <div class="tabs">
   <button class="tab active" onclick="sw('daily')">📖 每日練習</button>
   <button class="tab" onclick="sw('exam')">📝 段考成績</button>
+  <button class="tab" onclick="sw('history')">📊 歷史成績</button>
   <button class="tab" onclick="sw('rules')">📋 規則</button>
 </div>
 
@@ -195,6 +230,29 @@
 <!-- Exam -->
 <div class="section" id="s-exam">
   <div id="exam-cards"></div>
+</div>
+
+<!-- History -->
+<div class="section" id="s-history">
+  <div id="history-chart-wrap">
+    <div id="chart-filter-panel">
+      <div class="cfp-label">顯示</div>
+      <button class="cfb active" data-filter="total">📊 總分</button>
+      <div class="cfp-divider"></div>
+      <div class="cfp-label">單科</div>
+      <div id="chart-subj-btns"></div>
+      <div class="cfp-divider"></div>
+      <button class="cfb" data-filter="all">🔀 綜合</button>
+    </div>
+    <div id="chart-right">
+      <h2>📈 成績趨勢</h2>
+      <div class="chart-sem-btns" id="chart-sem-btns"></div>
+      <canvas id="history-chart" style="width:100%;max-height:260px;"></canvas>
+    </div>
+  </div>
+  <div style="overflow-x:auto;">
+    <table id="history-table" style="width:100%;border-collapse:collapse;font-size:0.78rem;"></table>
+  </div>
 </div>
 
 <!-- Rules -->
@@ -233,9 +291,15 @@
   </div>
 </div>
 
-<div class="cd">
-  <div class="cd-l">⚠ 段考倒數</div>
-  <div class="cd-n" id="cd-n">— <span>天</span></div>
+<div class="cd-row">
+  <div class="cd exam">
+    <div class="cd-l">⚠ 段考倒數</div>
+    <div class="cd-n" id="cd-n">— <span>天</span></div>
+  </div>
+  <div class="cd guan">
+    <div class="cd-l">🎯 會考倒數</div>
+    <div class="cd-n" id="cd-guan">— <span>天</span></div>
+  </div>
 </div>
 
 <!-- Daily modal -->
@@ -272,6 +336,7 @@
       </select>
     </div>
 
+    <div id="dm-status-note" style="display:none"></div>
     <div class="mbtns" id="dm-btns"></div>
   </div>
 </div>
@@ -285,10 +350,23 @@
     <div class="mslabel">實際成績</div>
     <div class="em-row">
       <label>分數</label>
-      <input type="number" id="em-sc" min="0" max="100" placeholder="分" />
+      <input type="number" id="em-sc" min="0" max="100" step="0.5" placeholder="分" />
       <span class="em-pts" id="em-pts"></span>
     </div>
     <div class="mbtns" id="em-btns"></div>
+  </div>
+</div>
+
+<!-- Teacher modal -->
+<div class="overlay" id="o-teacher">
+  <div class="teacher-modal">
+    <h3 id="tm-title">✅ 老師確認</h3>
+    <input type="password" class="pw-input" id="pw-input" placeholder="••••" maxlength="10" />
+    <div class="pw-error" id="pw-error"></div>
+    <div class="mbtns">
+      <button class="btn btn-c" id="pw-cancel">取消</button>
+      <button class="btn btn-s" style="background:#3a7d44" id="pw-confirm">確認 ✓</button>
+    </div>
   </div>
 </div>
 
@@ -296,6 +374,7 @@
 const FB = 'https://math-plan-default-rtdb.asia-southeast1.firebasedatabase.app/s3_daily.json';
 const today = new Date(); today.setHours(0,0,0,0);
 const examDay = new Date(2026, 5, 25);
+const guanKaoDay = new Date(2027, 4, 22); // 2027/5/22
 const planStart = new Date(2026, 4, 18);
 const planEnd = new Date(2026, 5, 27); // up to 6/26
 
@@ -306,6 +385,13 @@ const ECFG = [
   {key:'natl',   lbl:'自然', target:80, base:10, step:5,  bonus:5, col:'#5a7a00'},
   {key:'social', lbl:'社會', target:80, base:10, step:5,  bonus:5, col:'#7040aa'},
 ];
+
+const SEMESTERS = [
+  {key:'1a',lbl:'國一上'},{key:'1b',lbl:'國一下'},
+  {key:'2a',lbl:'國二上'},{key:'2b',lbl:'國二下'},
+  {key:'3a',lbl:'國三上'},{key:'3b',lbl:'國三下'},
+];
+const EXAM_TIMES = [{key:'1',lbl:'第一次'},{key:'2',lbl:'第二次'},{key:'3',lbl:'第三次'}];
 
 function ePts(cfg, score) {
   if (score === null || score === undefined || score === '') return 0;
@@ -335,14 +421,15 @@ async function load() {
     const r = await fetch(FB); const j = await r.json();
     if (j) { data.daily = j.daily || {}; data.exam = j.exam || {}; }
   } catch(e) {}
-  buildCal(); buildExam(); updSum();
+  buildCal(); buildExam(); updSum(); buildHistory();
 }
 async function save() {
   try { await fetch(FB, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) }); } catch(e) {}
 }
 
 function sw(t) {
-  ['daily','exam','rules'].forEach((id,i) => {
+  if (t === 'history') buildHistory();
+  ['daily','exam','history','rules'].forEach((id,i) => {
     document.querySelectorAll('.tab')[i].classList.toggle('active', id===t);
     document.getElementById('s-'+id).classList.toggle('active', id===t);
   });
@@ -394,6 +481,9 @@ function buildCal() {
       html += `<div class="cell-pill cp-eng" style="opacity:${entry?.eng?1:0.3}">英 ${entry?.eng?'✓':''}</div>`;
       html += `</div>`;
     }
+    const cst = (data.daily[key] || {}).status;
+    if (cst === 'confirmed') { cell.classList.add('confirmed'); html += `<div class="cell-status">🟢</div>`; }
+    else if (cst === 'pending') { cell.classList.add('pending'); html += `<div class="cell-status">🟠</div>`; }
     cell.innerHTML = html;
     if (inRange) cell.addEventListener('click', () => openDM(key));
     currentGrid.appendChild(cell);
@@ -442,6 +532,8 @@ function updSum() {
   document.getElementById('prog-f').style.width = Math.min(100, tot / 150 * 100) + '%';
   const diff = Math.ceil((examDay - today) / 86400000);
   document.getElementById('cd-n').innerHTML = `${diff} <span>天</span>`;
+  const guanDiff = Math.ceil((guanKaoDay - today) / 86400000);
+  document.getElementById('cd-guan').innerHTML = `${guanDiff} <span>天</span>`;
 }
 
 // Daily modal
@@ -451,12 +543,17 @@ let tMath = false, tMathR = '', tEng = false, tEngR = '', tFd = '', tFp = 0;
 function openDM(key) {
   dk_cur = key;
   const e = data.daily[key] || {};
-  const [ky3,km3,kd3]=key.split('-').map(Number); document.getElementById('dm-t').textContent = fmt(new Date(ky3,km3-1,kd3));
+  const [ky3,km3,kd3]=key.split('-').map(Number);
+  document.getElementById('dm-t').textContent = fmt(new Date(ky3,km3-1,kd3));
   document.getElementById('dm-s').textContent = '數學 · 英文 · 自由任務';
 
   tMath = !!e.math; tMathR = e.mathRange || '';
   tEng = !!e.eng; tEngR = e.engRange || '';
   tFd = e.free?.desc || ''; tFp = parseInt(e.free?.pt || 0);
+
+  // 徹底清理上次殘留的動態按鈕
+  document.querySelectorAll('#od .btn[style], #teacher-confirm-btn').forEach(b => b.remove());
+  document.getElementById('dm-btns').innerHTML = '';
 
   updCheckRows();
   document.getElementById('math-range').value = tMathR;
@@ -473,15 +570,56 @@ function openDM(key) {
   document.getElementById('dm-fp').onchange = e => { tFp = parseInt(e.target.value); updDMPrev(); };
 
   const hasD = !!data.daily[key];
+  const isConfirmed = (data.daily[key] || {}).status === 'confirmed';
+  const st = (data.daily[key] || {}).status;
+
+  const note = document.getElementById('dm-status-note');
+  if (st === 'confirmed') {
+    note.style.display='block'; note.className='status-note confirmed'; note.textContent='✅ 老師已確認';
+  } else if (st === 'pending') {
+    note.style.display='block'; note.className='status-note pending'; note.textContent='🟠 等待老師確認中';
+  } else {
+    note.style.display='none';
+  }
+
+  // 鎖定控制
+  const lock = isConfirmed;
+  ['math-range','eng-range','dm-fd','dm-fp'].forEach(id => {
+    const el=document.getElementById(id); if(el) el.disabled=lock;
+  });
+  document.getElementById('math-row').style.pointerEvents = lock ? 'none' : '';
+  document.getElementById('eng-row').style.pointerEvents = lock ? 'none' : '';
+
   const btns = document.getElementById('dm-btns');
-  btns.innerHTML = hasD
-    ? `<button class="btn btn-x" id="dm-x">清除</button><button class="btn btn-c" id="dm-c">取消</button><button class="btn btn-s" id="dm-sv">儲存</button>`
-    : `<button class="btn btn-c" id="dm-c">取消</button><button class="btn btn-s" id="dm-sv">儲存</button>`;
-  if (hasD) document.getElementById('dm-x').onclick = async () => {
-    delete data.daily[dk_cur]; await save(); buildCal(); updSum(); closeDM();
-  };
+
+  if (isConfirmed) {
+    btns.innerHTML = `<button class="btn btn-c" id="dm-c">關閉</button><button class="btn" id="dm-edit" style="background:#2a5caa;color:white;border:none;border-radius:9px;padding:10px;font-weight:700;font-size:0.82rem;cursor:pointer;flex:1;">老師修改 ✏️</button>`;
+    document.getElementById('dm-edit').onclick = () => openTeacherModal('edit', key);
+  } else if (hasD) {
+    btns.innerHTML = `<button class="btn btn-x" id="dm-x">清除</button><button class="btn btn-c" id="dm-c">取消</button><button class="btn btn-s" id="dm-sv">儲存</button>`;
+    document.getElementById('dm-x').onclick = async () => { delete data.daily[dk_cur]; await save(); buildCal(); updSum(); closeDM(); };
+  } else {
+    btns.innerHTML = `<button class="btn btn-c" id="dm-c">取消</button><button class="btn btn-s" id="dm-sv">儲存</button>`;
+  }
+
+  if (st === 'pending') {
+    let tb = document.getElementById('teacher-confirm-btn');
+    if (!tb) {
+      tb = document.createElement('button');
+      tb.id = 'teacher-confirm-btn';
+      tb.className='btn';
+      tb.style.cssText='background:#3a7d44;color:white;margin-top:6px;flex:none;width:100%;border-radius:9px;padding:10px;font-weight:700;border:none;cursor:pointer;';
+      tb.textContent='老師確認 ✓';
+      btns.parentNode.insertBefore(tb, btns.nextSibling);
+    }
+    tb.onclick = () => openTeacherModal('confirm', key);
+  }
+
   document.getElementById('dm-c').onclick = closeDM;
-  document.getElementById('dm-sv').onclick = saveDM;
+  if (!isConfirmed) {
+    const sv=document.getElementById('dm-sv');
+    if(sv) sv.onclick=()=>saveDM(false);
+  }
   document.getElementById('od').classList.add('show');
 }
 
@@ -502,21 +640,37 @@ function updDMPrev() {
   document.getElementById('dm-p').textContent = `今日可得 ${p} 點 ⭐`;
 }
 
-async function saveDM() {
+async function saveDM(keepConfirmed) {
+  const prevStatus = (data.daily[dk_cur] || {}).status;
+  const newStatus = (tMath || tEng) ? 'pending' : null;
+  const finalStatus = keepConfirmed ? 'confirmed' : (prevStatus === 'confirmed' ? 'confirmed' : newStatus);
   const entry = {
     math: tMath, mathRange: tMathR,
     eng: tEng, engRange: tEngR,
-    free: { desc: tFd, pt: tFp }
+    free: { desc: tFd, pt: tFp },
+    status: finalStatus
   };
   data.daily[dk_cur] = entry;
   await save(); buildCal(); updSum(); closeDM();
 }
-function closeDM() { document.getElementById('od').classList.remove('show'); }
+function closeDM() {
+  document.getElementById('od').classList.remove('show');
+  // 徹底清理動態按鈕
+  document.querySelectorAll('#teacher-confirm-btn, #od .btn[style]').forEach(b => b.remove());
+  document.getElementById('dm-btns').innerHTML = '';
+  // 解除鎖定
+  ['math-range','eng-range','dm-fd','dm-fp'].forEach(id => {
+    const el=document.getElementById(id); if(el) el.disabled=false;
+  });
+  document.getElementById('math-row').style.pointerEvents = '';
+  document.getElementById('eng-row').style.pointerEvents = '';
+}
 document.getElementById('od').addEventListener('click', e => { if (e.target.id === 'od') closeDM(); });
 
 // Exam modal
 let ecfg = null;
 function openEM(cfg) {
+  document.getElementById('em-p').style.display = '';
   ecfg = cfg;
   document.getElementById('em-t').textContent = cfg.lbl + ' 段考成績';
   document.getElementById('em-s').textContent = `目標 ${cfg.target} 分・達標 ${cfg.base} 點・超標每${cfg.step}分+${cfg.bonus}點`;
@@ -555,6 +709,257 @@ function closeEM() { document.getElementById('oe').classList.remove('show'); }
 document.getElementById('oe').addEventListener('click', e => { if (e.target.id === 'oe') closeEM(); });
 
 load();
+
+document.querySelectorAll('#chart-filter-panel > .cfb').forEach(b => {
+  b.onclick = () => { _chartActiveFilter = b.dataset.filter; buildHistoryChart(); };
+});
+
+function buildHistory() {
+  const tbl = document.getElementById('history-table');
+  tbl.innerHTML = '';
+  const allKeys = [];
+  SEMESTERS.forEach(s => EXAM_TIMES.forEach(t => allKeys.push({sem: s.key, t: t.key})));
+
+  let thead = `<thead><tr>
+    <th style="text-align:left;padding:8px 10px;background:#f5ede6;position:sticky;left:0;z-index:2;min-width:72px;font-size:0.75rem;color:var(--muted);">學期</th>
+    <th style="padding:8px 6px;background:#f5ede6;text-align:center;min-width:40px;font-size:0.75rem;color:var(--muted);">次</th>`;
+  ECFG.forEach(s => {
+    thead += `<th style="padding:8px 6px;background:#f5ede6;text-align:center;min-width:54px;font-weight:700;">${s.lbl}</th>`;
+  });
+  thead += `<th style="padding:8px 6px;background:#f0e8dc;text-align:center;min-width:52px;font-weight:700;">總分</th></tr></thead>`;
+  tbl.innerHTML = thead;
+  const tbody = document.createElement('tbody');
+
+  SEMESTERS.forEach((sem, si) => {
+    EXAM_TIMES.forEach((t, ti) => {
+      const tr = document.createElement('tr');
+      const borderTop = ti === 0 ? '2px solid var(--border)' : '1px solid #f0e8e0';
+      if (ti === 0) {
+        const semTd = document.createElement('td');
+        semTd.rowSpan = 3;
+        semTd.style.cssText = `padding:8px 10px;background:#fdf8f3;position:sticky;left:0;z-index:1;font-weight:700;font-size:0.8rem;border-top:2px solid var(--border);vertical-align:middle;text-align:center;white-space:nowrap;`;
+        semTd.textContent = sem.lbl;
+        tr.appendChild(semTd);
+      }
+      const timeTd = document.createElement('td');
+      timeTd.style.cssText = `padding:8px 6px;background:#fafafa;text-align:center;font-size:0.75rem;color:var(--muted);border-top:${borderTop};white-space:nowrap;`;
+      timeTd.textContent = `第${t.key}次`;
+      tr.appendChild(timeTd);
+
+      let total = 0; let allPresent = true;
+      ECFG.forEach(sub => {
+        const k = `hist_${sub.key}_${sem.key}_${t.key}`;
+        const score = data.exam[k];
+        const has = score !== null && score !== undefined && score !== '';
+        if (!has) allPresent = false;
+        const curIdx = allKeys.findIndex(x => x.sem === sem.key && x.t === t.key);
+        let prevScore = null;
+        for (let i = curIdx - 1; i >= 0; i--) {
+          const pk = `hist_${sub.key}_${allKeys[i].sem}_${allKeys[i].t}`;
+          if (data.exam[pk] !== null && data.exam[pk] !== undefined && data.exam[pk] !== '') { prevScore = parseFloat(data.exam[pk]); break; }
+        }
+        let arrow = '';
+        if (has && prevScore !== null) {
+          const diff = Math.round((parseFloat(score) - prevScore) * 10) / 10;
+          arrow = diff > 0 ? `&nbsp;&nbsp;<span style="color:#3a7d44;font-size:0.68rem;">▲${diff}</span>` : diff < 0 ? `&nbsp;&nbsp;<span style="color:#d4521a;font-size:0.68rem;">▼${Math.abs(diff)}</span>` : '';
+        }
+        const td = document.createElement('td');
+        td.style.cssText = `text-align:center;padding:6px 4px;border-top:${borderTop};cursor:pointer;transition:background 0.12s;`;
+        td.onmouseover = () => { td.style.background = '#fdebd8'; };
+        td.onmouseout = () => { td.style.background = ''; };
+        td.innerHTML = has ? `<span style="font-weight:700;font-size:0.82rem;">${score}</span>${arrow}` : `<span style="color:#ddd;font-size:0.75rem;">—</span>`;
+        td.title = `點擊輸入 ${sub.lbl} ${sem.lbl}第${t.key}次`;
+        td.addEventListener('click', () => openHistoryEM(sub, sem.key, t.key));
+        tr.appendChild(td);
+        if (has) total += parseFloat(score);
+      });
+      const totalTd = document.createElement('td');
+      totalTd.style.cssText = `text-align:center;padding:6px 4px;border-top:${borderTop};background:#fdf5ec;font-weight:700;font-size:0.82rem;`;
+      totalTd.textContent = allPresent ? Math.round(total * 10) / 10 : '—';
+      tr.appendChild(totalTd);
+      tbody.appendChild(tr);
+    });
+  });
+  tbl.appendChild(tbody);
+  if (typeof buildHistoryChart === 'function') buildHistoryChart();
+}
+
+function openHistoryEM(sub, semKey, timeKey) {
+  const semLbl = SEMESTERS.find(s => s.key === semKey)?.lbl || semKey;
+  const k = `hist_${sub.key}_${semKey}_${timeKey}`;
+  document.getElementById('em-t').textContent = `${sub.lbl} — ${semLbl}第${timeKey}次`;
+  document.getElementById('em-s').textContent = '';
+  document.getElementById('em-p').textContent = '';
+  document.getElementById('em-p').style.display = 'none';
+  document.getElementById('em-pts').textContent = '';
+  const cur = data.exam[k] ?? '';
+  document.getElementById('em-sc').value = cur;
+  const hasD = cur !== '';
+  const btns = document.getElementById('em-btns');
+  btns.innerHTML = hasD
+    ? `<button class="btn btn-x" id="em-x">清除</button><button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`
+    : `<button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`;
+  if (hasD) document.getElementById('em-x').onclick = async () => { delete data.exam[k]; await save(); buildHistory(); closeEM(); };
+  document.getElementById('em-c').onclick = closeEM;
+  document.getElementById('em-sv').onclick = async () => {
+    const v = document.getElementById('em-sc').value;
+    if (v !== '') data.exam[k] = parseFloat(v);
+    await save(); buildHistory(); closeEM();
+  };
+  document.getElementById('oe').classList.add('show');
+}
+
+let _teacherKey = null, _teacherMode = null;
+
+function openTeacherModal(mode, key) {
+  _teacherMode = mode;
+  _teacherKey = key;
+  document.getElementById('pw-input').value = '';
+  document.getElementById('pw-error').textContent = '';
+  document.getElementById('tm-title').textContent = mode === 'edit' ? '✏️ 老師修改' : '✅ 老師確認';
+  document.getElementById('o-teacher').classList.add('show');
+  setTimeout(() => document.getElementById('pw-input').focus(), 100);
+}
+
+function closeTeacherModal() {
+  document.getElementById('o-teacher').classList.remove('show');
+}
+
+document.getElementById('pw-cancel').onclick = closeTeacherModal;
+document.getElementById('pw-confirm').onclick = async () => {
+  const pw = document.getElementById('pw-input').value.trim();
+  if (pw !== '777') {
+    document.getElementById('pw-error').textContent = '密碼錯誤，請再試一次';
+    return;
+  }
+  document.getElementById('pw-error').textContent = '';
+  closeTeacherModal();
+  if (_teacherMode === 'edit') {
+    const btns = document.getElementById('dm-btns');
+    btns.innerHTML = `<button class="btn btn-x" id="dm-x">清除</button><button class="btn btn-c" id="dm-c">取消</button><button class="btn btn-s" id="dm-sv">儲存</button>`;
+    document.getElementById('dm-x').onclick = async () => { delete data.daily[dk_cur]; await save(); buildCal(); updSum(); closeDM(); };
+    document.getElementById('dm-c').onclick = closeDM;
+    document.getElementById('dm-sv').onclick = () => saveDM(true);
+    ['math-range','eng-range','dm-fd','dm-fp'].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = false; });
+    document.getElementById('math-row').style.pointerEvents = '';
+    document.getElementById('eng-row').style.pointerEvents = '';
+  } else {
+    if (data.daily[_teacherKey]) {
+      data.daily[_teacherKey].status = 'confirmed';
+      await save(); buildCal(); updSum();
+    }
+    closeDM();
+  }
+};
+document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('pw-confirm').click(); });
+document.getElementById('o-teacher').addEventListener('click', e => { if (e.target.id === 'o-teacher') closeTeacherModal(); });
+
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+let _histChart = null;
+let _chartActiveSem = 'all';
+let _chartActiveFilter = 'total';
+
+const CHART_COLORS_S3 = {
+  ch:     '#b83030',
+  math:   '#2d6fb5',
+  eng:    '#2a8a6a',
+  natl:   '#5a7a00',
+  social: '#7040aa',
+};
+const TOTAL_COLOR_S3 = '#c4536a';
+
+function buildHistoryChart() {
+  const subjBtns = document.getElementById('chart-subj-btns');
+  if (!subjBtns) return;
+  subjBtns.innerHTML = '';
+  ECFG.forEach(sub => {
+    const col = CHART_COLORS_S3[sub.key] || '#888';
+    const b = document.createElement('button');
+    b.className = 'cfb' + (_chartActiveFilter === sub.key ? ' active' : '');
+    b.dataset.filter = sub.key;
+    b.textContent = sub.lbl;
+    if (_chartActiveFilter === sub.key) { b.style.background = col; b.style.borderColor = col; }
+    else { b.style.borderLeftWidth = '3px'; b.style.borderLeftColor = col + '88'; }
+    b.onclick = () => { _chartActiveFilter = sub.key; buildHistoryChart(); };
+    subjBtns.appendChild(b);
+  });
+  document.querySelectorAll('#chart-filter-panel > .cfb').forEach(b => {
+    b.classList.toggle('active', b.dataset.filter === _chartActiveFilter);
+  });
+
+  const semBtns = document.getElementById('chart-sem-btns');
+  semBtns.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'csb' + (_chartActiveSem === 'all' ? ' active' : '');
+  allBtn.textContent = '全部';
+  allBtn.onclick = () => { _chartActiveSem = 'all'; buildHistoryChart(); };
+  semBtns.appendChild(allBtn);
+  SEMESTERS.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'csb' + (_chartActiveSem === s.key ? ' active' : '');
+    b.textContent = s.lbl;
+    b.onclick = () => { _chartActiveSem = s.key; buildHistoryChart(); };
+    semBtns.appendChild(b);
+  });
+
+  const filteredSems = _chartActiveSem === 'all' ? SEMESTERS : SEMESTERS.filter(s => s.key === _chartActiveSem);
+  const labels = [];
+  filteredSems.forEach(s => { EXAM_TIMES.forEach(t => { labels.push(s.lbl + ' ' + t.key); }); });
+
+  let datasets = [];
+  if (_chartActiveFilter === 'total') {
+    const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => {
+      let total = 0, ok = true;
+      ECFG.forEach(sub => {
+        const v = data.exam[`hist_${sub.key}_${s.key}_${t.key}`];
+        if (v !== null && v !== undefined && v !== '') total += parseFloat(v);
+        else ok = false;
+      });
+      return ok ? Math.round(total * 10) / 10 : null;
+    }));
+    datasets = [{ label: '總分', data: d, borderColor: TOTAL_COLOR_S3, backgroundColor: TOTAL_COLOR_S3+'22', pointBackgroundColor: TOTAL_COLOR_S3, pointRadius: 5, pointHoverRadius: 7, tension: 0, spanGaps: true, borderWidth: 2.5 }];
+  } else if (_chartActiveFilter === 'all') {
+    datasets = ECFG.map(sub => {
+      const col = CHART_COLORS_S3[sub.key] || '#888';
+      const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => {
+        const v = data.exam[`hist_${sub.key}_${s.key}_${t.key}`];
+        return (v !== null && v !== undefined && v !== '') ? parseFloat(v) : null;
+      }));
+      return { label: sub.lbl, data: d, borderColor: col, backgroundColor: col+'22', pointBackgroundColor: col, pointRadius: 4, pointHoverRadius: 6, tension: 0, spanGaps: true };
+    });
+  } else {
+    const sub = ECFG.find(s => s.key === _chartActiveFilter);
+    if (sub) {
+      const col = CHART_COLORS_S3[sub.key] || '#888';
+      const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => {
+        const v = data.exam[`hist_${sub.key}_${s.key}_${t.key}`];
+        return (v !== null && v !== undefined && v !== '') ? parseFloat(v) : null;
+      }));
+      datasets = [{ label: sub.lbl, data: d, borderColor: col, backgroundColor: col+'22', pointBackgroundColor: col, pointRadius: 5, pointHoverRadius: 7, tension: 0, spanGaps: true, borderWidth: 2.5 }];
+    }
+  }
+
+  if (_histChart) { _histChart.destroy(); _histChart = null; }
+  const ctx = document.getElementById('history-chart');
+  if (!ctx) return;
+  const isTotal = _chartActiveFilter === 'total';
+  _histChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 8 } }, tooltip: { mode: 'index', intersect: false } },
+      scales: {
+        y: { min: 0, max: isTotal ? 500 : 100, ticks: { stepSize: isTotal ? 100 : 20, font: { size: 10 } }, grid: { color: '#f0d5db44' } },
+        x: { ticks: { font: { size: 9 }, maxRotation: 45 }, grid: { display: false } },
+      },
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    }
+  });
+}
+</script>
+
 </body>
 </html>
