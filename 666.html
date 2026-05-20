@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>士傑 - 學習成效表</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Outfit:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root{
+    --bg:#f3f2f8;--card:#fff;--border:#dddaf0;
+    --accent:#4a3f8f;--accent-light:#ece9fb;--accent2:#7c6fd4;
+    --math:#2d6fb5;--math-bg:#eaf1fa;
+    --eng:#2a8a6a;--eng-bg:#e6f5f0;
+    --science:#c8680a;--science-bg:#fef3e6;
+    --social:#7040aa;--social-bg:#f2ecfa;
+    --chinese:#b83030;--chinese-bg:#fdecea;
+    --geo:#1a7a5e;--geo-bg:#e6f5ef;
+    --hist:#8b5e00;--hist-bg:#fdf6e3;
+    --civic:#2a5caa;--civic-bg:#eaf0fa;
+    --natl:#5a7a00;--natl-bg:#f4fae6;
+    --text:#1a1830;--muted:#7a7898;
+    --gold:#c8950a;--gold-bg:#fdf6e3;
+    --red:#b83030;--green:#2d7a2d;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh;padding:24px 16px 60px;}
+
+  .header{text-align:center;margin-bottom:20px;}
+  .header h1{font-size:1.6rem;font-weight:900;margin-bottom:4px;font-family:'Outfit',sans-serif;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .header p{font-size:0.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+
+  .pts-bar{background:var(--accent-light);border:1.5px solid var(--accent2);border-radius:14px;padding:14px 16px;margin-bottom:18px;}
+  .pts-top{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:8px;}
+  .pts-num{font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:700;color:var(--accent);line-height:1;}
+  .pts-sub{font-size:0.63rem;color:var(--muted);margin-top:2px;}
+  .pts-money{text-align:right;}
+  .money-n{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:700;}
+  .money-l{font-size:0.6rem;color:var(--muted);display:block;}
+  .prog-w{background:var(--border);border-radius:99px;height:7px;overflow:hidden;}
+  .prog-f{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width 0.4s;}
+  .redeem{font-size:0.68rem;color:var(--muted);text-align:center;margin-top:6px;}
+  .redeem strong{color:var(--accent);}
+
+  .tabs{display:flex;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px;}
+  .tab{flex:1;padding:9px 4px;text-align:center;font-size:0.75rem;font-weight:700;cursor:pointer;color:var(--muted);background:var(--bg);border:none;transition:background 0.15s,color 0.15s;font-family:'Outfit',sans-serif;}
+  .tab.active{background:var(--accent);color:white;box-shadow:0 2px 8px rgba(74,63,143,0.25);}
+  .section{display:none;}.section.active{display:block;}
+
+  .legend{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-bottom:16px;}
+  .leg{display:flex;align-items:center;gap:4px;font-size:0.65rem;color:var(--muted);padding:2px 7px;border-radius:20px;border:1px solid var(--border);background:var(--card);}
+  .ldot{width:7px;height:7px;border-radius:50%;}
+
+  .cal-month{margin-bottom:22px;}
+  .cal-mlabel{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;text-align:center;}
+  .cal-wd{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;}
+  .cal-wd span{text-align:center;font-size:0.58rem;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+
+  .cal-cell{aspect-ratio:1;border-radius:8px;border:1.5px solid var(--border);background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:3px 2px;cursor:pointer;transition:transform 0.1s,box-shadow 0.15s;position:relative;overflow:hidden;}
+  .cal-cell:hover:not(.empty):not(.off):not(.outrange){transform:scale(1.06);box-shadow:0 3px 10px rgba(0,0,0,0.1);}
+  .cal-cell.empty{border-color:transparent;background:transparent;cursor:default;}
+  .cal-cell.outrange{background:var(--bg);opacity:0.3;cursor:default;}
+  .cal-cell.off{background:var(--bg);opacity:0.45;cursor:default;}
+  .cal-cell.today{box-shadow:0 0 0 2px var(--accent);}
+  .cal-cell.has-data{border-color:var(--accent2);}
+  .cell-date{font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--muted);line-height:1;margin-bottom:1px;}
+  .cell-stars{font-size:0.58rem;line-height:1;text-align:center;margin-bottom:1px;}
+  .cell-pills{display:flex;flex-direction:column;gap:1px;width:100%;padding:0 1px;}
+  .cell-pill{font-size:0.34rem;font-weight:700;padding:1px 2px;border-radius:2px;text-align:center;}
+
+  .exam-card{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:13px 15px;margin-bottom:10px;cursor:pointer;transition:box-shadow 0.15s;}
+  .exam-card:hover{box-shadow:0 3px 10px rgba(0,0,0,0.09);}
+  .ec-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+  .ec-name{font-size:0.9rem;font-weight:700;}
+  .ec-pts{font-family:'JetBrains Mono',monospace;font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--accent-light);color:var(--accent);border:1px solid var(--accent2);}
+  .ec-info{font-size:0.68rem;color:var(--muted);display:flex;align-items:center;justify-content:space-between;}
+  .ec-score{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:700;}
+  .ec-prog{background:var(--border);border-radius:99px;height:5px;margin-top:7px;overflow:hidden;}
+  .ec-pf{height:100%;border-radius:99px;transition:width 0.4s;}
+
+  .rule-block{background:var(--card);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:14px 16px;margin-bottom:12px;font-size:0.76rem;color:var(--muted);line-height:1.85;}
+  .rule-block strong{color:var(--text);}
+  .rule-title{font-weight:900;color:var(--text);font-size:0.82rem;display:block;margin-bottom:6px;font-family:'Outfit',sans-serif;}
+  .rule-block.green{border-left-color:var(--green);}
+  .rule-block.blue{border-left-color:var(--math);}
+  .rule-block.red{border-left-color:var(--red);}
+
+  .cd-row{display:flex;gap:10px;margin-top:16px;}
+  .cd{flex:1;border-radius:10px;padding:11px 16px;text-align:center;}
+  .cd.exam{background:#fdecea;border:1.5px solid #f0a0a0;}
+  .cd.guan{background:var(--accent-light);border:1.5px solid var(--accent2);}
+  .cd-l{font-size:0.65rem;font-family:'JetBrains Mono',monospace;letter-spacing:0.1em;margin-bottom:2px;}
+  .cd.exam .cd-l{color:var(--red);}
+  .cd.guan .cd-l{color:var(--accent);}
+  .cd-n{font-size:1.4rem;font-weight:900;font-family:'Outfit',sans-serif;}
+  .cd.exam .cd-n{color:var(--red);}
+  .cd.guan .cd-n{color:var(--accent);}
+  .cd-n span{font-size:0.85rem;font-weight:400;color:var(--muted);}
+
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.28);z-index:200;align-items:center;justify-content:center;padding:16px;}
+  .overlay.show{display:flex;}
+  .modal{background:white;border-radius:16px;padding:20px 17px 17px;width:100%;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.15);max-height:90vh;overflow-y:auto;}
+  .modal h3{font-size:0.95rem;font-weight:700;margin-bottom:2px;font-family:'Outfit',sans-serif;color:var(--accent);}
+  .msub{font-size:0.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:12px;}
+  .mprev{background:var(--accent-light);border:1px solid var(--accent2);border-radius:8px;padding:7px 12px;text-align:center;font-size:0.8rem;font-weight:700;color:var(--accent);margin-bottom:12px;}
+  .mslabel{font-size:0.63rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:5px;margin-top:11px;}
+  .mrow{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+  .mrow label{font-size:0.78rem;font-weight:700;min-width:30px;}
+  .mrow input[type=number]{width:56px;padding:7px 6px;border:1.5px solid var(--border);border-radius:7px;font-family:'JetBrains Mono',monospace;font-size:0.85rem;text-align:center;background:var(--bg);color:var(--text);}
+  .mrow input[type=text]{flex:1;padding:7px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:'Noto Sans TC',sans-serif;font-size:0.8rem;background:var(--bg);color:var(--text);}
+  .mrow input:focus,.mrow select:focus{outline:none;border-color:var(--accent);}
+  .mrow .mstar{font-size:0.75rem;font-weight:700;min-width:32px;text-align:right;}
+  .mrow .mstar.yes{color:var(--accent2);}.mrow .mstar.no{color:var(--muted);}
+  .mrow select{flex:1;padding:7px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:'Noto Sans TC',sans-serif;font-size:0.78rem;background:var(--bg);color:var(--text);}
+  .mbtns{display:flex;gap:8px;margin-top:14px;}
+
+  .status-note{padding:6px 10px;border-radius:7px;font-size:0.78rem;font-weight:700;margin-bottom:8px;}
+  .status-note.confirmed{background:#eaf4ec;color:#3a7d44;border:1px solid #3a7d44;}
+  .status-note.pending{background:#f0edfc;color:var(--accent);border:1px solid var(--accent2);}
+  .cal-cell.pending{background:#f0edfc;border-color:var(--accent2);}
+  .cal-cell.confirmed{background:#f0faf0;border-color:#3a7d44;}
+  .cell-status{font-size:0.9rem;line-height:1;margin-top:1px;}
+  .pw-input{width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:1.1rem;text-align:center;letter-spacing:0.2em;margin-bottom:8px;box-sizing:border-box;}
+  .pw-error{color:#d4521a;font-size:0.78rem;min-height:18px;margin-bottom:4px;}
+  .teacher-modal{background:white;border-radius:18px;padding:22px 18px 18px;width:100%;max-width:300px;box-shadow:0 12px 40px rgba(0,0,0,0.2);}
+  .teacher-modal h3{font-size:0.95rem;font-weight:700;margin-bottom:12px;color:var(--accent);font-family:'Outfit',sans-serif;}
+  .btn{flex:1;padding:10px;border:none;border-radius:8px;font-family:'Noto Sans TC',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;transition:opacity 0.15s;}
+  .btn:hover{opacity:0.82;}
+  .btn-s{background:var(--accent);color:white;}
+  .btn-c{background:var(--bg);color:var(--muted);border:1px solid var(--border);}
+  .btn-x{background:#fdecea;color:var(--red);border:1px solid #f0a0a0;}
+  .em-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .em-row label{font-size:0.8rem;color:var(--muted);min-width:55px;}
+  .em-row input{width:68px;padding:8px;border:1.5px solid var(--border);border-radius:7px;font-family:'JetBrains Mono',monospace;font-size:1rem;text-align:center;background:var(--bg);}
+  .em-row input:focus{outline:none;border-color:var(--accent);}
+  .em-pts{font-size:0.82rem;color:var(--accent2);font-weight:700;}
+
+  #history-chart-wrap{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:0;margin-bottom:18px;box-shadow:0 2px 8px rgba(74,63,143,0.07);display:flex;overflow:hidden;position:relative;}
+  #chart-expand-btn{position:absolute;bottom:10px;right:10px;width:28px;height:28px;border-radius:8px;background:var(--accent);color:white;border:none;font-size:1.1rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(74,63,143,0.3);z-index:10;transition:transform 0.15s,box-shadow 0.15s;}
+  #chart-expand-btn:hover{transform:scale(1.12);box-shadow:0 4px 14px rgba(74,63,143,0.4);}
+  .chart-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;align-items:flex-end;justify-content:center;padding:0;}
+  .chart-modal-overlay.show{display:flex;}
+  .chart-modal{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:0 0 32px;}
+  .chart-modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card);z-index:2;}
+  .chart-modal-header h3{font-family:'Outfit',sans-serif;font-size:1rem;font-weight:700;color:var(--accent);}
+  .chart-modal-close{width:30px;height:30px;border-radius:50%;border:none;background:var(--bg);color:var(--muted);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .chart-modal-body{padding:16px 14px 8px;display:flex;gap:0;}
+  .cm-filter-panel{display:flex;flex-direction:column;gap:3px;padding:0 10px 0 0;background:transparent;min-width:72px;align-items:stretch;border-right:1px solid var(--border);margin-right:14px;}
+  .cm-right{flex:1;overflow:hidden;}
+  #chart-filter-panel{display:flex;flex-direction:column;gap:3px;padding:14px 10px;background:var(--accent-light);border-right:1.5px solid var(--border);min-width:72px;align-items:stretch;}
+  #chart-right{flex:1;padding:14px 14px 10px;overflow:hidden;}
+  #history-chart-wrap h2{font-family:'Outfit',sans-serif;font-size:0.9rem;font-weight:700;color:var(--accent);margin-bottom:8px;}
+  .cfp-label{font-size:0.58rem;font-weight:700;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;padding:2px 4px;font-family:'JetBrains Mono',monospace;}
+  .cfp-divider{height:1px;background:var(--border);margin:4px 0;}
+  .cfb{font-size:0.68rem;font-weight:700;padding:5px 6px;border-radius:7px;border:1.5px solid transparent;background:transparent;color:var(--muted);cursor:pointer;text-align:left;font-family:'Outfit',sans-serif;transition:all 0.15s;white-space:nowrap;}
+  .cfb:hover{background:var(--card);color:var(--accent);}
+  .cfb.active{background:var(--accent);color:white;border-color:var(--accent);}
+  #chart-subj-btns{display:flex;flex-direction:column;gap:2px;}
+  .chart-sem-btns{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;}
+  .csb{font-size:0.68rem;font-weight:700;padding:3px 9px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all 0.15s;}
+  .csb.active{background:var(--accent);color:white;border-color:var(--accent);}
+  #history-table th, #history-table td { border: 1px solid var(--border); white-space: nowrap; }
+  #history-table thead th { font-weight: 700; font-size: 0.75rem; color: var(--accent); }
+  #history-table tbody td:first-child { font-size: 0.73rem; white-space: nowrap; }
+  #history-table tbody td { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⭐ 士傑 - 學習成效表</h1>
+  <p>每點 10 元 · 段考後換錢或選商品</p>
+</div>
+
+<div class="pts-bar">
+  <div class="pts-top">
+    <div><div class="pts-num" id="tot-pts">0</div><div class="pts-sub">累積點數</div></div>
+    <div class="pts-money"><span class="money-l">可換</span><span class="money-n" id="tot-money">0 元</span></div>
+  </div>
+  <div class="prog-w"><div class="prog-f" id="prog-f" style="width:0%"></div></div>
+  <div class="redeem" style="margin-top:6px;">段考後可換現金或選商品由老師下單，<strong>每點 10 元</strong></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="sw('class')">📖 上課</button>
+  <button class="tab" onclick="sw('exam')">📝 段考</button>
+  <button class="tab" onclick="sw('history')">📊 歷史</button>
+  <button class="tab" onclick="sw('rules')">📋 規則</button>
+</div>
+
+<!-- Class -->
+<div class="section active" id="s-class">
+  <div class="legend">
+    <div class="leg"><div class="ldot" style="background:var(--math)"></div>數學</div>
+    <div class="leg"><div class="ldot" style="background:var(--eng)"></div>英文</div>
+    <div class="leg"><div class="ldot" style="background:var(--science)"></div>其他科</div>
+    <div class="leg">⭐ 每科1點</div>
+    <div class="leg">😊 態度1點</div>
+  </div>
+  <div id="calendar"></div>
+</div>
+
+<!-- Exam -->
+<div class="section" id="s-exam">
+  <div id="exam-cards"></div>
+</div>
+
+<!-- History -->
+<div class="section" id="s-history">
+  <div id="history-chart-wrap">
+    <div id="chart-filter-panel">
+      <div class="cfp-label">顯示</div>
+      <button class="cfb active" data-filter="total">📊 總分</button>
+      <div class="cfp-divider"></div>
+      <div class="cfp-label">單科</div>
+      <div id="chart-subj-btns"></div>
+      <div class="cfp-divider"></div>
+      <button class="cfb" data-filter="all">🔀 綜合</button>
+    </div>
+    <div id="chart-right">
+      <h2>📈 成績趨勢</h2>
+      <div class="chart-sem-btns" id="chart-sem-btns"></div>
+      <canvas id="history-chart" style="width:100%;max-height:260px;"></canvas>
+    </div>
+    <button id="chart-expand-btn" title="放大檢視">＋</button>
+  </div>
+  <div style="overflow-x:auto;">
+
+<!-- Chart Modal -->
+<div class="chart-modal-overlay" id="chart-modal-overlay">
+  <div class="chart-modal">
+    <div class="chart-modal-header">
+      <h3>📈 成績趨勢</h3>
+      <button class="chart-modal-close" id="chart-modal-close">✕</button>
+    </div>
+    <div class="chart-modal-body">
+      <div class="cm-filter-panel">
+        <div class="cfp-label">顯示</div>
+        <button class="cfb" data-cmfilter="total">📊 總分</button>
+        <div class="cfp-divider"></div>
+        <div class="cfp-label">單科</div>
+        <div id="cm-subj-btns"></div>
+        <div class="cfp-divider"></div>
+        <button class="cfb" data-cmfilter="all">🔀 綜合</button>
+      </div>
+      <div class="cm-right">
+        <div class="chart-sem-btns" id="cm-sem-btns"></div>
+        <canvas id="cm-history-chart" style="width:100%;max-height:320px;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+    <table id="history-table" style="width:100%;border-collapse:collapse;font-size:0.78rem;"></table>
+  </div>
+</div>
+
+<!-- Rules -->
+<div class="section" id="s-rules">
+  <div class="rule-block">
+    <span class="rule-title">📖 上課集點規則</span>
+    每次上課可從以下項目各得點數：<br>
+    ① <strong>數學小考</strong>：5 題答對 4 題以上 → 得 1 點<br>
+    ② <strong>英文小考</strong>：5 題答對 4 題以上 → 得 1 點<br>
+    ③ <strong>第三科小考</strong>：5 題答對 4 題以上 → 得 1 點<br>
+    ④ <strong>自由任務</strong>：老師評定，可得 1–3 點<br>
+    ⑤ <strong>上課態度</strong>：老師評定專注認真 → 得 1 點
+  </div>
+
+  <div class="rule-block green">
+    <span class="rule-title">🏫 學校小考加點規則</span>
+    學校小考帶卷子給老師確認，達標每張得 1 點：<br>
+    <strong>數學、英文</strong>：60 分以上<br>
+    <strong>國文、自然</strong>：70 分以上<br>
+    <strong>社會</strong>（地理／歷史／公民）：80 分以上<br><br>
+    ※ 每次帶幾張就算幾張，當天直接加點
+  </div>
+
+  <div class="rule-block blue">
+    <span class="rule-title">📝 段考達標獎勵</span>
+    達到目標分數得基本點數，超標另有加分：<br>
+    <strong>國文</strong> 60 分 → 達標 10 點，超標每 5 分 +5 點<br>
+    <strong>數學</strong> 50 分 → 達標 10 點，超標每 1 分 +1 點<br>
+    <strong>英文</strong> 50 分 → 達標 10 點，超標每 1 分 +1 點<br>
+    <strong>自然</strong> 60 分 → 達標 10 點，超標每 5 分 +5 點<br>
+    <strong>地理</strong> 80 分 → 達標 10 點，超標每 5 分 +5 點<br>
+    <strong>歷史</strong> 80 分 → 達標 10 點，超標每 5 分 +5 點<br>
+    <strong>公民</strong> 80 分 → 達標 10 點，超標每 5 分 +5 點
+  </div>
+
+  <div class="rule-block red">
+    <span class="rule-title">💰 兌換方式</span>
+    段考結束後統計總點數，<strong>每點 10 元</strong>。<br>
+    可選擇換現金，或挑選商品由老師代為下單。
+  </div>
+</div>
+
+<div class="cd-row">
+  <div class="cd exam">
+    <div class="cd-l">⚠ 段考倒數</div>
+    <div class="cd-n" id="cd-n">— <span>天</span></div>
+  </div>
+  <div class="cd guan">
+    <div class="cd-l">🎯 會考倒數</div>
+    <div class="cd-n" id="cd-guan">— <span>天</span></div>
+  </div>
+</div>
+
+<!-- Class modal -->
+<div class="overlay" id="oc">
+  <div class="modal">
+    <h3 id="cm-t"></h3>
+    <div class="msub" id="cm-s"></div>
+    <div class="mprev" id="cm-p">今日可得 0 點</div>
+
+    <div class="mslabel">小考成績（5題，≥4題對得⭐）</div>
+    <div id="cm-scores"></div>
+
+    <div class="mslabel">第三科</div>
+    <div class="mrow">
+      <select id="cm-t3s" style="width:110px;flex:none;">
+        <option value="">── 選科目 ──</option>
+        <option value="science">理化</option>
+        <option value="natl">自然</option>
+        <option value="geo">地理</option>
+        <option value="hist">歷史</option>
+        <option value="civic">公民</option>
+        <option value="chinese">國文</option>
+        <option value="social">社會</option>
+      </select>
+      <input type="number" min="0" max="5" placeholder="對題數" id="cm-t3sc" style="width:60px;flex:none;"/>
+      <input type="text" placeholder="範圍(如4-1)" id="cm-t3r"/>
+      <span class="mstar" id="cm-t3star" style="color:var(--muted)">—</span>
+    </div>
+
+    <div class="mslabel">📌 自由任務（學校卷/功課/任務）</div>
+    <div class="mrow">
+      <input type="text" id="cm-fd" placeholder="說明（例：帶2張學校卷）"/>
+      <select id="cm-fp" style="width:80px;flex:none;">
+        <option value="0">0點</option>
+        <option value="1">1點 ⭐</option>
+        <option value="2">2點 ⭐⭐</option>
+        <option value="3">3點 ⭐⭐⭐</option>
+      </select>
+    </div>
+
+    <div class="mslabel">😊 上課態度／專注</div>
+    <div class="mrow">
+      <select id="cm-att">
+        <option value="0">需要加油</option>
+        <option value="1">專注認真 ⭐</option>
+      </select>
+    </div>
+
+    <div id="cm-status-note" style="display:none"></div>
+    <div class="mbtns" id="cm-btns"></div>
+  </div>
+</div>
+
+<!-- Exam modal -->
+<div class="overlay" id="oe">
+  <div class="modal">
+    <h3 id="em-t"></h3>
+    <div class="msub" id="em-s"></div>
+    <div class="mprev" id="em-p">輸入分數後顯示點數</div>
+    <div class="mslabel">實際成績</div>
+    <div class="em-row">
+      <label>分數</label>
+      <input type="number" id="em-sc" min="0" max="100" step="0.5" placeholder="分"/>
+      <span class="em-pts" id="em-pts"></span>
+    </div>
+    <div class="mbtns" id="em-btns"></div>
+  </div>
+</div>
+
+<!-- Teacher modal -->
+<div class="overlay" id="o-teacher">
+  <div class="teacher-modal">
+    <h3 id="tm-title">✅ 老師確認</h3>
+    <input type="password" class="pw-input" id="pw-input" placeholder="••••" maxlength="10" />
+    <div class="pw-error" id="pw-error"></div>
+    <div class="mbtns">
+      <button class="btn btn-c" id="pw-cancel">取消</button>
+      <button class="btn btn-s" style="background:#3a7d44" id="pw-confirm">確認 ✓</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const FB='https://math-plan-default-rtdb.asia-southeast1.firebasedatabase.app/s2_cal3.json';
+const today=new Date();today.setHours(0,0,0,0);
+const examDay=new Date(2026,5,26);
+const guanKaoDay=new Date(2027,4,22); // 2027/5/22 predicted
+const planStart=new Date(2026,4,18);
+const planEnd=new Date(2026,5,30); // include 6/27, 6/28, 6/29
+const CLASS_DAYS=new Set([0,2,3,4,6]); // Sun,Tue,Wed,Thu,Sat
+
+const SM={
+  math:   {lbl:'數學', col:'var(--math)',   bg:'var(--math-bg)'},
+  eng:    {lbl:'英文', col:'var(--eng)',    bg:'var(--eng-bg)'},
+  science:{lbl:'理化', col:'var(--science)',bg:'var(--science-bg)'},
+  natl:   {lbl:'自然', col:'var(--natl)',   bg:'var(--natl-bg)'},
+  geo:    {lbl:'地理', col:'var(--geo)',    bg:'var(--geo-bg)'},
+  hist:   {lbl:'歷史', col:'var(--hist)',   bg:'var(--hist-bg)'},
+  civic:  {lbl:'公民', col:'var(--civic)',  bg:'var(--civic-bg)'},
+  chinese:{lbl:'國文', col:'var(--chinese)',bg:'var(--chinese-bg)'},
+  social: {lbl:'社會', col:'var(--social)', bg:'var(--social-bg)'},
+};
+
+const ECFG=[
+  {key:'ch',   lbl:'國文', target:60,base:10,step:5,bonus:5, col:'#b83030'},
+  {key:'math', lbl:'數學', target:50,base:10,step:1,bonus:1, col:'#2d6fb5'},
+  {key:'eng',  lbl:'英文', target:50,base:10,step:1,bonus:1, col:'#2a8a6a'},
+  {key:'natl', lbl:'自然', target:60,base:10,step:5,bonus:5, col:'#5a7a00'},
+  {key:'geo',  lbl:'地理', target:80,base:10,step:5,bonus:5, col:'#1a7a5e'},
+  {key:'hist', lbl:'歷史', target:80,base:10,step:5,bonus:5, col:'#8b5e00'},
+  {key:'civic',lbl:'公民', target:80,base:10,step:5,bonus:5, col:'#2a5caa'},
+  {key:'soc',  lbl:'社會', target:60,base:10,step:5,bonus:5, col:'#7040aa', auto:true, histOnly:true},
+];
+// Subjects displayed in history (soc is auto-calculated, not clickable for input in geo/hist/civic rows)
+const INPUT_SUBJS = ECFG.filter(s=>!s.auto); // geo/hist/civic are inputtable
+const DISPLAY_SUBJS = ECFG; // all shown including auto soc
+const SEMESTERS=[
+  {key:'1a',lbl:'國一上'},{key:'1b',lbl:'國一下'},
+  {key:'2a',lbl:'國二上'},{key:'2b',lbl:'國二下'},
+  {key:'3a',lbl:'國三上'},{key:'3b',lbl:'國三下'},
+];
+const EXAM_TIMES=[{key:'1',lbl:'第一次'},{key:'2',lbl:'第二次'},{key:'3',lbl:'第三次'}];
+
+function ePts(cfg,score){
+  if(score===null||score===undefined||score==='')return 0;
+  const s=parseInt(score);if(isNaN(s)||s<cfg.target)return 0;
+  return cfg.base+Math.floor((s-cfg.target)/cfg.step)*(cfg.bonus||1);
+}
+
+function dPts(e){
+  if(!e)return 0;
+  let p=0;
+  if(e.math?.pt===1)p++;
+  if(e.eng?.pt===1)p++;
+  if(e.t3?.pt===1)p++;
+  p+=Math.min(3,parseInt(e.free?.pt||0));
+  if(e.att===1)p++;
+  return p;
+}
+
+function dk(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function fmt(d){return`${d.getMonth()+1}/${d.getDate()} 週${'日一二三四五六'[d.getDay()]}`;}
+const WN=['一','二','三','四','五','六','日']; // Monday first
+function dowMon(d){return(d.getDay()+6)%7;} // 0=Mon...6=Sun
+const MN=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+let data={classes:{},exam:{}};
+
+async function load(){
+  try{const r=await fetch(FB);const j=await r.json();if(j){data.classes=j.classes||{};data.exam=j.exam||{};}}catch(e){}
+  buildCal();buildExam();updSum();buildHistory();
+}
+async function save(){
+  try{await fetch(FB,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});}catch(e){}
+}
+
+function sw(t){
+  if(t==='history')buildHistory();
+  ['class','exam','history','rules'].forEach((id,i)=>{
+    document.querySelectorAll('.tab')[i].classList.toggle('active',id===t);
+    document.getElementById('s-'+id).classList.toggle('active',id===t);
+  });
+}
+
+function buildCal(){
+  const cal=document.getElementById('calendar');
+  cal.innerHTML='';
+
+  // Find Monday of the week containing planStart
+  const weekStart=new Date(planStart);
+  weekStart.setDate(weekStart.getDate()-dowMon(weekStart)); // back to Monday
+
+  // Build week-by-week rows until planEnd
+  const cur=new Date(weekStart);
+  let currentMonth=-1;
+  let currentSec=null,currentGrid=null;
+
+  while(cur<planEnd){
+    const d=new Date(cur);
+    const mo=d.getFullYear()*100+d.getMonth();
+
+    // New month section
+    if(mo!==currentMonth){
+      // finish previous grid
+      if(currentSec&&currentGrid){currentSec.appendChild(currentGrid);cal.appendChild(currentSec);}
+      currentMonth=mo;
+      currentSec=document.createElement('div');currentSec.className='cal-month';
+      const lbl=document.createElement('div');lbl.className='cal-mlabel';
+      lbl.textContent=`${d.getFullYear()} 年 ${MN[d.getMonth()]}`;currentSec.appendChild(lbl);
+      const wd=document.createElement('div');wd.className='cal-wd';
+      WN.forEach(w=>{const s=document.createElement('span');s.textContent=w;wd.appendChild(s);});
+      currentSec.appendChild(wd);
+      currentGrid=document.createElement('div');currentGrid.className='cal-grid';
+
+      // leading blanks: days before start of week that fall in prev month
+      // (already handled by starting at Monday of week, so no extra blanks needed)
+    }
+
+    const inRange=d>=planStart&&d<planEnd;
+    const isClass=inRange&&CLASS_DAYS.has(d.getDay());
+    const isToday=d.getTime()===today.getTime();
+    const key=dk(d);
+    const entry=data.classes[key];
+    const pts=dPts(entry);
+
+    const cell=document.createElement('div');
+    cell.className='cal-cell';
+    if(!inRange) cell.classList.add('outrange');
+    else if(!isClass) cell.classList.add('off');
+    if(isToday) cell.classList.add('today');
+    if(inRange&&isClass&&entry) cell.classList.add('has-data');
+
+    let html=`<div class="cell-date">${d.getDate()}</div>`;
+    if(inRange&&isClass){
+      if(pts>0)html+=`<div class="cell-stars">${'⭐'.repeat(Math.min(pts,6))}</div>`;
+      html+=`<div class="cell-pills">`;
+      const mg=entry?.math?.pt===1;
+      html+=`<div class="cell-pill" style="background:var(--math-bg);color:var(--math);opacity:${mg?1:0.3}">數</div>`;
+      const eg=entry?.eng?.pt===1;
+      html+=`<div class="cell-pill" style="background:var(--eng-bg);color:var(--eng);opacity:${eg?1:0.3}">英</div>`;
+      if(entry?.t3?.subj){
+        const t3m=SM[entry.t3.subj];const t3g=entry.t3.pt===1;
+        html+=`<div class="cell-pill" style="background:${t3m.bg};color:${t3m.col};opacity:${t3g?1:0.3}">${t3m.lbl.slice(0,2)}</div>`;
+      }
+      html+=`</div>`;
+    }
+    const st=(data.classes[key]||{}).status;
+    if(st==='confirmed'){cell.classList.add('confirmed');html+=`<div class="cell-status">🟢</div>`;}
+    else if(st==='pending'){cell.classList.add('pending');html+=`<div class="cell-status">🟠</div>`;}
+    cell.innerHTML=html;
+    if(inRange&&isClass)cell.addEventListener('click',()=>openCM(key));
+    currentGrid.appendChild(cell);
+
+    cur.setDate(cur.getDate()+1);
+
+    // When we hit a new month boundary mid-week, flush current section and start new
+    const nextMo=cur.getFullYear()*100+cur.getMonth();
+    if(nextMo!==currentMonth&&cur<planEnd&&dowMon(cur)!==0){
+      // mid-week month change: fill remaining cells of week into current month, then flush
+      // actually let the loop handle it naturally - just flush here
+      if(currentSec&&currentGrid){currentSec.appendChild(currentGrid);cal.appendChild(currentSec);}
+      currentMonth=-1;currentSec=null;currentGrid=null;
+    }
+  }
+  if(currentSec&&currentGrid){currentSec.appendChild(currentGrid);cal.appendChild(currentSec);}
+}
+
+function buildExam(){
+  const c=document.getElementById('exam-cards');c.innerHTML='';
+  ECFG.filter(cfg=>!cfg.histOnly).forEach(cfg=>{
+    const score=data.exam[cfg.key];
+    const pts=ePts(cfg,score);
+    const has=score!==null&&score!==undefined&&score!=='';
+    const pct=has?Math.min(100,parseInt(score)):0;
+    const col=cfg.col||'var(--accent)';
+    const card=document.createElement('div');card.className='exam-card';
+    card.style.borderLeft=`3px solid ${col}`;
+    card.innerHTML=`
+      <div class="ec-top"><span class="ec-name" style="color:${col}">${cfg.lbl}</span>${pts>0?`<span class="ec-pts" style="background:${col}18;color:${col};border-color:${col}88">+${pts} 點</span>`:''}</div>
+      <div class="ec-info"><span>目標 ${cfg.target} 分・達標 ${cfg.base} 點</span>${has?`<span class="ec-score" style="color:${col}">${score} 分</span>`:'<span style="color:var(--border)">未輸入</span>'}</div>
+      <div class="ec-prog"><div class="ec-pf" style="width:${pct}%;background:${col}"></div></div>`;
+    card.addEventListener('click',()=>openEM(cfg));
+    c.appendChild(card);
+  });
+}
+
+
+function getSocScore(semKey, tKey) {
+  const geo = data.exam[`hist_geo_${semKey}_${tKey}`];
+  const hist = data.exam[`hist_hist_${semKey}_${tKey}`];
+  const civic = data.exam[`hist_civic_${semKey}_${tKey}`];
+  if (geo===null||geo===undefined||geo===''||hist===null||hist===undefined||hist===''||civic===null||civic===undefined||civic==='') return null;
+  return Math.round((parseFloat(geo)+parseFloat(hist)+parseFloat(civic))/3*10)/10;
+}
+
+function buildHistory(){
+  const tbl=document.getElementById('history-table');
+  tbl.innerHTML='';
+  const allKeys=[];
+  SEMESTERS.forEach(s=>EXAM_TIMES.forEach(t=>allKeys.push({sem:s.key,t:t.key})));
+
+  // Header
+  let thead=`<thead><tr>
+    <th style="text-align:left;padding:8px 10px;background:#f5ede6;position:sticky;left:0;z-index:2;min-width:72px;font-size:0.75rem;color:var(--muted);">學期</th>
+    <th style="padding:8px 6px;background:#f5ede6;text-align:center;min-width:40px;font-size:0.75rem;color:var(--muted);">次</th>`;
+  ECFG.forEach(s=>{
+    const isAuto=s.auto;
+    thead+=`<th style="padding:8px 6px;background:#f5ede6;text-align:center;min-width:52px;font-weight:700;${isAuto?'color:#9a7ab8;':''}">` + s.lbl + (isAuto?' *':'') + `</th>`;
+  });
+  thead+=`<th style="padding:8px 6px;background:#f0e8dc;text-align:center;min-width:52px;font-weight:700;color:var(--text);">總分</th>`;
+  thead+=`</tr></thead>`;
+  tbl.innerHTML=thead;
+  const tbody=document.createElement('tbody');
+
+  SEMESTERS.forEach((sem,si)=>{
+    EXAM_TIMES.forEach((t,ti)=>{
+      const tr=document.createElement('tr');
+      const borderTop=ti===0?'2px solid var(--border)':'1px solid #f0e8e0';
+
+      if(ti===0){
+        const semTd=document.createElement('td');
+        semTd.rowSpan=3;
+        semTd.style.cssText=`padding:8px 10px;background:#fdf8f3;position:sticky;left:0;z-index:1;font-weight:700;font-size:0.8rem;border-top:2px solid var(--border);vertical-align:middle;text-align:center;white-space:nowrap;`;
+        semTd.textContent=sem.lbl;
+        tr.appendChild(semTd);
+      }
+      const timeTd=document.createElement('td');
+      timeTd.style.cssText=`padding:8px 6px;background:#fafafa;text-align:center;font-size:0.75rem;color:var(--muted);border-top:${borderTop};white-space:nowrap;`;
+      timeTd.textContent=`第${t.key}次`;
+      tr.appendChild(timeTd);
+
+      // compute soc auto
+      const socAuto=getSocScore(sem.key,t.key);
+
+      let totalScore=0; let hasAny=false;
+      const totalSubjs=['ch','math','eng','natl','soc'];
+
+      ECFG.forEach(sub=>{
+        const isAuto=sub.auto;
+        const td=document.createElement('td');
+        td.style.cssText=`text-align:center;padding:6px 4px;border-top:${borderTop};${isAuto?'background:#f9f7fb;':''}`;
+
+        if(isAuto){
+          // soc: show auto-calculated value, not clickable
+          if(socAuto!==null){
+            // find prev soc
+            const curIdx=allKeys.findIndex(x=>x.sem===sem.key&&x.t===t.key);
+            let prevSoc=null;
+            for(let i=curIdx-1;i>=0;i--){
+              const ps=getSocScore(allKeys[i].sem,allKeys[i].t);
+              if(ps!==null){prevSoc=ps;break;}
+            }
+            let arrow='';
+            if(prevSoc!==null){
+              const diff=Math.round((socAuto-prevSoc)*10)/10;
+              arrow=diff>0?`&nbsp;&nbsp;<span style="color:#3a7d44;font-size:0.68rem;">▲${diff}</span>`:diff<0?`&nbsp;&nbsp;<span style="color:#d4521a;font-size:0.68rem;">▼${Math.abs(diff)}</span>`:'';
+            }
+            td.innerHTML=`<span style="font-weight:600;font-size:0.82rem;color:#9a7ab8;">${socAuto}</span>${arrow}`;
+            if(totalSubjs.includes('soc')){totalScore+=socAuto;hasAny=true;}
+          } else {
+            td.innerHTML='<span style="color:#ddd;font-size:0.75rem;">—</span>';
+          }
+          td.title='社會 = (地理+歷史+公民) ÷ 3，自動計算';
+        } else {
+          // regular inputtable subject
+          const k=`hist_${sub.key}_${sem.key}_${t.key}`;
+          const score=data.exam[k];
+          const has=score!==null&&score!==undefined&&score!=='';
+          const curIdx=allKeys.findIndex(x=>x.sem===sem.key&&x.t===t.key);
+          let prevScore=null;
+          for(let i=curIdx-1;i>=0;i--){
+            const pk=`hist_${sub.key}_${allKeys[i].sem}_${allKeys[i].t}`;
+            if(data.exam[pk]!==null&&data.exam[pk]!==undefined&&data.exam[pk]!==''){prevScore=parseFloat(data.exam[pk]);break;}
+          }
+          let arrow='';
+          if(has&&prevScore!==null){
+            const diff=Math.round((parseFloat(score)-prevScore)*10)/10;
+            arrow=diff>0?`&nbsp;&nbsp;<span style="color:#3a7d44;font-size:0.68rem;">▲${diff}</span>`:diff<0?`&nbsp;&nbsp;<span style="color:#d4521a;font-size:0.68rem;">▼${Math.abs(diff)}</span>`:'';
+          }
+          td.innerHTML=has?`<span style="font-weight:700;font-size:0.82rem;">${score}</span>${arrow}`:'<span style="color:#ddd;font-size:0.75rem;">—</span>';
+          td.style.cursor='pointer';
+          td.onmouseover=()=>{td.style.background='#fdebd8';};
+          td.onmouseout=()=>{td.style.background=sub.auto?'#f8f3fc':'';};
+          td.title=`點擊輸入 ${sub.lbl} ${sem.lbl}第${t.key}次`;
+          td.addEventListener('click',()=>openHistoryEM(sub,sem.key,t.key));
+          // add to total if applicable
+          if(totalSubjs.includes(sub.key)&&has){totalScore+=parseFloat(score);hasAny=true;}
+        }
+        tr.appendChild(td);
+      });
+
+      // total cell (ch+math+eng+natl+soc)
+      const totalTd=document.createElement('td');
+      totalTd.style.cssText=`text-align:center;padding:6px 4px;border-top:${borderTop};background:#fdf5ec;font-weight:700;font-size:0.82rem;`;
+      // only show total if all 5 main subjects present
+      const ch=data.exam[`hist_ch_${sem.key}_${t.key}`];
+      const math=data.exam[`hist_math_${sem.key}_${t.key}`];
+      const eng=data.exam[`hist_eng_${sem.key}_${t.key}`];
+      const natl=data.exam[`hist_natl_${sem.key}_${t.key}`];
+      const allMainPresent=[ch,math,eng,natl].every(v=>v!==null&&v!==undefined&&v!=='')&&socAuto!==null;
+      totalTd.textContent=allMainPresent?Math.round((parseFloat(ch)+parseFloat(math)+parseFloat(eng)+parseFloat(natl)+socAuto)*10)/10:'—';
+      tr.appendChild(totalTd);
+      tbody.appendChild(tr);
+    });
+  });
+  // footnote
+  const foot=document.createElement('tr');
+  foot.innerHTML=`<td colspan="${ECFG.length+3}" style="padding:6px 8px;font-size:0.68rem;color:var(--muted);font-style:italic;">* 社會 = (地理+歷史+公民) ÷ 3 自動計算・總分 = 國文+數學+英文+自然+社會</td>`;
+  tbody.appendChild(foot);
+  tbl.appendChild(tbody);
+  if (typeof buildHistoryChart === 'function') buildHistoryChart();
+}
+
+function updSum(){
+  let cp=0;Object.values(data.classes).forEach(e=>{cp+=dPts(e);});
+  let ep=0;
+  // exclude geo/hist/civic from exam pts (they combine into soc)
+  const ptSubjs=ECFG.filter(s=>!['geo','hist','civic'].includes(s.key));
+  ptSubjs.forEach(sub=>{SEMESTERS.forEach(sem=>{EXAM_TIMES.forEach(t=>{
+    ep+=ePts(sub,data.exam[`${sub.key}_${sem.key}_${t.key}`]);
+  });});});
+  const tot=cp+ep;
+  document.getElementById('tot-pts').textContent=tot;
+  document.getElementById('tot-money').textContent=(tot*10).toLocaleString()+' 元';
+  document.getElementById('prog-f').style.width=Math.min(100,tot/150*100)+'%';
+  const diff=Math.ceil((examDay-today)/86400000);
+  document.getElementById('cd-n').innerHTML=`${diff} <span>天</span>`;
+  const guanDiff=Math.ceil((guanKaoDay-today)/86400000);
+  document.getElementById('cd-guan').innerHTML=`${guanDiff} <span>天</span>`;
+}
+
+// Class modal state
+let ck=null;
+let tmathSc='',tmathR='',tengSc='',tengR='';
+let tt3subj='',tt3sc='',tt3r='';
+let tfd='',tfp=0,tatt=0;
+
+function openCM(key) {
+  // 徹底清理所有殘留
+  document.querySelectorAll('#oc .btn[style], #teacher-confirm-btn').forEach(b => b.remove());
+  document.getElementById('cm-btns').innerHTML = '';
+
+  ck = key;
+  const e = data.classes[key] || {};
+  const [ky2, km2, kd2] = key.split('-').map(Number);
+  document.getElementById('cm-t').textContent = fmt(new Date(ky2, km2-1, kd2));
+  document.getElementById('cm-s').textContent = '數學 · 英文 · 第三科 · 任務 · 態度';
+
+  tmathSc = e.math?.score ?? ''; tmathR = e.math?.range ?? '';
+  tengSc = e.eng?.score ?? '';   tengR = e.eng?.range ?? '';
+  tt3subj = e.t3?.subj ?? '';    tt3sc = e.t3?.score ?? '';  tt3r = e.t3?.range ?? '';
+  tfd = e.free?.desc ?? '';
+  tfp = parseInt(e.free?.pt || 0);
+  tatt = e.att ?? 0;
+
+  renderCMScores();
+  updT3Star();
+  updCMPrev();
+
+  document.getElementById('cm-t3s').value = tt3subj;
+  document.getElementById('cm-t3sc').value = tt3sc;
+  document.getElementById('cm-t3r').value = tt3r;
+  document.getElementById('cm-fd').value = tfd;
+  document.getElementById('cm-fp').value = tfp;
+  document.getElementById('cm-att').value = tatt;
+
+  document.getElementById('cm-t3s').onchange = e => { tt3subj = e.target.value; updT3Star(); updCMPrev(); };
+  document.getElementById('cm-t3sc').oninput = e => { tt3sc = e.target.value; updT3Star(); updCMPrev(); };
+  document.getElementById('cm-t3r').oninput = e => { tt3r = e.target.value; };
+  document.getElementById('cm-fd').oninput = e => { tfd = e.target.value; };
+  document.getElementById('cm-fp').onchange = e => { tfp = parseInt(e.target.value); updCMPrev(); };
+  document.getElementById('cm-att').onchange = e => { tatt = parseInt(e.target.value); updCMPrev(); };
+
+  const note = document.getElementById('cm-status-note');
+  const isConfirmed = e.status === 'confirmed';
+  const isPending = e.status === 'pending';
+
+  if (isConfirmed) {
+    note.style.display = 'block'; note.className = 'status-note confirmed'; note.textContent = '✅ 老師已確認';
+  } else if (isPending) {
+    note.style.display = 'block'; note.className = 'status-note pending'; note.textContent = '🟠 等待老師確認中';
+  } else {
+    note.style.display = 'none';
+  }
+
+  const lock = isConfirmed;
+  ['cm-t3s','cm-t3sc','cm-t3r','cm-fd','cm-fp','cm-att'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.disabled = lock;
+  });
+  // 數英欄位是動態產生的，renderCMScores 之後才能鎖定
+  document.querySelectorAll('#cm-scores input').forEach(el => { el.disabled = lock; });
+
+  const btns = document.getElementById('cm-btns');
+  if (isConfirmed) {
+    btns.innerHTML = `<button class="btn btn-c" id="cm-c">關閉</button><button class="btn" id="cm-edit" style="background:#2a5caa;color:white;border:none;border-radius:9px;padding:10px;font-weight:700;font-size:0.82rem;cursor:pointer;flex:1;">老師修改 ✏️</button>`;
+    document.getElementById('cm-edit').onclick = () => openTeacherModal('edit', key);
+  } else if (Object.keys(e).length > 0) {
+    btns.innerHTML = `<button class="btn btn-x" id="cm-x">清除</button><button class="btn btn-c" id="cm-c">取消</button><button class="btn btn-s" id="cm-sv">儲存</button>`;
+    document.getElementById('cm-x').onclick = async () => { delete data.classes[ck]; await save(); buildCal(); updSum(); closeCM(); };
+  } else {
+    btns.innerHTML = `<button class="btn btn-c" id="cm-c">取消</button><button class="btn btn-s" id="cm-sv">儲存</button>`;
+  }
+
+  if (isPending) {
+    let tb = document.getElementById('teacher-confirm-btn');
+    if (!tb) {
+      tb = document.createElement('button');
+      tb.id = 'teacher-confirm-btn';
+      tb.className = 'btn';
+      tb.style.cssText = 'background:#3a7d44;color:white;margin-top:8px;width:100%;padding:11px;font-weight:700;border-radius:9px;border:none;cursor:pointer;';
+      tb.textContent = '老師確認 ✓';
+      btns.parentNode.insertBefore(tb, btns.nextSibling);
+    }
+    tb.onclick = () => openTeacherModal('confirm', key);
+  }
+
+  document.getElementById('cm-c').onclick = closeCM;
+  if (!isConfirmed) {
+    const sv = document.getElementById('cm-sv');
+    if (sv) sv.onclick = () => saveCM(false);
+  }
+  document.getElementById('oc').classList.add('show');
+}
+
+function renderCMScores(){
+  const c=document.getElementById('cm-scores');c.innerHTML='';
+  [{s:'math',sc:tmathSc,r:tmathR,lbl:'數學',col:'var(--math)'},{s:'eng',sc:tengSc,r:tengR,lbl:'英文',col:'var(--eng)'}].forEach(({s,sc,r,lbl,col})=>{
+    const got=sc!==''&&parseInt(sc)>=4;
+    const row=document.createElement('div');row.className='mrow';
+    row.innerHTML=`
+      <label style="color:${col}">${lbl}</label>
+      <input type="number" min="0" max="5" placeholder="對題" value="${sc}" data-s="${s}" class="sc-i"/>
+      <input type="text" placeholder="範圍(如4-1)" value="${r}" data-s="${s}" class="rng-i" style="width:84px"/>
+      <span class="mstar ${got?'yes':'no'}">${got?'⭐+1':'—'}</span>
+    `;
+    c.appendChild(row);
+  });
+  c.querySelectorAll('.sc-i').forEach(el=>el.addEventListener('input',e=>{
+    if(e.target.dataset.s==='math')tmathSc=e.target.value;
+    else tengSc=e.target.value;
+    renderCMScores();updCMPrev();
+  }));
+  c.querySelectorAll('.rng-i').forEach(el=>el.addEventListener('input',e=>{
+    if(e.target.dataset.s==='math')tmathR=e.target.value;
+    else tengR=e.target.value;
+  }));
+}
+
+function updT3Star(){
+  const got=tt3subj&&tt3sc!==''&&parseInt(tt3sc)>=4;
+  const star=document.getElementById('cm-t3star');
+  star.textContent=got?'⭐+1':'—';
+  star.className='mstar '+(got?'yes':'no');
+}
+
+function updCMPrev(){
+  let p=0;
+  if(tmathSc!==''&&parseInt(tmathSc)>=4)p++;
+  if(tengSc!==''&&parseInt(tengSc)>=4)p++;
+  if(tt3subj&&tt3sc!==''&&parseInt(tt3sc)>=4)p++;
+  p+=Math.min(3,tfp);
+  if(tatt===1)p++;
+  document.getElementById('cm-p').textContent=`今日可得 ${p} 點 ⭐`;
+}
+
+async function saveCM(keepConfirmed){
+  const mathSc=tmathSc!==''?parseInt(tmathSc):null;
+  const engSc=tengSc!==''?parseInt(tengSc):null;
+  const t3Sc=tt3sc!==''?parseInt(tt3sc):null;
+  const prevStatus=(data.classes[ck]||{}).status;
+  const newStatus=(mathSc!==null||engSc!==null)?'pending':null;
+  const finalStatus=keepConfirmed?'confirmed':(prevStatus==='confirmed'?'confirmed':newStatus);
+  const entry={
+    math:{score:mathSc,range:tmathR,pt:(mathSc!==null&&mathSc>=4)?1:0},
+    eng: {score:engSc, range:tengR, pt:(engSc!==null&&engSc>=4)?1:0},
+    t3:  {subj:tt3subj,score:t3Sc, range:tt3r,pt:(tt3subj&&t3Sc!==null&&t3Sc>=4)?1:0},
+    free:{desc:tfd,pt:tfp},
+    att: tatt,
+    status:finalStatus,
+  };
+  data.classes[ck]=entry;await save();buildCal();updSum();closeCM();
+}
+function closeCM() {
+  document.getElementById('oc').classList.remove('show');
+  document.getElementById('oc').style.opacity = '1';
+  document.getElementById('oc').style.pointerEvents = 'auto';
+  // 清理所有動態按鈕
+  document.querySelectorAll('#teacher-confirm-btn, #oc .btn[style]').forEach(b => b.remove());
+  document.getElementById('cm-btns').innerHTML = '';
+  // 完全解除鎖定
+  ['cm-t3s','cm-t3sc','cm-t3r','cm-fd','cm-fp','cm-att'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.disabled = false; }
+  });
+  document.querySelectorAll('.score-btn, .mrow input, .mrow select').forEach(el => {
+    el.disabled = false;
+    el.style.pointerEvents = '';
+  });
+}
+document.getElementById('oc').addEventListener('click',e=>{if(e.target.id==='oc')closeCM();});
+
+// Exam modal
+let _ecfg=null;
+function openEM(cfg){
+  _ecfg=cfg;
+  document.getElementById('em-t').textContent=cfg.lbl+' 段考成績';
+  document.getElementById('em-s').textContent=`目標 ${cfg.target} 分・達標 ${cfg.base} 點`;
+  const cur=data.exam[cfg.key]??'';
+  document.getElementById('em-sc').value=cur;updEMPrev();
+  document.getElementById('em-sc').oninput=updEMPrev;
+  const hasD=cur!=='';
+  const btns=document.getElementById('em-btns');
+  btns.innerHTML=hasD
+    ?`<button class="btn btn-x" id="em-x">清除</button><button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`
+    :`<button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`;
+  if(hasD)document.getElementById('em-x').onclick=async()=>{delete data.exam[cfg.key];await save();buildExam();updSum();closeEM();};
+  document.getElementById('em-c').onclick=closeEM;
+  document.getElementById('em-sv').onclick=async()=>{
+    const v=document.getElementById('em-sc').value;
+    if(v!=='')data.exam[cfg.key]=parseFloat(v);
+    await save();buildExam();updSum();closeEM();
+  };
+  document.getElementById('oe').classList.add('show');
+}
+function updEMPrev(){
+  const v=document.getElementById('em-sc').value;
+  const cfg=_ecfg;
+  const pts=ePts(cfg,v);const s=parseFloat(v);
+  if(!v){document.getElementById('em-p').textContent='輸入分數後顯示點數';document.getElementById('em-pts').textContent='';return;}
+  if(isNaN(s)||s<cfg.target){document.getElementById('em-p').textContent=`未達標（差 ${cfg.target-s} 分）`;document.getElementById('em-pts').textContent='';}
+  else{document.getElementById('em-p').textContent=`達標！可得 ${pts} 點 ⭐`;document.getElementById('em-pts').textContent=`+${pts}點`;}
+}
+function closeEM(){document.getElementById('oe').classList.remove('show');}
+document.getElementById('oe').addEventListener('click',e=>{if(e.target.id==='oe')closeEM();});
+
+load();
+
+// Bind static filter panel buttons
+document.querySelectorAll('#chart-filter-panel > .cfb').forEach(b => {
+  b.onclick = () => { _chartActiveFilter = b.dataset.filter; buildHistoryChart(); };
+});
+
+// Teacher modal
+let _teacherKey = null, _teacherMode = null;
+
+function openTeacherModal(mode, key) {
+  _teacherMode = mode;
+  _teacherKey = key;
+  document.getElementById('pw-input').value = '';
+  document.getElementById('pw-error').textContent = '';
+  document.getElementById('tm-title').textContent = mode === 'edit' ? '✏️ 老師修改' : '✅ 老師確認';
+  document.getElementById('o-teacher').classList.add('show');
+  setTimeout(() => document.getElementById('pw-input').focus(), 100);
+}
+
+function closeTeacherModal() {
+  document.getElementById('o-teacher').classList.remove('show');
+}
+
+document.getElementById('pw-cancel').onclick = closeTeacherModal;
+document.getElementById('pw-confirm').onclick = async () => {
+  const pw = document.getElementById('pw-input').value.trim();
+  if (pw !== '777') {
+    document.getElementById('pw-error').textContent = '密碼錯誤，請再試一次';
+    return;
+  }
+  document.getElementById('pw-error').textContent = '';
+  closeTeacherModal();
+  if (_teacherMode === 'edit') {
+    const btns = document.getElementById('cm-btns');
+    btns.innerHTML = `<button class="btn btn-x" id="cm-x">清除</button><button class="btn btn-c" id="cm-c">取消</button><button class="btn btn-s" id="cm-sv">儲存</button>`;
+    document.getElementById('cm-x').onclick = async () => { delete data.classes[ck]; await save(); buildCal(); updSum(); closeCM(); };
+    document.getElementById('cm-c').onclick = closeCM;
+    document.getElementById('cm-sv').onclick = () => saveCM(true);
+    ['cm-t3s','cm-t3sc','cm-t3r','cm-fd','cm-fp','cm-att'].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = false; });
+    document.querySelectorAll('#cm-scores input').forEach(el => { el.disabled = false; });
+    document.querySelectorAll('.score-btn').forEach(b => b.style.pointerEvents = '');
+  } else {
+    if (data.classes[_teacherKey]) {
+      data.classes[_teacherKey].status = 'confirmed';
+      await save(); buildCal(); updSum();
+    }
+    closeCM();
+  }
+};
+document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('pw-confirm').click(); });
+document.getElementById('o-teacher').addEventListener('click', e => { if (e.target.id === 'o-teacher') closeTeacherModal(); });
+
+
+function openHistoryEM(sub, semKey, timeKey){
+  const semLbl=SEMESTERS.find(s=>s.key===semKey)?.lbl||semKey;
+  const k=`hist_${sub.key}_${semKey}_${timeKey}`;
+  document.getElementById('em-t').textContent=`${sub.lbl} — ${semLbl}第${timeKey}次`;
+  document.getElementById('em-s').textContent='';
+  document.getElementById('em-p').textContent='';
+  document.getElementById('em-p').style.display='none';
+  document.getElementById('em-pts').textContent='';
+  const cur=data.exam[k]??'';
+  document.getElementById('em-sc').value=cur;
+  const hasD=cur!=='';
+  const btns=document.getElementById('em-btns');
+  btns.innerHTML=hasD
+    ?`<button class="btn btn-x" id="em-x">清除</button><button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`
+    :`<button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`;
+  if(hasD)document.getElementById('em-x').onclick=async()=>{delete data.exam[k];await save();buildHistory();updSum();closeEM();};
+  document.getElementById('em-c').onclick=closeEM;
+  document.getElementById('em-sv').onclick=async()=>{
+    const v=document.getElementById('em-sc').value;
+    if(v!=='')data.exam[k]=parseFloat(v);
+    await save();buildHistory();updSum();closeEM();
+  };
+  document.getElementById('oe').classList.add('show');
+}
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+let _histChart = null;
+let _chartActiveSem = 'all';
+let _chartActiveFilter = 'total'; // 'total' | subj key | 'all'
+
+// Modal chart state (independent)
+let _cmChart = null;
+let _cmSem = 'all';
+let _cmFilter = 'total';
+
+function buildCMChart() {
+  // Filter buttons - subjects
+  const subjBtns = document.getElementById('cm-subj-btns');
+  subjBtns.innerHTML = '';
+  const chartSubjs = [...ECFG.filter(s => !s.histOnly), ECFG.find(s => s.key === 'soc')];
+  chartSubjs.forEach(sub => {
+    const col = CHART_COLORS[sub.key] || '#888';
+    const b = document.createElement('button');
+    b.className = 'cfb' + (_cmFilter === sub.key ? ' active' : '');
+    b.dataset.cmfilter = sub.key;
+    b.textContent = sub.lbl;
+    if (_cmFilter === sub.key) { b.style.background = col; b.style.borderColor = col; }
+    else { b.style.borderLeftWidth = '3px'; b.style.borderLeftColor = col + '88'; }
+    b.onclick = () => { _cmFilter = sub.key; buildCMChart(); };
+    subjBtns.appendChild(b);
+  });
+  document.querySelectorAll('.cm-filter-panel > .cfb').forEach(b => {
+    b.classList.toggle('active', b.dataset.cmfilter === _cmFilter);
+    if (b.dataset.cmfilter === _cmFilter) { b.style.background = ''; b.style.borderColor = ''; }
+  });
+
+  // Sem buttons
+  const semBtns = document.getElementById('cm-sem-btns');
+  semBtns.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'csb' + (_cmSem === 'all' ? ' active' : '');
+  allBtn.textContent = '全部';
+  allBtn.onclick = () => { _cmSem = 'all'; buildCMChart(); };
+  semBtns.appendChild(allBtn);
+  SEMESTERS.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'csb' + (_cmSem === s.key ? ' active' : '');
+    b.textContent = s.lbl;
+    b.onclick = () => { _cmSem = s.key; buildCMChart(); };
+    semBtns.appendChild(b);
+  });
+
+  // Build data same logic as main chart
+  const filteredSems = _cmSem === 'all' ? SEMESTERS : SEMESTERS.filter(s => s.key === _cmSem);
+  const labels = [];
+  filteredSems.forEach(s => { EXAM_TIMES.forEach(t => { labels.push(s.lbl + ' ' + t.key); }); });
+
+  const getSocVal = (s, t) => {
+    const g = data.exam[`hist_geo_${s.key}_${t.key}`];
+    const h = data.exam[`hist_hist_${s.key}_${t.key}`];
+    const cv = data.exam[`hist_civic_${s.key}_${t.key}`];
+    return (g && h && cv) ? Math.round((parseFloat(g)+parseFloat(h)+parseFloat(cv))/3*10)/10 : null;
+  };
+  const getVal = (sub, s, t) => {
+    if (sub.key === 'soc') return getSocVal(s, t);
+    const v = data.exam[`hist_${sub.key}_${s.key}_${t.key}`];
+    return (v !== null && v !== undefined && v !== '') ? parseFloat(v) : null;
+  };
+
+  let datasets = [];
+  const totalSubjKeys = ['ch','math','eng','natl','soc'];
+  if (_cmFilter === 'total') {
+    const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => {
+      let total = 0, ok = true;
+      totalSubjKeys.forEach(key => {
+        if (key === 'soc') { const v = getSocVal(s, t); if (v !== null) total += v; else ok = false; }
+        else { const v = data.exam[`hist_${key}_${s.key}_${t.key}`]; if (v !== null && v !== undefined && v !== '') total += parseFloat(v); else ok = false; }
+      });
+      return ok ? Math.round(total * 10) / 10 : null;
+    }));
+    datasets = [{ label: '總分', data: d, borderColor: TOTAL_COLOR, backgroundColor: TOTAL_COLOR+'22', pointBackgroundColor: TOTAL_COLOR, pointRadius: 5, pointHoverRadius: 7, tension: 0, spanGaps: true, borderWidth: 2.5 }];
+  } else if (_cmFilter === 'all') {
+    datasets = chartSubjs.map(sub => {
+      const col = CHART_COLORS[sub.key] || '#888';
+      const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => getVal(sub, s, t)));
+      return { label: sub.lbl, data: d, borderColor: col, backgroundColor: col+'22', pointBackgroundColor: col, pointRadius: 4, pointHoverRadius: 6, tension: 0, spanGaps: true };
+    });
+  } else {
+    const sub = [...ECFG].find(s => s.key === _cmFilter);
+    if (sub) {
+      const col = CHART_COLORS[sub.key] || '#888';
+      const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => getVal(sub, s, t)));
+      datasets = [{ label: sub.lbl, data: d, borderColor: col, backgroundColor: col+'22', pointBackgroundColor: col, pointRadius: 5, pointHoverRadius: 7, tension: 0, spanGaps: true, borderWidth: 2.5 }];
+    }
+  }
+
+  if (_cmChart) { _cmChart.destroy(); _cmChart = null; }
+  const ctx = document.getElementById('cm-history-chart');
+  if (!ctx) return;
+  const isTotal = _cmFilter === 'total';
+  _cmChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 8 } }, tooltip: { mode: 'index', intersect: false } },
+      scales: {
+        y: { min: 0, max: isTotal ? 500 : 100, ticks: { stepSize: isTotal ? 100 : 20, font: { size: 10 } }, grid: { color: '#dddaf022' } },
+        x: { ticks: { font: { size: 9 }, maxRotation: 45 }, grid: { display: false } },
+      },
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    }
+  });
+}
+
+document.getElementById('chart-expand-btn').onclick = () => {
+  _cmFilter = _chartActiveFilter; // inherit current filter
+  _cmSem = _chartActiveSem;
+  document.getElementById('chart-modal-overlay').classList.add('show');
+  setTimeout(buildCMChart, 50);
+};
+document.getElementById('chart-modal-close').onclick = () => {
+  document.getElementById('chart-modal-overlay').classList.remove('show');
+  if (_cmChart) { _cmChart.destroy(); _cmChart = null; }
+};
+document.getElementById('chart-modal-overlay').addEventListener('click', e => {
+  if (e.target.id === 'chart-modal-overlay') {
+    document.getElementById('chart-modal-overlay').classList.remove('show');
+    if (_cmChart) { _cmChart.destroy(); _cmChart = null; }
+  }
+});
+document.querySelectorAll('.cm-filter-panel > .cfb').forEach(b => {
+  b.onclick = () => { _cmFilter = b.dataset.cmfilter; buildCMChart(); };
+});
+
+const CHART_COLORS = {
+  ch:    '#b83030',
+  math:  '#2d6fb5',
+  eng:   '#2a8a6a',
+  natl:  '#5a7a00',
+  geo:   '#1a7a5e',
+  hist:  '#8b5e00',
+  civic: '#2a5caa',
+  soc:   '#7040aa',
+};
+const TOTAL_COLOR = '#4a3f8f';
+
+function buildHistoryChart() {
+  // --- Filter panel buttons ---
+  const subjBtns = document.getElementById('chart-subj-btns');
+  if (!subjBtns) return;
+  subjBtns.innerHTML = '';
+  const displaySubjs = ECFG.filter(s => !s.histOnly);
+  const chartSubjs = [...displaySubjs, ECFG.find(s => s.key === 'soc')]; // include soc for chart
+  chartSubjs.forEach(sub => {
+    const b = document.createElement('button');
+    b.className = 'cfb' + (_chartActiveFilter === sub.key ? ' active' : '');
+    b.style.borderLeftColor = _chartActiveFilter === sub.key ? '' : CHART_COLORS[sub.key] + '88';
+    b.style.borderLeftWidth = '3px';
+    b.dataset.filter = sub.key;
+    b.textContent = sub.lbl;
+    if (_chartActiveFilter === sub.key) { b.style.background = CHART_COLORS[sub.key]; b.style.borderColor = CHART_COLORS[sub.key]; }
+    b.onclick = () => { _chartActiveFilter = sub.key; buildHistoryChart(); };
+    subjBtns.appendChild(b);
+  });
+  // Update top-level filter buttons
+  document.querySelectorAll('#chart-filter-panel > .cfb').forEach(b => {
+    b.classList.toggle('active', b.dataset.filter === _chartActiveFilter);
+  });
+
+  // --- Sem filter buttons ---
+  const semBtns = document.getElementById('chart-sem-btns');
+  semBtns.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'csb' + (_chartActiveSem === 'all' ? ' active' : '');
+  allBtn.textContent = '全部';
+  allBtn.onclick = () => { _chartActiveSem = 'all'; buildHistoryChart(); };
+  semBtns.appendChild(allBtn);
+  SEMESTERS.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'csb' + (_chartActiveSem === s.key ? ' active' : '');
+    b.textContent = s.lbl;
+    b.onclick = () => { _chartActiveSem = s.key; buildHistoryChart(); };
+    semBtns.appendChild(b);
+  });
+
+  // --- Data ---
+  const filteredSems = _chartActiveSem === 'all' ? SEMESTERS : SEMESTERS.filter(s => s.key === _chartActiveSem);
+  const labels = [];
+  filteredSems.forEach(s => { EXAM_TIMES.forEach(t => { labels.push(s.lbl + ' ' + t.key); }); });
+
+  let datasets = [];
+  const totalSubjKeys = ['ch','math','eng','natl','soc'];
+
+  if (_chartActiveFilter === 'total') {
+    // 總分 = ch+math+eng+natl+soc (soc = auto from geo+hist+civic avg)
+    const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => {
+      let total = 0, ok = true;
+      totalSubjKeys.forEach(key => {
+        if (key === 'soc') {
+          const g = data.exam[`hist_geo_${s.key}_${t.key}`];
+          const h = data.exam[`hist_hist_${s.key}_${t.key}`];
+          const cv = data.exam[`hist_civic_${s.key}_${t.key}`];
+          if (g && h && cv) total += (parseFloat(g)+parseFloat(h)+parseFloat(cv))/3;
+          else ok = false;
+        } else {
+          const v = data.exam[`hist_${key}_${s.key}_${t.key}`];
+          if (v !== null && v !== undefined && v !== '') total += parseFloat(v);
+          else ok = false;
+        }
+      });
+      return ok ? Math.round(total * 10) / 10 : null;
+    }));
+    datasets = [{ label: '總分', data: d, borderColor: TOTAL_COLOR, backgroundColor: TOTAL_COLOR+'22', pointBackgroundColor: TOTAL_COLOR, pointRadius: 5, pointHoverRadius: 7, tension: 0, spanGaps: true, borderWidth: 2.5 }];
+  } else if (_chartActiveFilter === 'all') {
+    datasets = chartSubjs.map(sub => {
+      const col = CHART_COLORS[sub.key] || '#888';
+      const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => {
+        if (sub.key === 'soc') {
+          const g = data.exam[`hist_geo_${s.key}_${t.key}`];
+          const h = data.exam[`hist_hist_${s.key}_${t.key}`];
+          const cv = data.exam[`hist_civic_${s.key}_${t.key}`];
+          return (g && h && cv) ? Math.round((parseFloat(g)+parseFloat(h)+parseFloat(cv))/3*10)/10 : null;
+        }
+        const v = data.exam[`hist_${sub.key}_${s.key}_${t.key}`];
+        return (v !== null && v !== undefined && v !== '') ? parseFloat(v) : null;
+      }));
+      return { label: sub.lbl, data: d, borderColor: col, backgroundColor: col+'22', pointBackgroundColor: col, pointRadius: 4, pointHoverRadius: 6, tension: 0, spanGaps: true };
+    });
+  } else {
+    // Single subject
+    const sub = ECFG.find(s => s.key === _chartActiveFilter);
+    if (sub) {
+      const col = CHART_COLORS[sub.key] || '#888';
+      const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => {
+        if (sub.key === 'soc') {
+          const g = data.exam[`hist_geo_${s.key}_${t.key}`];
+          const h = data.exam[`hist_hist_${s.key}_${t.key}`];
+          const cv = data.exam[`hist_civic_${s.key}_${t.key}`];
+          return (g && h && cv) ? Math.round((parseFloat(g)+parseFloat(h)+parseFloat(cv))/3*10)/10 : null;
+        }
+        const v = data.exam[`hist_${sub.key}_${s.key}_${t.key}`];
+        return (v !== null && v !== undefined && v !== '') ? parseFloat(v) : null;
+      }));
+      datasets = [{ label: sub.lbl, data: d, borderColor: col, backgroundColor: col+'22', pointBackgroundColor: col, pointRadius: 5, pointHoverRadius: 7, tension: 0, spanGaps: true, borderWidth: 2.5 }];
+    }
+  }
+
+  if (_histChart) { _histChart.destroy(); _histChart = null; }
+  const ctx = document.getElementById('history-chart');
+  if (!ctx) return;
+  const isTotal = _chartActiveFilter === 'total';
+  _histChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 8 } },
+        tooltip: { mode: 'index', intersect: false },
+      },
+      scales: {
+        y: { min: 0, max: isTotal ? 500 : 100, ticks: { stepSize: isTotal ? 100 : 20, font: { size: 10 } }, grid: { color: '#dddaf022' } },
+        x: { ticks: { font: { size: 9 }, maxRotation: 45 }, grid: { display: false } },
+      },
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    }
+  });
+}
+</script>
+
+</body>
+</html>
