@@ -177,7 +177,7 @@
 
   #history-chart-wrap{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:0;margin-bottom:18px;box-shadow:0 2px 8px rgba(196,83,106,0.07);display:flex;overflow:hidden;}
   #chart-filter-panel{display:flex;flex-direction:column;gap:3px;padding:14px 10px;background:var(--accent-light);border-right:1.5px solid var(--border);min-width:72px;align-items:stretch;}
-  #chart-right{flex:1;padding:14px 14px 10px;overflow:hidden;}
+  #chart-right{flex:1;padding:14px 14px 10px;overflow:hidden;min-width:0;}
   #history-chart-wrap h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:0.9rem;font-weight:700;color:var(--accent1);margin-bottom:8px;}
   .cfp-label{font-size:0.58rem;font-weight:700;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;padding:2px 4px;font-family:'Fira Code',monospace;}
   .cfp-divider{height:1px;background:var(--border);margin:4px 0;}
@@ -191,6 +191,18 @@
   #history-table th, #history-table td { border: 1px solid var(--border); white-space: nowrap; }
   #history-table thead th { font-weight: 700; font-size: 0.75rem; color: var(--accent1); }
   #history-table tbody td { font-family: 'Fira Code', monospace; font-size: 0.78rem; }
+  #chart-expand-btn{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:10px;background:var(--accent1);color:white;border:none;font-size:1.2rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(196,83,106,0.35);z-index:20;transition:transform 0.15s,box-shadow 0.15s;}
+  #chart-expand-btn:hover{transform:scale(1.12);box-shadow:0 4px 14px rgba(196,83,106,0.45);}
+  .chart-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;align-items:flex-end;justify-content:center;padding:0;}
+  .chart-modal-overlay.show{display:flex;}
+  .chart-modal{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:0 0 32px;}
+  .chart-modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card);z-index:2;}
+  .chart-modal-header h3{font-family:'Outfit',sans-serif;font-size:1rem;font-weight:700;color:var(--accent);}
+  .chart-modal-close{width:30px;height:30px;border-radius:50%;border:none;background:var(--bg);color:var(--muted);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .chart-modal-body{padding:14px 14px 8px;display:flex;flex-direction:column;gap:12px;}
+  .cm-filter-panel{display:flex;flex-direction:column;gap:6px;}
+  .cm-filter-row{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
+  .cm-right{overflow:hidden;}
 </style>
 </head>
 <body>
@@ -234,6 +246,7 @@
 
 <!-- History -->
 <div class="section" id="s-history">
+  <div style="position:relative;">
   <div id="history-chart-wrap">
     <div id="chart-filter-panel">
       <div class="cfp-label">顯示</div>
@@ -249,7 +262,34 @@
       <div class="chart-sem-btns" id="chart-sem-btns"></div>
       <canvas id="history-chart" style="width:100%;max-height:260px;"></canvas>
     </div>
+    <button id="chart-expand-btn" title="放大檢視">＋</button>
   </div>
+<!-- Chart Modal -->
+<div class="chart-modal-overlay" id="chart-modal-overlay">
+  <div class="chart-modal">
+    <div class="chart-modal-header">
+      <h3>📈 成績趨勢</h3>
+      <button class="chart-modal-close" id="chart-modal-close">✕</button>
+    </div>
+    <div class="chart-modal-body">
+      <div class="cm-filter-panel">
+        <div class="cm-filter-row" id="cm-type-btns">
+          <button class="cfb" data-cmfilter="total">📊 總分</button>
+          <div id="cm-subj-btns" style="display:contents;"></div>
+          <button class="cfb" data-cmfilter="all">🔀 綜合</button>
+        </div>
+        <div class="chart-sem-btns" id="cm-sem-btns"></div>
+      </div>
+      <div class="cm-right">
+        <canvas id="cm-history-chart" style="width:100%;max-height:340px;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+    <table id="history-table" style="width:100%;border-collapse:collapse;font-size:0.78rem;"></table>
+  </div>
+</div>
+
   <div style="overflow-x:auto;">
     <table id="history-table" style="width:100%;border-collapse:collapse;font-size:0.78rem;"></table>
   </div>
@@ -854,6 +894,125 @@ document.getElementById('pw-confirm').onclick = async () => {
 document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('pw-confirm').click(); });
 document.getElementById('o-teacher').addEventListener('click', e => { if (e.target.id === 'o-teacher') closeTeacherModal(); });
 
+// Modal chart state (independent)
+let _cmChart = null;
+let _cmSem = 'all';
+let _cmFilter = 'total';
+
+function buildCMChart() {
+  // Subject buttons (inline in the row)
+  const subjBtns = document.getElementById('cm-subj-btns');
+  subjBtns.innerHTML = '';
+  const chartSubjs = ECFG;
+  chartSubjs.forEach(sub => {
+    const col = CHART_COLORS_S3[sub.key] || '#888';
+    const b = document.createElement('button');
+    b.className = 'cfb' + (_cmFilter === sub.key ? ' active' : '');
+    b.dataset.cmfilter = sub.key;
+    b.textContent = sub.lbl;
+    if (_cmFilter === sub.key) { b.style.background = col; b.style.borderColor = col; b.style.color = 'white'; }
+    else { b.style.borderLeftWidth = '3px'; b.style.borderLeftColor = col + '88'; }
+    b.onclick = () => { _cmFilter = sub.key; buildCMChart(); };
+    subjBtns.appendChild(b);
+  });
+  // Update total/all buttons
+  document.querySelectorAll('#cm-type-btns > .cfb').forEach(b => {
+    const isActive = b.dataset.cmfilter === _cmFilter;
+    b.classList.toggle('active', isActive);
+    if (!isActive) { b.style.background = ''; b.style.borderColor = ''; b.style.color = ''; }
+  });
+
+  // Sem buttons
+  const semBtns = document.getElementById('cm-sem-btns');
+  semBtns.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'csb' + (_cmSem === 'all' ? ' active' : '');
+  allBtn.textContent = '全部';
+  allBtn.onclick = () => { _cmSem = 'all'; buildCMChart(); };
+  semBtns.appendChild(allBtn);
+  SEMESTERS.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'csb' + (_cmSem === s.key ? ' active' : '');
+    b.textContent = s.lbl;
+    b.onclick = () => { _cmSem = s.key; buildCMChart(); };
+    semBtns.appendChild(b);
+  });
+
+  // Build data same logic as main chart
+  const filteredSems = _cmSem === 'all' ? SEMESTERS : SEMESTERS.filter(s => s.key === _cmSem);
+  const labels = [];
+  filteredSems.forEach(s => { EXAM_TIMES.forEach(t => { labels.push(s.lbl + ' ' + t.key); }); });
+
+  const getSocVal = (s, t) => null; // not used in S3
+  const getVal = (sub, s, t) => {
+    const v = data.exam[`hist_${sub.key}_${s.key}_${t.key}`];
+    return (v !== null && v !== undefined && v !== '') ? parseFloat(v) : null;
+  };
+
+  let datasets = [];
+  if (_cmFilter === 'total') {
+    const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => {
+      let total = 0, ok = true;
+      ECFG.forEach(sub => {
+        const v = data.exam[`hist_${sub.key}_${s.key}_${t.key}`];
+        if (v !== null && v !== undefined && v !== '') total += parseFloat(v); else ok = false;
+      });
+      return ok ? Math.round(total * 10) / 10 : null;
+    }));
+    datasets = [{ label: '總分', data: d, borderColor: TOTAL_COLOR_S3, backgroundColor: TOTAL_COLOR_S3+'22', pointBackgroundColor: TOTAL_COLOR_S3, pointRadius: 5, pointHoverRadius: 7, tension: 0, spanGaps: true, borderWidth: 2.5 }];
+  } else if (_cmFilter === 'all') {
+    datasets = chartSubjs.map(sub => {
+      const col = CHART_COLORS_S3[sub.key] || '#888';
+      const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => getVal(sub, s, t)));
+      return { label: sub.lbl, data: d, borderColor: col, backgroundColor: col+'22', pointBackgroundColor: col, pointRadius: 4, pointHoverRadius: 6, tension: 0, spanGaps: true };
+    });
+  } else {
+    const sub = [...ECFG].find(s => s.key === _cmFilter);
+    if (sub) {
+      const col = CHART_COLORS_S3[sub.key] || '#888';
+      const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => getVal(sub, s, t)));
+      datasets = [{ label: sub.lbl, data: d, borderColor: col, backgroundColor: col+'22', pointBackgroundColor: col, pointRadius: 5, pointHoverRadius: 7, tension: 0, spanGaps: true, borderWidth: 2.5 }];
+    }
+  }
+
+  if (_cmChart) { _cmChart.destroy(); _cmChart = null; }
+  const ctx = document.getElementById('cm-history-chart');
+  if (!ctx) return;
+  const isTotal = _cmFilter === 'total';
+  _cmChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 8 } }, tooltip: { mode: 'index', intersect: false } },
+      scales: {
+        y: { min: 0, max: isTotal ? 500 : 100, ticks: { stepSize: isTotal ? 100 : 20, font: { size: 10 } }, grid: { color: '#dddaf022' } },
+        x: { ticks: { font: { size: 9 }, maxRotation: 45 }, grid: { display: false } },
+      },
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    }
+  });
+}
+
+document.getElementById('chart-expand-btn').onclick = () => {
+  _cmFilter = _chartActiveFilter; // inherit current filter
+  _cmSem = _chartActiveSem;
+  document.getElementById('chart-modal-overlay').classList.add('show');
+  setTimeout(buildCMChart, 50);
+};
+document.getElementById('chart-modal-close').onclick = () => {
+  document.getElementById('chart-modal-overlay').classList.remove('show');
+  if (_cmChart) { _cmChart.destroy(); _cmChart = null; }
+};
+document.getElementById('chart-modal-overlay').addEventListener('click', e => {
+  if (e.target.id === 'chart-modal-overlay') {
+    document.getElementById('chart-modal-overlay').classList.remove('show');
+    if (_cmChart) { _cmChart.destroy(); _cmChart = null; }
+  }
+});
+document.querySelectorAll('#cm-type-btns > .cfb').forEach(b => {
+  b.onclick = () => { _cmFilter = b.dataset.cmfilter; buildCMChart(); };
+});
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
