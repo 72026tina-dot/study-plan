@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日練習集點</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #f0f4f5;
+    --card: #ffffff;
+    --border: #d0dde0;
+    --accent1: #1a9e8f;
+    --accent2: #2bbfad;
+    --accent3: #e05555;
+    --accent-warm: #e8a020;
+    --text: #1a2a2e;
+    --muted: #7a9298;
+    --phase1-bg: #e6f7f5;
+    --phase1-border: #2bbfad;
+    --phase2-bg: #fff8e6;
+    --phase2-border: #e8a020;
+    --math: #2d6fb5;
+    --math-bg: #eaf1fa;
+    --eng: #2a8a6a;
+    --eng-bg: #e6f5f0;
+    --gold: #c8950a;
+    --gold-bg: #fdf6e3;
+    --green: #2d7a2d;
+    --red: #b83030;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+
+  .header { text-align: center; margin-bottom: 24px; }
+  .header h1 { font-size: 1.7rem; font-weight: 900; color: var(--accent1); margin-bottom: 4px; }
+  .header p { font-size: 0.78rem; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+  /* Points bar */
+  .pts-bar {
+    background: var(--gold-bg); border: 1.5px solid var(--gold);
+    border-radius: 14px; padding: 14px 16px; margin-bottom: 20px;
+  }
+  .pts-top { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 8px; }
+  .pts-num { font-family: 'Space Mono', monospace; font-size: 2rem; font-weight: 700; color: var(--gold); line-height: 1; }
+  .pts-sub { font-size: 0.63rem; color: var(--muted); margin-top: 2px; }
+  .pts-money { text-align: right; }
+  .money-n { font-family: 'Space Mono', monospace; font-size: 1.1rem; font-weight: 700; }
+  .money-l { font-size: 0.6rem; color: var(--muted); display: block; }
+  .prog-w { background: var(--border); border-radius: 99px; height: 7px; overflow: hidden; }
+  .prog-f { height: 100%; background: linear-gradient(90deg, var(--gold), #e8c020); border-radius: 99px; transition: width 0.4s; }
+  .redeem { font-size: 0.68rem; color: var(--muted); text-align: center; margin-top: 6px; }
+  .redeem strong { color: var(--text); }
+
+  /* Tabs */
+  .tabs { display: flex; border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 20px; background: var(--bg); }
+  .tab { flex: 1; padding: 9px 4px; text-align: center; font-size: 0.75rem; font-weight: 700; cursor: pointer; color: var(--muted); background: var(--bg); border: none; transition: background 0.15s, color 0.15s; }
+  .tab.active { background: var(--accent1); color: white; }
+  .section { display: none; } .section.active { display: block; }
+
+  /* Legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-bottom: 16px; }
+  .leg { display: flex; align-items: center; gap: 4px; font-size: 0.65rem; color: var(--muted); padding: 2px 8px; border-radius: 20px; border: 1px solid var(--border); background: var(--card); }
+  .ldot { width: 7px; height: 7px; border-radius: 50%; }
+
+  /* Calendar */
+  .cal-month { margin-bottom: 22px; }
+  .cal-mlabel { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; text-align: center; }
+  .cal-wd { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-bottom: 4px; }
+  .cal-wd span { text-align: center; font-size: 0.58rem; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
+
+  .cal-cell {
+    aspect-ratio: 1; border-radius: 8px; border: 1.5px solid var(--border);
+    background: var(--card); display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    padding: 3px 2px; cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.15s;
+    position: relative; overflow: hidden;
+  }
+  .cal-cell:hover:not(.empty):not(.off):not(.outrange) { transform: scale(1.06); box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
+  .cal-cell.empty { border-color: transparent; background: transparent; cursor: default; }
+  .cal-cell.outrange { background: var(--bg); opacity: 0.3; cursor: default; }
+  .cal-cell.off { background: var(--bg); opacity: 0.45; cursor: default; }
+  .cal-cell.today { box-shadow: 0 0 0 2px var(--accent1); }
+  .cal-cell.has-data { border-color: var(--gold); }
+  .cell-date { font-family: 'Space Mono', monospace; font-size: 0.58rem; color: var(--muted); line-height: 1; margin-bottom: 1px; }
+  .cell-stars { font-size: 0.58rem; line-height: 1; text-align: center; margin-bottom: 1px; }
+  .cell-pills { display: flex; flex-direction: column; gap: 1px; width: 100%; padding: 0 1px; }
+  .cell-pill { font-size: 0.34rem; font-weight: 700; padding: 1px 2px; border-radius: 2px; text-align: center; }
+  .cp-math { background: var(--math-bg); color: var(--math); }
+  .cp-eng { background: var(--eng-bg); color: var(--eng); }
+
+  /* Exam cards */
+  .exam-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 12px; padding: 13px 15px; margin-bottom: 10px; cursor: pointer; transition: box-shadow 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .exam-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.09); }
+  .ec-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+  .ec-name { font-size: 0.9rem; font-weight: 700; }
+  .ec-pts { font-family: 'Space Mono', monospace; font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: var(--gold-bg); color: var(--gold); border: 1px solid var(--gold); }
+  .ec-info { font-size: 0.68rem; color: var(--muted); display: flex; align-items: center; justify-content: space-between; }
+  .ec-score { font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: 700; }
+  .ec-prog { background: var(--border); border-radius: 99px; height: 5px; margin-top: 7px; overflow: hidden; }
+  .ec-pf { height: 100%; border-radius: 99px; transition: width 0.4s; }
+
+  /* Rules */
+  .rule-block { background: var(--card); border-left: 3px solid var(--accent1); border-radius: 0 8px 8px 0; padding: 14px 16px; margin-bottom: 12px; font-size: 0.76rem; color: var(--muted); line-height: 1.85; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .rule-block strong { color: var(--text); }
+  .rule-title { font-weight: 900; color: var(--text); font-size: 0.82rem; display: block; margin-bottom: 6px; }
+  .rule-block.green { border-left-color: var(--green); }
+  .rule-block.blue { border-left-color: var(--math); }
+  .rule-block.red { border-left-color: var(--red); }
+
+  /* Countdown */
+  .cd { background: #fdecea; border: 1.5px solid #f0a0a0; border-radius: 10px; padding: 11px 16px; margin-top: 16px; text-align: center; }
+  .cd-l { font-size: 0.65rem; color: var(--red); font-family: 'Space Mono', monospace; letter-spacing: 0.1em; margin-bottom: 2px; }
+  .cd-n { font-size: 1.4rem; font-weight: 900; color: var(--red); }
+  .cd-n span { font-size: 0.85rem; font-weight: 400; color: var(--muted); }
+
+  /* Modal */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+  .overlay.show { display: flex; }
+  .modal { background: white; border-radius: 16px; padding: 20px 17px 17px; width: 100%; max-width: 320px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 2px; color: var(--text); }
+  .msub { font-size: 0.68rem; color: var(--muted); font-family: 'Space Mono', monospace; margin-bottom: 12px; }
+  .mprev { background: var(--gold-bg); border: 1px solid var(--gold); border-radius: 8px; padding: 7px 12px; text-align: center; font-size: 0.8rem; font-weight: 700; color: var(--gold); margin-bottom: 12px; }
+  .mslabel { font-size: 0.63rem; font-weight: 700; color: var(--muted); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 5px; margin-top: 11px; }
+  .mrow { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+  .mrow label { font-size: 0.78rem; font-weight: 700; min-width: 30px; }
+  .mrow input[type=text] { flex: 1; padding: 7px 8px; border: 1.5px solid var(--border); border-radius: 7px; font-family: 'Noto Sans TC', sans-serif; font-size: 0.8rem; background: var(--bg); color: var(--text); }
+  .mrow input:focus, .mrow select:focus { outline: none; border-color: var(--accent1); }
+  .mrow select { flex: 1; padding: 7px 8px; border: 1.5px solid var(--border); border-radius: 7px; font-family: 'Noto Sans TC', sans-serif; font-size: 0.78rem; background: var(--bg); color: var(--text); }
+  .check-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-radius: 8px; border: 1.5px solid var(--border); margin-bottom: 6px; cursor: pointer; transition: background 0.12s, border-color 0.12s; }
+  .check-row.checked { border-color: var(--accent1); background: var(--phase1-bg); }
+  .check-row.math-r.checked { border-color: var(--math); background: var(--math-bg); }
+  .check-row.eng-r.checked { border-color: var(--eng); background: var(--eng-bg); }
+  .check-row-label { font-size: 0.82rem; font-weight: 700; }
+  .check-row.math-r .check-row-label { color: var(--math); }
+  .check-row.eng-r .check-row-label { color: var(--eng); }
+  .check-icon { font-size: 0.9rem; }
+  .mbtns { display: flex; gap: 8px; margin-top: 14px; }
+  .btn { flex: 1; padding: 10px; border: none; border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
+  .btn:hover { opacity: 0.82; }
+  .btn-s { background: var(--accent1); color: white; }
+  .btn-c { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+  .btn-x { background: #fdecea; color: var(--red); border: 1px solid #f0a0a0; }
+  .em-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .em-row label { font-size: 0.8rem; color: var(--muted); min-width: 55px; }
+  .em-row input { width: 68px; padding: 8px; border: 1.5px solid var(--border); border-radius: 7px; font-family: 'Space Mono', monospace; font-size: 1rem; text-align: center; background: var(--bg); }
+  .em-row input:focus { outline: none; border-color: var(--accent1); }
+  .em-pts { font-size: 0.82rem; color: var(--gold); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📐 每日練習集點</h1>
+  <p>每點 10 元 · 段考後換錢或選商品</p>
+</div>
+
+<div class="pts-bar">
+  <div class="pts-top">
+    <div><div class="pts-num" id="tot-pts">0</div><div class="pts-sub">累積點數</div></div>
+    <div class="pts-money"><span class="money-l">可換</span><span class="money-n" id="tot-money">0 元</span></div>
+  </div>
+  <div class="prog-w"><div class="prog-f" id="prog-f" style="width:0%"></div></div>
+  <div class="redeem" style="margin-top:6px;">段考後可換現金或選商品由老師下單，<strong>每點 10 元</strong></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="sw('daily')">📖 每日練習</button>
+  <button class="tab" onclick="sw('exam')">📝 段考成績</button>
+  <button class="tab" onclick="sw('rules')">📋 規則</button>
+</div>
+
+<!-- Daily -->
+<div class="section active" id="s-daily">
+  <div class="legend">
+    <div class="leg"><div class="ldot" style="background:var(--math)"></div>數學</div>
+    <div class="leg"><div class="ldot" style="background:var(--eng)"></div>英文</div>
+    <div class="leg">✓ 完成得1點</div>
+    <div class="leg">📌 任務加點</div>
+  </div>
+  <div id="calendar"></div>
+</div>
+
+<!-- Exam -->
+<div class="section" id="s-exam">
+  <div id="exam-cards"></div>
+</div>
+
+<!-- Rules -->
+<div class="section" id="s-rules">
+  <div class="rule-block">
+    <span class="rule-title">📖 每日練習集點</span>
+    每天完成以下任務各得 1 點：<br>
+    ① <strong>數學</strong>：每天寫 1 題（可填範圍）<br>
+    ② <strong>英文</strong>：每天寫 1 題（可填範圍）<br>
+    ③ <strong>自由任務</strong>：老師評定，可得 1–3 點
+  </div>
+
+  <div class="rule-block green">
+    <span class="rule-title">🏫 學校小考加點規則</span>
+    學校小考帶卷子給老師確認，達標每張得 1 點：<br>
+    <strong>數學、英文</strong>：70 分以上<br>
+    <strong>國文、自然</strong>：80 分以上<br>
+    <strong>社會</strong>（地理／歷史／公民）：90 分以上<br><br>
+    ※ 每次帶幾張就算幾張，當天直接加點
+  </div>
+
+  <div class="rule-block blue">
+    <span class="rule-title">📝 段考達標獎勵</span>
+    達到目標分數得基本點數，超標另有加分：<br>
+    <strong>國文</strong> 70 分 → 達標 10 點，超標每 5 分 +5 點<br>
+    <strong>數學</strong> 60 分 → 達標 10 點，超標每 1 分 +1 點<br>
+    <strong>英文</strong> 60 分 → 達標 10 點，超標每 1 分 +1 點<br>
+    <strong>自然</strong> 80 分 → 達標 10 點，超標每 5 分 +5 點<br>
+    <strong>社會</strong> 80 分 → 達標 10 點，超標每 5 分 +5 點
+  </div>
+
+  <div class="rule-block red">
+    <span class="rule-title">💰 兌換方式</span>
+    段考結束後統計總點數，<strong>每點 10 元</strong>。<br>
+    可選擇換現金，或挑選商品由老師代為下單。
+  </div>
+</div>
+
+<div class="cd">
+  <div class="cd-l">⚠ 段考倒數</div>
+  <div class="cd-n" id="cd-n">— <span>天</span></div>
+</div>
+
+<!-- Daily modal -->
+<div class="overlay" id="od">
+  <div class="modal">
+    <h3 id="dm-t"></h3>
+    <div class="msub" id="dm-s"></div>
+    <div class="mprev" id="dm-p">今日可得 0 點</div>
+
+    <div class="mslabel">每日練習</div>
+    <div class="check-row math-r" id="math-row">
+      <span class="check-row-label">📐 數學 1 題</span>
+      <span class="check-icon" id="math-icon">○</span>
+    </div>
+    <div class="mrow" style="margin-top:-2px;margin-bottom:8px;">
+      <input type="text" id="math-range" placeholder="範圍（例：4-1）" style="font-size:0.75rem;" />
+    </div>
+    <div class="check-row eng-r" id="eng-row">
+      <span class="check-row-label">📝 英文 1 題</span>
+      <span class="check-icon" id="eng-icon">○</span>
+    </div>
+    <div class="mrow" style="margin-top:-2px;margin-bottom:8px;">
+      <input type="text" id="eng-range" placeholder="範圍（例：Unit 3）" style="font-size:0.75rem;" />
+    </div>
+
+    <div class="mslabel">📌 自由任務</div>
+    <div class="mrow">
+      <input type="text" id="dm-fd" placeholder="說明（例：帶2張學校卷）" />
+      <select id="dm-fp" style="width:80px;flex:none;">
+        <option value="0">0點</option>
+        <option value="1">1點 ⭐</option>
+        <option value="2">2點 ⭐⭐</option>
+        <option value="3">3點 ⭐⭐⭐</option>
+      </select>
+    </div>
+
+    <div class="mbtns" id="dm-btns"></div>
+  </div>
+</div>
+
+<!-- Exam modal -->
+<div class="overlay" id="oe">
+  <div class="modal">
+    <h3 id="em-t"></h3>
+    <div class="msub" id="em-s"></div>
+    <div class="mprev" id="em-p">輸入分數後顯示點數</div>
+    <div class="mslabel">實際成績</div>
+    <div class="em-row">
+      <label>分數</label>
+      <input type="number" id="em-sc" min="0" max="100" placeholder="分" />
+      <span class="em-pts" id="em-pts"></span>
+    </div>
+    <div class="mbtns" id="em-btns"></div>
+  </div>
+</div>
+
+<script>
+const FB = 'https://math-plan-default-rtdb.asia-southeast1.firebasedatabase.app/s3_daily.json';
+const today = new Date(); today.setHours(0,0,0,0);
+const examDay = new Date(2026, 5, 25);
+const planStart = new Date(2026, 4, 18);
+const planEnd = new Date(2026, 5, 27); // up to 6/26
+
+const ECFG = [
+  {key:'ch',     lbl:'國文', target:70, base:10, step:5,  bonus:5, col:'var(--red)'},
+  {key:'math',   lbl:'數學', target:60, base:10, step:1,  bonus:1, col:'var(--math)'},
+  {key:'eng',    lbl:'英文', target:60, base:10, step:1,  bonus:1, col:'var(--eng)'},
+  {key:'natl',   lbl:'自然', target:80, base:10, step:5,  bonus:5, col:'#5a7a00'},
+  {key:'social', lbl:'社會', target:80, base:10, step:5,  bonus:5, col:'#7040aa'},
+];
+
+function ePts(cfg, score) {
+  if (score === null || score === undefined || score === '') return 0;
+  const s = parseInt(score); if (isNaN(s) || s < cfg.target) return 0;
+  return cfg.base + Math.floor((s - cfg.target) / cfg.step) * cfg.bonus;
+}
+
+function dPts(e) {
+  if (!e) return 0;
+  let p = 0;
+  if (e.math) p++;
+  if (e.eng) p++;
+  p += Math.min(3, parseInt(e.free?.pt || 0));
+  return p;
+}
+
+function dk(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function fmt(d) { return `${d.getMonth()+1}/${d.getDate()} （${'日一二三四五六'[d.getDay()]}）`; }
+function dowMon(d) { return (d.getDay() + 6) % 7; }
+const WN = ['一','二','三','四','五','六','日'];
+const MN = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+let data = { daily: {}, exam: {} };
+
+async function load() {
+  try {
+    const r = await fetch(FB); const j = await r.json();
+    if (j) { data.daily = j.daily || {}; data.exam = j.exam || {}; }
+  } catch(e) {}
+  buildCal(); buildExam(); updSum();
+}
+async function save() {
+  try { await fetch(FB, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) }); } catch(e) {}
+}
+
+function sw(t) {
+  ['daily','exam','rules'].forEach((id,i) => {
+    document.querySelectorAll('.tab')[i].classList.toggle('active', id===t);
+    document.getElementById('s-'+id).classList.toggle('active', id===t);
+  });
+}
+
+function buildCal() {
+  const cal = document.getElementById('calendar');
+  cal.innerHTML = '';
+
+  const weekStart = new Date(planStart);
+  weekStart.setDate(weekStart.getDate() - dowMon(weekStart));
+
+  const cur = new Date(weekStart);
+  let currentMonth = -1, currentSec = null, currentGrid = null;
+
+  while (cur < planEnd) {
+    const d = new Date(cur);
+    const mo = d.getFullYear() * 100 + d.getMonth();
+
+    if (mo !== currentMonth) {
+      if (currentSec && currentGrid) { currentSec.appendChild(currentGrid); cal.appendChild(currentSec); }
+      currentMonth = mo;
+      currentSec = document.createElement('div'); currentSec.className = 'cal-month';
+      const lbl = document.createElement('div'); lbl.className = 'cal-mlabel';
+      lbl.textContent = `${d.getFullYear()} 年 ${MN[d.getMonth()]}`; currentSec.appendChild(lbl);
+      const wd = document.createElement('div'); wd.className = 'cal-wd';
+      WN.forEach(w => { const s = document.createElement('span'); s.textContent = w; wd.appendChild(s); });
+      currentSec.appendChild(wd);
+      currentGrid = document.createElement('div'); currentGrid.className = 'cal-grid';
+    }
+
+    const inRange = d >= planStart && d < planEnd;
+    const isToday = d.getTime() === today.getTime();
+    const key = dk(d);
+    const entry = data.daily[key];
+    const pts = dPts(entry);
+
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell';
+    if (!inRange) cell.classList.add('outrange');
+    if (isToday) cell.classList.add('today');
+    if (inRange && entry) cell.classList.add('has-data');
+
+    let html = `<div class="cell-date">${d.getDate()}</div>`;
+    if (inRange) {
+      if (pts > 0) html += `<div class="cell-stars">${'⭐'.repeat(Math.min(pts, 5))}</div>`;
+      html += `<div class="cell-pills">`;
+      html += `<div class="cell-pill cp-math" style="opacity:${entry?.math?1:0.3}">數 ${entry?.math?'✓':''}</div>`;
+      html += `<div class="cell-pill cp-eng" style="opacity:${entry?.eng?1:0.3}">英 ${entry?.eng?'✓':''}</div>`;
+      html += `</div>`;
+    }
+    cell.innerHTML = html;
+    if (inRange) cell.addEventListener('click', () => openDM(key));
+    currentGrid.appendChild(cell);
+
+    cur.setDate(cur.getDate() + 1);
+
+    const nextMo = cur.getFullYear() * 100 + cur.getMonth();
+    if (nextMo !== currentMonth && cur < planEnd && dowMon(cur) !== 0) {
+      if (currentSec && currentGrid) { currentSec.appendChild(currentGrid); cal.appendChild(currentSec); }
+      currentMonth = -1; currentSec = null; currentGrid = null;
+    }
+  }
+  if (currentSec && currentGrid) { currentSec.appendChild(currentGrid); cal.appendChild(currentSec); }
+}
+
+function buildExam() {
+  const c = document.getElementById('exam-cards'); c.innerHTML = '';
+  ECFG.forEach(cfg => {
+    const score = data.exam[cfg.key];
+    const pts = ePts(cfg, score);
+    const has = score !== null && score !== undefined && score !== '';
+    const pct = has ? Math.min(100, parseInt(score)) : 0;
+    const card = document.createElement('div'); card.className = 'exam-card';
+    card.innerHTML = `
+      <div class="ec-top">
+        <span class="ec-name" style="color:${cfg.col}">${cfg.lbl}</span>
+        ${pts > 0 ? `<span class="ec-pts">+${pts} 點</span>` : ''}
+      </div>
+      <div class="ec-info">
+        <span>目標 ${cfg.target} 分・達標 ${cfg.base} 點・超標每${cfg.step}分+${cfg.bonus}點</span>
+        ${has ? `<span class="ec-score">${score} 分</span>` : '<span style="color:var(--border)">未輸入</span>'}
+      </div>
+      <div class="ec-prog"><div class="ec-pf" style="width:${pct}%;background:${cfg.col}"></div></div>
+    `;
+    card.addEventListener('click', () => openEM(cfg));
+    c.appendChild(card);
+  });
+}
+
+function updSum() {
+  let dp = 0; Object.values(data.daily).forEach(e => { dp += dPts(e); });
+  let ep = 0; ECFG.forEach(cfg => { ep += ePts(cfg, data.exam[cfg.key]); });
+  const tot = dp + ep;
+  document.getElementById('tot-pts').textContent = tot;
+  document.getElementById('tot-money').textContent = (tot * 10).toLocaleString() + ' 元';
+  document.getElementById('prog-f').style.width = Math.min(100, tot / 150 * 100) + '%';
+  const diff = Math.ceil((examDay - today) / 86400000);
+  document.getElementById('cd-n').innerHTML = `${diff} <span>天</span>`;
+}
+
+// Daily modal
+let dk_cur = null;
+let tMath = false, tMathR = '', tEng = false, tEngR = '', tFd = '', tFp = 0;
+
+function openDM(key) {
+  dk_cur = key;
+  const e = data.daily[key] || {};
+  const [ky3,km3,kd3]=key.split('-').map(Number); document.getElementById('dm-t').textContent = fmt(new Date(ky3,km3-1,kd3));
+  document.getElementById('dm-s').textContent = '數學 · 英文 · 自由任務';
+
+  tMath = !!e.math; tMathR = e.mathRange || '';
+  tEng = !!e.eng; tEngR = e.engRange || '';
+  tFd = e.free?.desc || ''; tFp = parseInt(e.free?.pt || 0);
+
+  updCheckRows();
+  document.getElementById('math-range').value = tMathR;
+  document.getElementById('eng-range').value = tEngR;
+  document.getElementById('dm-fd').value = tFd;
+  document.getElementById('dm-fp').value = tFp;
+  updDMPrev();
+
+  document.getElementById('math-row').onclick = () => { tMath = !tMath; updCheckRows(); updDMPrev(); };
+  document.getElementById('eng-row').onclick = () => { tEng = !tEng; updCheckRows(); updDMPrev(); };
+  document.getElementById('math-range').oninput = e => { tMathR = e.target.value; };
+  document.getElementById('eng-range').oninput = e => { tEngR = e.target.value; };
+  document.getElementById('dm-fd').oninput = e => { tFd = e.target.value; };
+  document.getElementById('dm-fp').onchange = e => { tFp = parseInt(e.target.value); updDMPrev(); };
+
+  const hasD = !!data.daily[key];
+  const btns = document.getElementById('dm-btns');
+  btns.innerHTML = hasD
+    ? `<button class="btn btn-x" id="dm-x">清除</button><button class="btn btn-c" id="dm-c">取消</button><button class="btn btn-s" id="dm-sv">儲存</button>`
+    : `<button class="btn btn-c" id="dm-c">取消</button><button class="btn btn-s" id="dm-sv">儲存</button>`;
+  if (hasD) document.getElementById('dm-x').onclick = async () => {
+    delete data.daily[dk_cur]; await save(); buildCal(); updSum(); closeDM();
+  };
+  document.getElementById('dm-c').onclick = closeDM;
+  document.getElementById('dm-sv').onclick = saveDM;
+  document.getElementById('od').classList.add('show');
+}
+
+function updCheckRows() {
+  const mr = document.getElementById('math-row');
+  const er = document.getElementById('eng-row');
+  mr.classList.toggle('checked', tMath);
+  document.getElementById('math-icon').textContent = tMath ? '✓' : '○';
+  er.classList.toggle('checked', tEng);
+  document.getElementById('eng-icon').textContent = tEng ? '✓' : '○';
+}
+
+function updDMPrev() {
+  let p = 0;
+  if (tMath) p++;
+  if (tEng) p++;
+  p += Math.min(3, tFp);
+  document.getElementById('dm-p').textContent = `今日可得 ${p} 點 ⭐`;
+}
+
+async function saveDM() {
+  const entry = {
+    math: tMath, mathRange: tMathR,
+    eng: tEng, engRange: tEngR,
+    free: { desc: tFd, pt: tFp }
+  };
+  data.daily[dk_cur] = entry;
+  await save(); buildCal(); updSum(); closeDM();
+}
+function closeDM() { document.getElementById('od').classList.remove('show'); }
+document.getElementById('od').addEventListener('click', e => { if (e.target.id === 'od') closeDM(); });
+
+// Exam modal
+let ecfg = null;
+function openEM(cfg) {
+  ecfg = cfg;
+  document.getElementById('em-t').textContent = cfg.lbl + ' 段考成績';
+  document.getElementById('em-s').textContent = `目標 ${cfg.target} 分・達標 ${cfg.base} 點・超標每${cfg.step}分+${cfg.bonus}點`;
+  const cur = data.exam[cfg.key] ?? '';
+  document.getElementById('em-sc').value = cur; updEMPrev();
+  document.getElementById('em-sc').oninput = updEMPrev;
+  const hasD = cur !== '';
+  const btns = document.getElementById('em-btns');
+  btns.innerHTML = hasD
+    ? `<button class="btn btn-x" id="em-x">清除</button><button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`
+    : `<button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`;
+  if (hasD) document.getElementById('em-x').onclick = async () => {
+    delete data.exam[ecfg.key]; await save(); buildExam(); updSum(); closeEM();
+  };
+  document.getElementById('em-c').onclick = closeEM;
+  document.getElementById('em-sv').onclick = async () => {
+    const v = document.getElementById('em-sc').value;
+    if (v !== '') data.exam[ecfg.key] = parseInt(v);
+    await save(); buildExam(); updSum(); closeEM();
+  };
+  document.getElementById('oe').classList.add('show');
+}
+function updEMPrev() {
+  const v = document.getElementById('em-sc').value;
+  const pts = ePts(ecfg, v); const s = parseInt(v);
+  if (!v) { document.getElementById('em-p').textContent = '輸入分數後顯示點數'; document.getElementById('em-pts').textContent = ''; return; }
+  if (isNaN(s) || s < ecfg.target) {
+    document.getElementById('em-p').textContent = `未達標（差 ${ecfg.target - s} 分）`;
+    document.getElementById('em-pts').textContent = '';
+  } else {
+    document.getElementById('em-p').textContent = `達標！可得 ${pts} 點 ⭐`;
+    document.getElementById('em-pts').textContent = `+${pts}點`;
+  }
+}
+function closeEM() { document.getElementById('oe').classList.remove('show'); }
+document.getElementById('oe').addEventListener('click', e => { if (e.target.id === 'oe') closeEM(); });
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>數學計畫表</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Playfair+Display:wght@700&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #fdf8f3;
+    --card: #ffffff;
+    --border: #ecddd0;
+    --accent: #d4521a;
+    --accent-light: #f5e8e0;
+    --accent2: #e8962a;
+    --accent2-light: #fdf3e0;
+    --green: #3a7d44;
+    --green-light: #eaf4ec;
+    --blue: #2a5caa;
+    --blue-light: #eaf0fb;
+    --text: #2a1a0e;
+    --muted: #9a8070;
+    --gold: #c8800a;
+    --gold-bg: #fdf3e0;
+    --done-bg: #fef0e8;
+    --done-border: #d4521a;
+    --streak-bg: #fff8f0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+    padding: 28px 16px 64px;
+  }
+
+  /* Header */
+  .header { text-align: center; margin-bottom: 28px; position: relative; }
+  .header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem; font-weight: 700;
+    color: var(--accent); margin-bottom: 4px;
+    letter-spacing: 0.02em;
+  }
+  .header p { font-size: 0.75rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .header-deco {
+    width: 40px; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px; margin: 8px auto 0;
+  }
+
+  /* Points bar */
+  .pts-bar {
+    background: linear-gradient(135deg, var(--accent-light), var(--accent2-light));
+    border: 1.5px solid var(--border); border-radius: 16px;
+    padding: 16px 18px; margin-bottom: 22px;
+    box-shadow: 0 2px 8px rgba(212,82,26,0.08);
+  }
+  .pts-top { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 10px; }
+  .pts-num { font-family: 'DM Mono', monospace; font-size: 2.2rem; font-weight: 700; color: var(--accent); line-height: 1; }
+  .pts-sub { font-size: 0.62rem; color: var(--muted); margin-top: 2px; }
+  .pts-right { text-align: right; }
+  .money-n { font-family: 'DM Mono', monospace; font-size: 1.15rem; font-weight: 700; color: var(--text); }
+  .money-l { font-size: 0.6rem; color: var(--muted); display: block; }
+  .prog-w { background: rgba(0,0,0,0.08); border-radius: 99px; height: 7px; overflow: hidden; }
+  .prog-f { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; transition: width 0.5s; }
+  .redeem { font-size: 0.68rem; color: var(--muted); text-align: center; margin-top: 8px; }
+  .redeem strong { color: var(--accent); }
+
+  /* Tabs */
+  .tabs {
+    display: flex; border-radius: 12px; overflow: hidden;
+    margin-bottom: 22px; gap: 6px; padding: 4px;
+    background: var(--accent-light); border: 1.5px solid var(--border);
+  }
+  .tab {
+    flex: 1; padding: 9px 4px; text-align: center; font-size: 0.75rem;
+    font-weight: 700; cursor: pointer; color: var(--muted);
+    background: transparent; border: none; border-radius: 8px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .tab.active { background: var(--accent); color: white; box-shadow: 0 2px 6px rgba(212,82,26,0.25); }
+  .section { display: none; } .section.active { display: block; }
+
+  /* Week streak badge */
+  .week-streak-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--streak-bg); border: 1.5px solid var(--border);
+    border-radius: 10px; padding: 10px 14px; margin-bottom: 16px;
+  }
+  .streak-label { font-size: 0.75rem; color: var(--muted); }
+  .streak-label strong { color: var(--text); }
+  .streak-pts { font-family: 'DM Mono', monospace; font-size: 0.78rem; font-weight: 700; color: var(--gold); }
+
+  /* Legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-bottom: 16px; }
+  .leg { display: flex; align-items: center; gap: 4px; font-size: 0.64rem; color: var(--muted); padding: 2px 8px; border-radius: 20px; border: 1px solid var(--border); background: var(--card); }
+  .ldot { width: 7px; height: 7px; border-radius: 50%; }
+
+  /* Calendar */
+  .cal-month { margin-bottom: 24px; }
+  .cal-mlabel {
+    font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted);
+    letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; text-align: center;
+  }
+  .cal-wd { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-bottom: 4px; }
+  .cal-wd span { text-align: center; font-size: 0.58rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
+
+  .cal-cell {
+    aspect-ratio: 1; border-radius: 10px; border: 1.5px solid var(--border);
+    background: var(--card); display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 3px 2px; cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.15s;
+    position: relative; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .cal-cell:hover:not(.empty):not(.outrange) { transform: scale(1.07); box-shadow: 0 4px 12px rgba(212,82,26,0.15); }
+  .cal-cell.empty { border-color: transparent; background: transparent; cursor: default; box-shadow: none; }
+  .cal-cell.outrange { background: rgba(0,0,0,0.03); opacity: 0.3; cursor: default; box-shadow: none; }
+  .cal-cell.today { box-shadow: 0 0 0 2.5px var(--accent); }
+  .cal-cell.done { background: var(--done-bg); border-color: var(--done-border); }
+  .cal-cell.week-win { background: linear-gradient(135deg, #fff8f0, #fef3e0); border-color: var(--gold); }
+  .cal-cell.done-sprint { background: #fdf0e8; border-color: var(--accent2); }
+  .cal-cell.week-win-sprint { background: linear-gradient(135deg, #fdf0e0, #fce8d0); border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent2); }
+
+  .cell-date { font-family: 'DM Mono', monospace; font-size: 0.58rem; color: var(--muted); line-height: 1; margin-bottom: 2px; }
+  .cell-check { font-size: 1rem; line-height: 1; }
+  .cell-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); margin-top: 2px; }
+  .cell-dot.done { background: var(--accent); }
+  .cell-star { font-size: 0.65rem; line-height: 1; }
+
+  /* Week row separator */
+  .week-row { display: contents; }
+
+  /* Exam cards */
+  .exam-card {
+    background: var(--card); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+    cursor: pointer; transition: box-shadow 0.15s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .exam-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.1); }
+  .ec-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+  .ec-name { font-size: 0.9rem; font-weight: 700; color: var(--accent); }
+  .ec-pts { font-family: 'DM Mono', monospace; font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: var(--gold-bg); color: var(--gold); border: 1px solid var(--accent2); }
+  .ec-info { font-size: 0.68rem; color: var(--muted); display: flex; align-items: center; justify-content: space-between; }
+  .ec-score { font-family: 'DM Mono', monospace; font-size: 1rem; font-weight: 700; color: var(--text); }
+  .ec-prog { background: var(--border); border-radius: 99px; height: 5px; margin-top: 7px; overflow: hidden; }
+  .ec-pf { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; transition: width 0.4s; }
+
+  /* Rules */
+  .rule-block {
+    background: var(--card); border-left: 3px solid var(--accent);
+    border-radius: 0 10px 10px 0; padding: 14px 16px; margin-bottom: 12px;
+    font-size: 0.76rem; color: var(--muted); line-height: 1.85;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .rule-block strong { color: var(--text); }
+  .rule-title { font-weight: 900; color: var(--text); font-size: 0.82rem; display: block; margin-bottom: 6px; }
+  .rule-block.green { border-left-color: var(--green); }
+  .rule-block.blue { border-left-color: var(--blue); }
+  .rule-block.gold { border-left-color: var(--gold); }
+  .rule-block.red { border-left-color: #c0392b; }
+
+  /* Countdown */
+  .cd {
+    background: linear-gradient(135deg, #fdecea, #fde8e8);
+    border: 1.5px solid #f0a0a0; border-radius: 12px;
+    padding: 12px 16px; margin-top: 18px; text-align: center;
+    box-shadow: 0 2px 8px rgba(192,57,43,0.08);
+  }
+  .cd-l { font-size: 0.65rem; color: #b83030; font-family: 'DM Mono', monospace; letter-spacing: 0.1em; margin-bottom: 3px; }
+  .cd-n { font-size: 1.5rem; font-weight: 900; color: #b83030; }
+  .cd-n span { font-size: 0.85rem; font-weight: 400; color: var(--muted); }
+
+  /* Modal */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(42,26,14,0.3); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+  .overlay.show { display: flex; }
+  .modal { background: white; border-radius: 18px; padding: 22px 18px 18px; width: 100%; max-width: 320px; box-shadow: 0 12px 40px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; margin-bottom: 2px; color: var(--accent); }
+  .msub { font-size: 0.68rem; color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 12px; }
+  .mprev { background: var(--gold-bg); border: 1.5px solid var(--accent2); border-radius: 10px; padding: 8px 12px; text-align: center; font-size: 0.8rem; font-weight: 700; color: var(--gold); margin-bottom: 14px; }
+  .mslabel { font-size: 0.62rem; font-weight: 700; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; margin-top: 12px; }
+  .check-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; border-radius: 9px; border: 1.5px solid var(--border);
+    margin-bottom: 6px; cursor: pointer; transition: background 0.12s, border-color 0.12s;
+    font-size: 0.85rem; font-weight: 700;
+  }
+  .check-row.checked { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+  .check-icon { font-size: 0.9rem; }
+  .mrow { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+  .mrow input[type=text] { flex: 1; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 0.8rem; background: var(--bg); color: var(--text); }
+  .mrow input:focus, .mrow select:focus { outline: none; border-color: var(--accent); }
+  .mrow select { flex: 1; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 0.78rem; background: var(--bg); color: var(--text); }
+  .mbtns { display: flex; gap: 8px; margin-top: 16px; }
+  .btn { flex: 1; padding: 11px; border: none; border-radius: 9px; font-family: 'Noto Sans TC', sans-serif; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: opacity 0.15s, transform 0.1s; }
+  .btn:hover { opacity: 0.85; }
+  .btn:active { transform: scale(0.98); }
+  .btn-s { background: var(--accent); color: white; box-shadow: 0 2px 8px rgba(212,82,26,0.3); }
+  .btn-c { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+  .btn-x { background: #fdecea; color: #b83030; border: 1px solid #f0a0a0; }
+  .em-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .em-row label { font-size: 0.8rem; color: var(--muted); min-width: 55px; }
+  .em-row input { width: 70px; padding: 9px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 1rem; text-align: center; background: var(--bg); color: var(--text); }
+  .em-row input:focus { outline: none; border-color: var(--accent); }
+  .em-pts { font-size: 0.82rem; color: var(--gold); font-weight: 700; }
+
+  /* Status states */
+  .cal-cell.pending { background: #fff8f0; border-color: #e8962a; }
+  .cal-cell.confirmed { background: #f0faf0; border-color: #3a7d44; }
+  .cell-status { font-size: 0.9rem; line-height: 1; margin-top: 1px; }
+
+  /* Material select */
+  .material-select {
+    width: 100%; padding: 8px 10px;
+    border: 1.5px solid var(--border); border-radius: 8px;
+    font-family: 'Noto Sans TC', sans-serif; font-size: 0.85rem;
+    color: var(--text); background: var(--bg); margin-bottom: 8px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239a8070' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; cursor: pointer;
+  }
+  .material-select:focus { outline: none; border-color: var(--accent); }
+
+  .photo-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 12px; border-radius: 9px; border: 1.5px solid var(--border);
+    margin-bottom: 8px; cursor: pointer; transition: background 0.12s, border-color 0.12s;
+    font-size: 0.82rem; color: var(--muted);
+  }
+  .photo-row.checked { border-color: #e8962a; background: #fff8f0; color: #c8680a; font-weight: 700; }
+
+  .status-note {
+    text-align: center; font-size: 0.75rem; padding: 7px;
+    border-radius: 8px; margin-bottom: 8px; font-weight: 700;
+  }
+  .status-note.pending { background: #fff8f0; color: #c8680a; border: 1px solid #e8962a; }
+  .status-note.confirmed { background: #f0faf0; color: #3a7d44; border: 1px solid #3a7d44; }
+
+  /* Teacher confirm modal */
+  .teacher-modal { background: white; border-radius: 18px; padding: 22px 18px 18px; width: 100%; max-width: 300px; box-shadow: 0 12px 40px rgba(0,0,0,0.2); }
+  .teacher-modal h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; color: #3a7d44; }
+  .pw-input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 9px; font-family: 'DM Mono', monospace; font-size: 1.2rem; text-align: center; letter-spacing: 0.2em; margin-bottom: 10px; background: var(--bg); }
+  .pw-input:focus { outline: none; border-color: #3a7d44; }
+  .pw-error { font-size: 0.75rem; color: #b83030; text-align: center; margin-bottom: 8px; min-height: 18px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📐 數學計畫表</h1>
+  <p>第三次段考 · 暖身期1題/天 · 衝刺期2題/天</p>
+  <div class="header-deco"></div>
+</div>
+
+<div class="pts-bar">
+  <div class="pts-top">
+    <div><div class="pts-num" id="tot-pts">0</div><div class="pts-sub">累積點數</div></div>
+    <div class="pts-right"><span class="money-l">可換</span><span class="money-n" id="tot-money">0 元</span></div>
+  </div>
+  <div class="prog-w"><div class="prog-f" id="prog-f" style="width:0%"></div></div>
+  <div class="redeem" style="margin-top:7px;">段考後可換現金或選商品，<strong>每點 10 元</strong></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="sw('daily')">📖 每日記錄</button>
+  <button class="tab" onclick="sw('exam')">📝 段考成績</button>
+  <button class="tab" onclick="sw('rules')">📋 規則</button>
+</div>
+
+<!-- Daily -->
+<div class="section active" id="s-daily">
+  <div class="week-streak-row">
+    <span class="streak-label">連續完整週 <strong id="streak-count">0</strong> 週</span>
+    <span class="streak-pts" id="streak-pts-disp">週點數：0 點</span>
+  </div>
+  <div class="legend">
+    <div class="leg">🟠 待老師確認</div>
+    <div class="leg">🟢 老師已確認</div>
+    <div class="leg">⭐ 暖身週完成+1點</div>
+    <div class="leg">⭐⭐ 衝刺週完成+2點</div>
+    <div class="leg">📌 任務加點</div>
+  </div>
+  <div id="calendar"></div>
+</div>
+
+<!-- Exam -->
+<div class="section" id="s-exam">
+  <div id="exam-cards"></div>
+</div>
+
+<!-- Rules -->
+<div class="section" id="s-rules">
+  <div class="rule-block">
+    <span class="rule-title">📖 每日練習 &amp; 每週達標</span>
+    <strong>暖身期</strong>（5/18–6/10）：每天寫 1 題<br>
+    <strong>衝刺期</strong>（6/11–段考前）：每天寫 2 題<br>
+    寫完後需<strong>拍照（含訂正）傳給老師</strong>，老師確認後格子變綠色。<br><br>
+    <strong>整週（週一到週日）每天都完成且老師已確認</strong>：<br>
+    　暖身週 → +<strong>1 點</strong>／衝刺週 → +<strong>2 點</strong><br><br>
+    📌 <strong>作業抵免</strong>：當天有寫學校數學作業或老師出的週末課前作業，選「作業抵免」並拍照傳給老師，同樣算完成，不需額外寫題目。
+  </div>
+
+  <div class="rule-block gold">
+    <span class="rule-title">📌 自由任務</span>
+    老師評定可得 1–3 點，例如：帶學校數學卷給老師看、完成指定作業等。
+  </div>
+
+  <div class="rule-block green">
+    <span class="rule-title">🏫 數學小考加點規則</span>
+    學校數學小考帶卷子給老師確認：<br>
+    <strong>80 分以上</strong> → 每張得 <strong>1 點</strong><br><br>
+    ※ 每次帶幾張就算幾張，當天直接加點
+  </div>
+
+  <div class="rule-block blue">
+    <span class="rule-title">📝 段考達標獎勵</span>
+    數學段考達到目標分數得基本點數，超標另有加分：<br>
+    <strong>數學</strong> 60 分 → 達標 <strong>10 點</strong>，超標每 1 分 +1 點
+  </div>
+
+  <div class="rule-block red">
+    <span class="rule-title">💰 兌換方式</span>
+    段考結束後統計總點數，<strong>每點 10 元</strong>。<br>
+    可選擇換現金，或挑選商品由老師代為下單。
+  </div>
+</div>
+
+<div class="cd">
+  <div class="cd-l">⚠ 段考倒數</div>
+  <div class="cd-n" id="cd-n">— <span>天</span></div>
+</div>
+
+<!-- Daily modal -->
+<div class="overlay" id="od">
+  <div class="modal">
+    <h3 id="dm-t"></h3>
+    <div class="msub" id="dm-s"></div>
+
+    <div id="dm-status-note" style="display:none"></div>
+
+    <div class="mslabel" id="modal-phase-label">今天寫了什麼？</div>
+    <select class="material-select" id="dm-material">
+      <option value="">── 請選擇 ──</option>
+      <option value="課本">課本</option>
+      <option value="習作">習作</option>
+      <option value="講義">講義</option>
+      <option value="考卷">考卷</option>
+      <option value="作業抵免">作業抵免（學校作業／課前作業）</option>
+    </select>
+    <div class="mrow" style="margin-bottom:10px;">
+      <input type="text" id="math-range" placeholder="範圍（例：4-1）" style="font-size:0.75rem;" />
+    </div>
+
+    <div class="mslabel">📸 拍照確認</div>
+    <div class="photo-row" id="photo-row">
+      <span>已拍照（含訂正）傳給老師</span>
+      <span id="photo-icon">○</span>
+    </div>
+
+    <div class="mslabel">📌 自由任務</div>
+    <div class="mrow">
+      <input type="text" id="dm-fd" placeholder="說明（例：帶學校考卷）" />
+      <select id="dm-fp" style="width:82px; flex:none;">
+        <option value="0">0 點</option>
+        <option value="1">1 點 ⭐</option>
+        <option value="2">2 點 ⭐⭐</option>
+        <option value="3">3 點 ⭐⭐⭐</option>
+      </select>
+    </div>
+
+    <div class="mbtns" id="dm-btns"></div>
+  </div>
+</div>
+
+<!-- Teacher confirm modal -->
+<div class="overlay" id="o-teacher">
+  <div class="teacher-modal">
+    <h3>✅ 老師確認</h3>
+    <input type="password" class="pw-input" id="pw-input" placeholder="••••" maxlength="10" />
+    <div class="pw-error" id="pw-error"></div>
+    <div class="mbtns">
+      <button class="btn btn-c" id="pw-cancel">取消</button>
+      <button class="btn btn-s" style="background:#3a7d44" id="pw-confirm">確認 ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- Exam modal -->
+<div class="overlay" id="oe">
+  <div class="modal">
+    <h3 id="em-t"></h3>
+    <div class="msub" id="em-s"></div>
+    <div class="mprev" id="em-p">輸入分數後顯示點數</div>
+    <div class="mslabel">實際成績</div>
+    <div class="em-row">
+      <label>分數</label>
+      <input type="number" id="em-sc" min="0" max="100" placeholder="分" />
+      <span class="em-pts" id="em-pts"></span>
+    </div>
+    <div class="mbtns" id="em-btns"></div>
+  </div>
+</div>
+
+<script>
+const FB = 'https://math-plan-default-rtdb.asia-southeast1.firebasedatabase.app/s1_mathplan.json';
+const today = new Date(); today.setHours(0,0,0,0);
+
+const testExam = new Date(today.getFullYear(), 5, 25);
+if (testExam < today) testExam.setFullYear(today.getFullYear() + 1);
+const examDay = testExam;
+
+const planStart = new Date(2026, 4, 18);
+const planEnd = new Date(2026, 5, 27);
+const sprintStart = new Date(2026, 5, 11); // 2 weeks before 6/25 = 6/11
+
+const EXAM_CFG = { key:'math', lbl:'數學', target:60, base:10, step:1, bonus:1, col:'var(--accent)' };
+
+function ePts(score) {
+  if (score === null || score === undefined || score === '') return 0;
+  const s = parseInt(score); if (isNaN(s) || s < EXAM_CFG.target) return 0;
+  return EXAM_CFG.base + Math.floor((s - EXAM_CFG.target) / EXAM_CFG.step) * EXAM_CFG.bonus;
+}
+
+function dk(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function fmt(d) { return `${d.getMonth()+1}/${d.getDate()} （${'日一二三四五六'[d.getDay()]}）`; }
+function dowMon(d) { return (d.getDay() + 6) % 7; }
+const WN = ['一','二','三','四','五','六','日'];
+const MN = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+// data.daily[key] = { done: true, range: '4-1', free: {desc, pt} }
+// data.exam = { math: score }
+let data = { daily: {}, exam: {} };
+
+async function load() {
+  try {
+    const r = await fetch(FB);
+    if (r.ok) {
+      const j = await r.json();
+      if (j && typeof j === 'object') data = j;
+    }
+  } catch(e) { console.warn('Firebase load failed:', e); }
+  if (!data.daily) data.daily = {};
+  if (!data.exam) data.exam = {};
+  buildCal(); buildExam(); updSum();
+}
+
+async function save() {
+  try { await fetch(FB, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) }); } catch(e) {}
+}
+
+// Calculate weekly streak points
+function isSprint(d) { return d >= sprintStart; }
+
+function calcWeekPts() {
+  let pts = 0;
+  const cur = new Date(planStart);
+  cur.setDate(cur.getDate() - dowMon(cur));
+  while (cur < planEnd) {
+    let weekComplete = true;
+    let weekHasAnyPlanDay = false;
+    let weekIsSprint = false;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(cur); d.setDate(d.getDate() + i);
+      if (d >= planStart && d < planEnd) {
+        weekHasAnyPlanDay = true;
+        if (isSprint(d)) weekIsSprint = true;
+        if (!data.daily[dk(d)]?.material) { weekComplete = false; break; }
+      }
+    }
+    if (weekHasAnyPlanDay && weekComplete) pts += weekIsSprint ? 2 : 1;
+    cur.setDate(cur.getDate() + 7);
+  }
+  return pts;
+}
+
+function calcFreePts() {
+  let pts = 0;
+  Object.values(data.daily).forEach(e => { pts += Math.min(3, parseInt(e.free?.pt || 0)); });
+  return pts;
+}
+
+function isWeekComplete(weekMonday) {
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekMonday); d.setDate(d.getDate() + i);
+    if (d >= planStart && d < planEnd) {
+      if (!data.daily[dk(d)]?.material) return false;
+    }
+  }
+  return true;
+}
+
+function sw(t) {
+  ['daily','exam','rules'].forEach((id,i) => {
+    document.querySelectorAll('.tab')[i].classList.toggle('active', id===t);
+    document.getElementById('s-'+id).classList.toggle('active', id===t);
+  });
+}
+
+function buildCal() {
+  const cal = document.getElementById('calendar');
+  cal.innerHTML = '';
+
+  const weekStart = new Date(planStart);
+  weekStart.setDate(weekStart.getDate() - dowMon(weekStart));
+
+  const cur = new Date(weekStart);
+  let currentMonth = -1, currentSec = null, currentGrid = null;
+
+  while (cur < planEnd) {
+    const d = new Date(cur);
+    const mo = d.getFullYear() * 100 + d.getMonth();
+
+    if (mo !== currentMonth) {
+      if (currentSec && currentGrid) { currentSec.appendChild(currentGrid); cal.appendChild(currentSec); }
+      currentMonth = mo;
+      currentSec = document.createElement('div'); currentSec.className = 'cal-month';
+      const lbl = document.createElement('div'); lbl.className = 'cal-mlabel';
+      lbl.textContent = `${d.getFullYear()} 年 ${MN[d.getMonth()]}`; currentSec.appendChild(lbl);
+      const wd = document.createElement('div'); wd.className = 'cal-wd';
+      WN.forEach(w => { const s = document.createElement('span'); s.textContent = w; wd.appendChild(s); });
+      currentSec.appendChild(wd);
+      currentGrid = document.createElement('div'); currentGrid.className = 'cal-grid';
+    }
+
+    const inRange = d >= planStart && d < planEnd;
+    const isToday = d.getTime() === today.getTime();
+    const key = dk(d);
+    const entry = data.daily[key];
+    const done = !!entry?.done;
+
+    // check if this day is in a complete week
+    const weekMon = new Date(d); weekMon.setDate(weekMon.getDate() - dowMon(weekMon));
+    const weekWin = inRange && isWeekComplete(weekMon);
+
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell';
+    if (!inRange) cell.classList.add('outrange');
+    if (isToday) cell.classList.add('today');
+    const status = entry?.status;
+    const sprint = inRange && isSprint(d);
+    if (status === 'confirmed') cell.classList.add('confirmed');
+    else if (status === 'pending') cell.classList.add('pending');
+    else if (entry?.material && !weekWin) cell.classList.add(sprint ? 'done-sprint' : 'done');
+    if (weekWin) cell.classList.add(sprint ? 'week-win-sprint' : 'week-win');
+
+    let html = `<div class="cell-date">${d.getDate()}</div>`;
+    if (inRange) {
+      if (status === 'confirmed') html += `<div class="cell-status">🟢</div>`;
+      else if (status === 'pending') html += `<div class="cell-status">🟠</div>`;
+      else if (entry?.material) html += `<div class="cell-check">✓</div>`;
+      if (weekWin) html += `<div class="cell-star">⭐</div>`;
+      else if (!status) html += `<div class="cell-dot ${entry?.material ? 'done' : ''}"></div>`;
+    }
+    cell.innerHTML = html;
+    if (inRange) cell.addEventListener('click', () => openDM(key));
+    currentGrid.appendChild(cell);
+
+    cur.setDate(cur.getDate() + 1);
+    const nextMo = cur.getFullYear() * 100 + cur.getMonth();
+    if (nextMo !== currentMonth && cur < planEnd && dowMon(cur) !== 0) {
+      if (currentSec && currentGrid) { currentSec.appendChild(currentGrid); cal.appendChild(currentSec); }
+      currentMonth = -1; currentSec = null; currentGrid = null;
+    }
+  }
+  if (currentSec && currentGrid) { currentSec.appendChild(currentGrid); cal.appendChild(currentSec); }
+}
+
+function buildExam() {
+  const c = document.getElementById('exam-cards'); c.innerHTML = '';
+  const score = data.exam[EXAM_CFG.key];
+  const pts = ePts(score);
+  const has = score !== null && score !== undefined && score !== '';
+  const pct = has ? Math.min(100, parseInt(score)) : 0;
+  const card = document.createElement('div'); card.className = 'exam-card';
+  card.innerHTML = `
+    <div class="ec-top">
+      <span class="ec-name">${EXAM_CFG.lbl} 段考</span>
+      ${pts > 0 ? `<span class="ec-pts">+${pts} 點</span>` : ''}
+    </div>
+    <div class="ec-info">
+      <span>目標 ${EXAM_CFG.target} 分・達標 ${EXAM_CFG.base} 點・超標每1分+1點</span>
+      ${has ? `<span class="ec-score">${score} 分</span>` : '<span style="color:var(--border)">未輸入</span>'}
+    </div>
+    <div class="ec-prog"><div class="ec-pf" style="width:${pct}%"></div></div>
+  `;
+  card.addEventListener('click', () => openEM());
+  c.appendChild(card);
+}
+
+function updSum() {
+  const weekPts = calcWeekPts();
+  const freePts = calcFreePts();
+  const examPts = ePts(data.exam[EXAM_CFG.key]);
+  const tot = weekPts + freePts + examPts;
+
+  document.getElementById('tot-pts').textContent = tot;
+  document.getElementById('tot-money').textContent = (tot * 10).toLocaleString() + ' 元';
+  document.getElementById('prog-f').style.width = Math.min(100, tot / 80 * 100) + '%';
+  document.getElementById('streak-count').textContent = weekPts;
+  document.getElementById('streak-pts-disp').textContent = `週點數：${weekPts} 點`;
+
+  const diff = Math.ceil((examDay - today) / 86400000);
+  document.getElementById('cd-n').innerHTML = `${diff} <span>天</span>`;
+}
+
+// Daily modal
+// status: null = empty, 'pending' = student done+photo, 'confirmed' = teacher confirmed
+let dk_cur = null;
+let tMaterial = '', tRange = '', tPhoto = false, tFd = '', tFp = 0;
+
+function openDM(key) {
+  dk_cur = key;
+  const e = data.daily[key] || {};
+  const [ky,km,kd]=key.split('-').map(Number); const dObj = new Date(ky,km-1,kd);
+  const isSp = isSprint(dObj);
+
+  document.getElementById('dm-t').textContent = fmt(dObj);
+  document.getElementById('dm-s').textContent = isSp ? '衝刺期・每天 2 題' : '暖身期・每天 1 題';
+  document.getElementById('modal-phase-label').textContent = isSp ? '今天寫了什麼？（衝刺期 2 題）' : '今天寫了什麼？（暖身期 1 題）';
+
+  tMaterial = e.material || '';
+  tRange = e.range || '';
+  tPhoto = !!e.photo;
+  tFd = e.free?.desc || '';
+  tFp = parseInt(e.free?.pt || 0);
+
+  document.getElementById('dm-material').value = tMaterial;
+  document.getElementById('math-range').value = tRange;
+  document.getElementById('dm-fd').value = tFd;
+  document.getElementById('dm-fp').value = tFp;
+  updPhotoRow();
+  updStatusNote(e.status);
+
+  // lock inputs if confirmed (teacher edit button will unlock)
+  const locked = e.status === 'confirmed';
+  document.getElementById('dm-material').disabled = locked;
+  document.getElementById('math-range').disabled = locked;
+  document.getElementById('photo-row').style.pointerEvents = locked ? 'none' : '';
+  document.getElementById('dm-fd').disabled = locked;
+  document.getElementById('dm-fp').disabled = locked;
+
+  document.getElementById('dm-material').onchange = ev => { tMaterial = ev.target.value; };
+  document.getElementById('math-range').oninput = ev => { tRange = ev.target.value; };
+  document.getElementById('photo-row').onclick = () => { tPhoto = !tPhoto; updPhotoRow(); };
+  document.getElementById('dm-fd').oninput = ev => { tFd = ev.target.value; };
+  document.getElementById('dm-fp').onchange = ev => { tFp = parseInt(ev.target.value); };
+
+  const hasD = !!data.daily[key];
+  const isConfirmed = e.status === 'confirmed';
+  const btns = document.getElementById('dm-btns');
+
+  if (isConfirmed) {
+    btns.innerHTML = `<button class="btn btn-c" id="dm-c">關閉</button><button class="btn" id="dm-edit" style="background:#2a5caa;color:white;border:none;border-radius:9px;padding:10px;font-weight:700;font-size:0.82rem;cursor:pointer;flex:1;">老師修改 ✏️</button>`;
+  } else if (hasD) {
+    btns.innerHTML = `<button class="btn btn-x" id="dm-x">清除</button><button class="btn btn-c" id="dm-c">取消</button><button class="btn btn-s" id="dm-sv">儲存</button>`;
+    document.getElementById('dm-x').onclick = async () => {
+      delete data.daily[dk_cur]; await save(); buildCal(); updSum(); closeDM();
+    };
+  } else {
+    btns.innerHTML = `<button class="btn btn-c" id="dm-c">取消</button><button class="btn btn-s" id="dm-sv">儲存</button>`;
+  }
+
+  // Teacher confirm button — always show if pending
+  if (e.status === 'pending') {
+    const teacherBtn = document.createElement('button');
+    teacherBtn.className = 'btn'; teacherBtn.style.cssText = 'background:#3a7d44;color:white;margin-top:6px;flex:none;width:100%;border-radius:9px;padding:10px;font-weight:700;font-size:0.82rem;border:none;cursor:pointer;';
+    teacherBtn.textContent = '老師確認 ✓';
+    teacherBtn.onclick = () => openTeacherModal(key);
+    btns.parentNode.insertBefore(teacherBtn, btns.nextSibling);
+  }
+
+  // Teacher edit button — show after confirmed
+  if (isConfirmed) {
+    document.getElementById('dm-edit').onclick = () => openTeacherEditModal(key);
+  }
+
+  document.getElementById('dm-c').onclick = closeDM;
+  if (!isConfirmed) {
+    const sv = document.getElementById('dm-sv');
+    if (sv) sv.onclick = saveDM;
+  }
+  document.getElementById('od').classList.add('show');
+}
+
+function updPhotoRow() {
+  const row = document.getElementById('photo-row');
+  row.classList.toggle('checked', tPhoto);
+  document.getElementById('photo-icon').textContent = tPhoto ? '✓' : '○';
+}
+
+function updStatusNote(status) {
+  const note = document.getElementById('dm-status-note');
+  if (status === 'confirmed') {
+    note.style.display = 'block';
+    note.className = 'status-note confirmed';
+    note.textContent = '✅ 老師已確認';
+  } else if (status === 'pending') {
+    note.style.display = 'block';
+    note.className = 'status-note pending';
+    note.textContent = '🟠 等待老師確認中';
+  } else {
+    note.style.display = 'none';
+  }
+}
+
+async function saveDM() {
+  const entry = data.daily[dk_cur] || {};
+  const newStatus = (tMaterial && tPhoto) ? 'pending' : null;
+  // don't downgrade confirmed
+  const finalStatus = entry.status === 'confirmed' ? 'confirmed' : newStatus;
+  data.daily[dk_cur] = {
+    material: tMaterial, range: tRange,
+    photo: tPhoto, free: { desc: tFd, pt: tFp },
+    status: finalStatus
+  };
+  await save(); buildCal(); updSum(); closeDM();
+}
+
+function closeDM() {
+  document.getElementById('od').classList.remove('show');
+  // remove any dynamically added teacher button
+  const extra = document.getElementById('od').querySelector('.btn[style]');
+  if (extra) extra.remove();
+}
+document.getElementById('od').addEventListener('click', e => { if (e.target.id === 'od') closeDM(); });
+
+// Teacher confirm modal
+let teacherKey = null;
+function openTeacherModal(key) {
+  teacherKey = key;
+  document.getElementById('pw-input').value = '';
+  document.getElementById('pw-error').textContent = '';
+  document.getElementById('o-teacher').classList.add('show');
+  setTimeout(() => document.getElementById('pw-input').focus(), 100);
+}
+document.getElementById('pw-cancel').onclick = () => { document.getElementById('o-teacher').classList.remove('show'); };
+document.getElementById('pw-confirm').onclick = async () => {
+  const pw = document.getElementById('pw-input').value;
+  if (pw !== '777') {
+    document.getElementById('pw-error').textContent = '密碼錯誤，請再試一次';
+    document.getElementById('pw-input').value = '';
+    return;
+  }
+  const mode = document.getElementById('pw-confirm').dataset.mode;
+  document.getElementById('o-teacher').classList.remove('show');
+  // reset title for next time
+  document.querySelector('#o-teacher h3').textContent = '✅ 老師確認';
+  document.getElementById('pw-confirm').dataset.mode = '';
+
+  if (mode === 'edit') {
+    // unlock the confirmed entry for editing
+    const key = teacherEditKey;
+    const e = data.daily[key] || {};
+    // re-render buttons as editable (keep status=confirmed but allow save)
+    const btns = document.getElementById('dm-btns');
+    btns.innerHTML = `<button class="btn btn-c" id="dm-c">取消</button><button class="btn btn-s" id="dm-sv">儲存（保留確認）</button>`;
+    document.getElementById('dm-c').onclick = closeDM;
+    document.getElementById('dm-sv').onclick = async () => {
+      data.daily[dk_cur] = {
+        material: tMaterial, range: tRange,
+        photo: tPhoto, free: { desc: tFd, pt: tFp },
+        status: 'confirmed'  // keep confirmed after edit
+      };
+      await save(); buildCal(); updSum(); closeDM();
+    };
+    // enable all inputs
+    document.getElementById('dm-material').disabled = false;
+    document.getElementById('math-range').disabled = false;
+    document.getElementById('photo-row').style.pointerEvents = '';
+    document.getElementById('dm-fd').disabled = false;
+    document.getElementById('dm-fp').disabled = false;
+  } else {
+    // confirm
+    if (data.daily[teacherKey]) {
+      data.daily[teacherKey].status = 'confirmed';
+      await save(); buildCal(); updSum();
+    }
+    closeDM();
+  }
+};
+document.getElementById('pw-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('pw-confirm').click();
+});
+document.getElementById('o-teacher').addEventListener('click', e => {
+  if (e.target.id === 'o-teacher') document.getElementById('o-teacher').classList.remove('show');
+});
+
+// Teacher edit modal (unlock confirmed entry)
+let teacherEditKey = null;
+function openTeacherEditModal(key) {
+  teacherEditKey = key;
+  // reuse pw modal but change title & confirm action
+  document.getElementById('pw-input').value = '';
+  document.getElementById('pw-error').textContent = '';
+  document.querySelector('#o-teacher h3').textContent = '✏️ 老師修改';
+  document.getElementById('pw-confirm').dataset.mode = 'edit';
+  document.getElementById('o-teacher').classList.add('show');
+  setTimeout(() => document.getElementById('pw-input').focus(), 100);
+}
+
+// Exam modal
+function openEM() {
+  document.getElementById('em-t').textContent = '數學段考成績';
+  document.getElementById('em-s').textContent = `目標 ${EXAM_CFG.target} 分・達標 ${EXAM_CFG.base} 點・超標每1分+1點`;
+  const cur = data.exam[EXAM_CFG.key] ?? '';
+  document.getElementById('em-sc').value = cur; updEMPrev();
+  document.getElementById('em-sc').oninput = updEMPrev;
+  const hasD = cur !== '';
+  const btns = document.getElementById('em-btns');
+  btns.innerHTML = hasD
+    ? `<button class="btn btn-x" id="em-x">清除</button><button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`
+    : `<button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`;
+  if (hasD) document.getElementById('em-x').onclick = async () => {
+    delete data.exam[EXAM_CFG.key]; await save(); buildExam(); updSum(); closeEM();
+  };
+  document.getElementById('em-c').onclick = closeEM;
+  document.getElementById('em-sv').onclick = async () => {
+    const v = document.getElementById('em-sc').value;
+    if (v !== '') data.exam[EXAM_CFG.key] = parseInt(v);
+    await save(); buildExam(); updSum(); closeEM();
+  };
+  document.getElementById('oe').classList.add('show');
+}
+function updEMPrev() {
+  const v = document.getElementById('em-sc').value;
+  const pts = ePts(v); const s = parseInt(v);
+  if (!v) { document.getElementById('em-p').textContent = '輸入分數後顯示點數'; document.getElementById('em-pts').textContent = ''; return; }
+  if (isNaN(s) || s < EXAM_CFG.target) {
+    document.getElementById('em-p').textContent = `未達標（差 ${EXAM_CFG.target - s} 分）`;
+    document.getElementById('em-pts').textContent = '';
+  } else {
+    document.getElementById('em-p').textContent = `達標！可得 ${pts} 點 ⭐`;
+    document.getElementById('em-pts').textContent = `+${pts}點`;
+  }
+}
+function closeEM() { document.getElementById('oe').classList.remove('show'); }
+document.getElementById('oe').addEventListener('click', e => { if (e.target.id === 'oe') closeEM(); });
+
+load();
+</script>
+</body>
+</html>

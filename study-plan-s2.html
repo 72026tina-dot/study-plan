@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>集點卡</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap');
+  :root{
+    --bg:#f7f5f0;--card:#fff;--border:#e2ddd6;
+    --math:#2d6fb5;--math-bg:#eaf1fa;
+    --eng:#2a8a6a;--eng-bg:#e6f5f0;
+    --science:#c8680a;--science-bg:#fef3e6;
+    --social:#7040aa;--social-bg:#f2ecfa;
+    --chinese:#b83030;--chinese-bg:#fdecea;
+    --geo:#1a7a5e;--geo-bg:#e6f5ef;
+    --hist:#8b5e00;--hist-bg:#fdf6e3;
+    --civic:#2a5caa;--civic-bg:#eaf0fa;
+    --natl:#5a7a00;--natl-bg:#f4fae6;
+    --text:#1a1815;--muted:#8a8680;
+    --gold:#c8950a;--gold-bg:#fdf6e3;
+    --red:#b83030;--green:#2d7a2d;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh;padding:24px 16px 60px;}
+
+  .header{text-align:center;margin-bottom:20px;}
+  .header h1{font-size:1.5rem;font-weight:900;margin-bottom:4px;}
+  .header p{font-size:0.72rem;color:var(--muted);font-family:'DM Mono',monospace;}
+
+  .pts-bar{background:var(--gold-bg);border:1.5px solid var(--gold);border-radius:14px;padding:14px 16px;margin-bottom:18px;}
+  .pts-top{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:8px;}
+  .pts-num{font-family:'DM Mono',monospace;font-size:2rem;font-weight:700;color:var(--gold);line-height:1;}
+  .pts-sub{font-size:0.63rem;color:var(--muted);margin-top:2px;}
+  .pts-money{text-align:right;}
+  .money-n{font-family:'DM Mono',monospace;font-size:1.1rem;font-weight:700;}
+  .money-l{font-size:0.6rem;color:var(--muted);display:block;}
+  .prog-w{background:var(--border);border-radius:99px;height:7px;overflow:hidden;}
+  .prog-f{height:100%;background:linear-gradient(90deg,var(--gold),#e8c020);border-radius:99px;transition:width 0.4s;}
+  .redeem{font-size:0.68rem;color:var(--muted);text-align:center;margin-top:6px;}
+  .redeem strong{color:var(--text);}
+
+  .tabs{display:flex;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px;}
+  .tab{flex:1;padding:9px 4px;text-align:center;font-size:0.75rem;font-weight:700;cursor:pointer;color:var(--muted);background:var(--bg);border:none;transition:background 0.15s,color 0.15s;}
+  .tab.active{background:var(--text);color:white;}
+  .section{display:none;}.section.active{display:block;}
+
+  .legend{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-bottom:16px;}
+  .leg{display:flex;align-items:center;gap:4px;font-size:0.65rem;color:var(--muted);padding:2px 7px;border-radius:20px;border:1px solid var(--border);background:var(--card);}
+  .ldot{width:7px;height:7px;border-radius:50%;}
+
+  .cal-month{margin-bottom:22px;}
+  .cal-mlabel{font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;text-align:center;}
+  .cal-wd{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;}
+  .cal-wd span{text-align:center;font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+
+  .cal-cell{aspect-ratio:1;border-radius:8px;border:1.5px solid var(--border);background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:3px 2px;cursor:pointer;transition:transform 0.1s,box-shadow 0.15s;position:relative;overflow:hidden;}
+  .cal-cell:hover:not(.empty):not(.off):not(.outrange){transform:scale(1.06);box-shadow:0 3px 10px rgba(0,0,0,0.1);}
+  .cal-cell.empty{border-color:transparent;background:transparent;cursor:default;}
+  .cal-cell.outrange{background:var(--bg);opacity:0.3;cursor:default;}
+  .cal-cell.off{background:var(--bg);opacity:0.45;cursor:default;}
+  .cal-cell.today{box-shadow:0 0 0 2px var(--text);}
+  .cal-cell.has-data{border-color:var(--gold);}
+  .cell-date{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);line-height:1;margin-bottom:1px;}
+  .cell-stars{font-size:0.58rem;line-height:1;text-align:center;margin-bottom:1px;}
+  .cell-pills{display:flex;flex-direction:column;gap:1px;width:100%;padding:0 1px;}
+  .cell-pill{font-size:0.34rem;font-weight:700;padding:1px 2px;border-radius:2px;text-align:center;}
+
+  .exam-card{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:13px 15px;margin-bottom:10px;cursor:pointer;transition:box-shadow 0.15s;}
+  .exam-card:hover{box-shadow:0 3px 10px rgba(0,0,0,0.09);}
+  .ec-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+  .ec-name{font-size:0.9rem;font-weight:700;}
+  .ec-pts{font-family:'DM Mono',monospace;font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);}
+  .ec-info{font-size:0.68rem;color:var(--muted);display:flex;align-items:center;justify-content:space-between;}
+  .ec-score{font-family:'DM Mono',monospace;font-size:1rem;font-weight:700;}
+  .ec-prog{background:var(--border);border-radius:99px;height:5px;margin-top:7px;overflow:hidden;}
+  .ec-pf{height:100%;border-radius:99px;transition:width 0.4s;}
+
+  .rule-block{background:var(--card);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:14px 16px;margin-bottom:12px;font-size:0.76rem;color:var(--muted);line-height:1.85;}
+  .rule-block strong{color:var(--text);}
+  .rule-title{font-weight:900;color:var(--text);font-size:0.82rem;display:block;margin-bottom:6px;}
+  .rule-block.green{border-left-color:var(--green);}
+  .rule-block.blue{border-left-color:var(--math);}
+  .rule-block.red{border-left-color:var(--red);}
+
+  .cd{background:#fdecea;border:1.5px solid #f0a0a0;border-radius:10px;padding:11px 16px;margin-top:16px;text-align:center;}
+  .cd-l{font-size:0.65rem;color:var(--red);font-family:'DM Mono',monospace;letter-spacing:0.1em;margin-bottom:2px;}
+  .cd-n{font-size:1.4rem;font-weight:900;color:var(--red);}
+  .cd-n span{font-size:0.85rem;font-weight:400;color:var(--muted);}
+
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.28);z-index:200;align-items:center;justify-content:center;padding:16px;}
+  .overlay.show{display:flex;}
+  .modal{background:white;border-radius:16px;padding:20px 17px 17px;width:100%;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.15);max-height:90vh;overflow-y:auto;}
+  .modal h3{font-size:0.95rem;font-weight:700;margin-bottom:2px;}
+  .msub{font-size:0.68rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:12px;}
+  .mprev{background:var(--gold-bg);border:1px solid var(--gold);border-radius:8px;padding:7px 12px;text-align:center;font-size:0.8rem;font-weight:700;color:var(--gold);margin-bottom:12px;}
+  .mslabel{font-size:0.63rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:5px;margin-top:11px;}
+  .mrow{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+  .mrow label{font-size:0.78rem;font-weight:700;min-width:30px;}
+  .mrow input[type=number]{width:56px;padding:7px 6px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Mono',monospace;font-size:0.85rem;text-align:center;background:var(--bg);color:var(--text);}
+  .mrow input[type=text]{flex:1;padding:7px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:'Noto Sans TC',sans-serif;font-size:0.8rem;background:var(--bg);color:var(--text);}
+  .mrow input:focus,.mrow select:focus{outline:none;border-color:var(--gold);}
+  .mrow .mstar{font-size:0.75rem;font-weight:700;min-width:32px;text-align:right;}
+  .mrow .mstar.yes{color:var(--gold);}.mrow .mstar.no{color:var(--muted);}
+  .mrow select{flex:1;padding:7px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:'Noto Sans TC',sans-serif;font-size:0.78rem;background:var(--bg);color:var(--text);}
+  .mbtns{display:flex;gap:8px;margin-top:14px;}
+  .btn{flex:1;padding:10px;border:none;border-radius:8px;font-family:'Noto Sans TC',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;transition:opacity 0.15s;}
+  .btn:hover{opacity:0.82;}
+  .btn-s{background:var(--text);color:white;}
+  .btn-c{background:var(--bg);color:var(--muted);border:1px solid var(--border);}
+  .btn-x{background:#fdecea;color:var(--red);border:1px solid #f0a0a0;}
+  .em-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .em-row label{font-size:0.8rem;color:var(--muted);min-width:55px;}
+  .em-row input{width:68px;padding:8px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Mono',monospace;font-size:1rem;text-align:center;background:var(--bg);}
+  .em-row input:focus{outline:none;border-color:var(--gold);}
+  .em-pts{font-size:0.82rem;color:var(--gold);font-weight:700;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⭐ 集點卡</h1>
+  <p>每點 10 元 · 段考後換錢或選商品</p>
+</div>
+
+<div class="pts-bar">
+  <div class="pts-top">
+    <div><div class="pts-num" id="tot-pts">0</div><div class="pts-sub">累積點數</div></div>
+    <div class="pts-money"><span class="money-l">可換</span><span class="money-n" id="tot-money">0 元</span></div>
+  </div>
+  <div class="prog-w"><div class="prog-f" id="prog-f" style="width:0%"></div></div>
+  <div class="redeem" style="margin-top:6px;">段考後可換現金或選商品由老師下單，<strong>每點 10 元</strong></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="sw('class')">📖 上課</button>
+  <button class="tab" onclick="sw('exam')">📝 段考</button>
+  <button class="tab" onclick="sw('rules')">📋 規則</button>
+</div>
+
+<!-- Class -->
+<div class="section active" id="s-class">
+  <div class="legend">
+    <div class="leg"><div class="ldot" style="background:var(--math)"></div>數學</div>
+    <div class="leg"><div class="ldot" style="background:var(--eng)"></div>英文</div>
+    <div class="leg"><div class="ldot" style="background:var(--science)"></div>其他科</div>
+    <div class="leg">⭐ 每科1點</div>
+    <div class="leg">😊 態度1點</div>
+  </div>
+  <div id="calendar"></div>
+</div>
+
+<!-- Exam -->
+<div class="section" id="s-exam">
+  <div id="exam-cards"></div>
+</div>
+
+<!-- Rules -->
+<div class="section" id="s-rules">
+  <div class="rule-block">
+    <span class="rule-title">📖 上課集點規則</span>
+    每次上課可從以下項目各得點數：<br>
+    ① <strong>數學小考</strong>：5 題答對 4 題以上 → 得 1 點<br>
+    ② <strong>英文小考</strong>：5 題答對 4 題以上 → 得 1 點<br>
+    ③ <strong>第三科小考</strong>：5 題答對 4 題以上 → 得 1 點<br>
+    ④ <strong>自由任務</strong>：老師評定，可得 1–3 點<br>
+    ⑤ <strong>上課態度</strong>：老師評定專注認真 → 得 1 點
+  </div>
+
+  <div class="rule-block green">
+    <span class="rule-title">🏫 學校小考加點規則</span>
+    學校小考帶卷子給老師確認，達標每張得 1 點：<br>
+    <strong>數學、英文</strong>：60 分以上<br>
+    <strong>國文、自然</strong>：70 分以上<br>
+    <strong>社會</strong>（地理／歷史／公民）：80 分以上<br><br>
+    ※ 每次帶幾張就算幾張，當天直接加點
+  </div>
+
+  <div class="rule-block blue">
+    <span class="rule-title">📝 段考達標獎勵</span>
+    達到目標分數得基本點數，超標另有加分：<br>
+    <strong>國文</strong> 60 分 → 達標 10 點，超標每 5 分 +5 點<br>
+    <strong>數學</strong> 50 分 → 達標 10 點，超標每 1 分 +1 點<br>
+    <strong>英文</strong> 50 分 → 達標 10 點，超標每 1 分 +1 點<br>
+    <strong>自然</strong> 60 分 → 達標 10 點，超標每 5 分 +5 點<br>
+    <strong>地理</strong> 80 分 → 達標 10 點，超標每 5 分 +5 點<br>
+    <strong>歷史</strong> 80 分 → 達標 10 點，超標每 5 分 +5 點<br>
+    <strong>公民</strong> 80 分 → 達標 10 點，超標每 5 分 +5 點
+  </div>
+
+  <div class="rule-block red">
+    <span class="rule-title">💰 兌換方式</span>
+    段考結束後統計總點數，<strong>每點 10 元</strong>。<br>
+    可選擇換現金，或挑選商品由老師代為下單。
+  </div>
+</div>
+
+<div class="cd">
+  <div class="cd-l">⚠ 段考倒數</div>
+  <div class="cd-n" id="cd-n">— <span>天</span></div>
+</div>
+
+<!-- Class modal -->
+<div class="overlay" id="oc">
+  <div class="modal">
+    <h3 id="cm-t"></h3>
+    <div class="msub" id="cm-s"></div>
+    <div class="mprev" id="cm-p">今日可得 0 點</div>
+
+    <div class="mslabel">小考成績（5題，≥4題對得⭐）</div>
+    <div id="cm-scores"></div>
+
+    <div class="mslabel">第三科</div>
+    <div class="mrow">
+      <select id="cm-t3s" style="width:110px;flex:none;">
+        <option value="">── 選科目 ──</option>
+        <option value="science">理化</option>
+        <option value="natl">自然</option>
+        <option value="geo">地理</option>
+        <option value="hist">歷史</option>
+        <option value="civic">公民</option>
+        <option value="chinese">國文</option>
+        <option value="social">社會</option>
+      </select>
+      <input type="number" min="0" max="5" placeholder="對題數" id="cm-t3sc" style="width:60px;flex:none;"/>
+      <input type="text" placeholder="範圍(如4-1)" id="cm-t3r"/>
+      <span class="mstar" id="cm-t3star" style="color:var(--muted)">—</span>
+    </div>
+
+    <div class="mslabel">📌 自由任務（學校卷/功課/任務）</div>
+    <div class="mrow">
+      <input type="text" id="cm-fd" placeholder="說明（例：帶2張學校卷）"/>
+      <select id="cm-fp" style="width:80px;flex:none;">
+        <option value="0">0點</option>
+        <option value="1">1點 ⭐</option>
+        <option value="2">2點 ⭐⭐</option>
+        <option value="3">3點 ⭐⭐⭐</option>
+      </select>
+    </div>
+
+    <div class="mslabel">😊 上課態度／專注</div>
+    <div class="mrow">
+      <select id="cm-att">
+        <option value="0">需要加油</option>
+        <option value="1">專注認真 ⭐</option>
+      </select>
+    </div>
+
+    <div class="mbtns" id="cm-btns"></div>
+  </div>
+</div>
+
+<!-- Exam modal -->
+<div class="overlay" id="oe">
+  <div class="modal">
+    <h3 id="em-t"></h3>
+    <div class="msub" id="em-s"></div>
+    <div class="mprev" id="em-p">輸入分數後顯示點數</div>
+    <div class="mslabel">實際成績</div>
+    <div class="em-row">
+      <label>分數</label>
+      <input type="number" id="em-sc" min="0" max="100" placeholder="分"/>
+      <span class="em-pts" id="em-pts"></span>
+    </div>
+    <div class="mbtns" id="em-btns"></div>
+  </div>
+</div>
+
+<script>
+const FB='https://math-plan-default-rtdb.asia-southeast1.firebasedatabase.app/s2_cal3.json';
+const today=new Date();today.setHours(0,0,0,0);
+const examDay=new Date(2026,5,26);
+const planStart=new Date(2026,4,18);
+const planEnd=new Date(2026,5,30); // include 6/27, 6/28, 6/29
+const CLASS_DAYS=new Set([0,2,3,4,6]); // Sun,Tue,Wed,Thu,Sat
+
+const SM={
+  math:   {lbl:'數學', col:'var(--math)',   bg:'var(--math-bg)'},
+  eng:    {lbl:'英文', col:'var(--eng)',    bg:'var(--eng-bg)'},
+  science:{lbl:'理化', col:'var(--science)',bg:'var(--science-bg)'},
+  natl:   {lbl:'自然', col:'var(--natl)',   bg:'var(--natl-bg)'},
+  geo:    {lbl:'地理', col:'var(--geo)',    bg:'var(--geo-bg)'},
+  hist:   {lbl:'歷史', col:'var(--hist)',   bg:'var(--hist-bg)'},
+  civic:  {lbl:'公民', col:'var(--civic)',  bg:'var(--civic-bg)'},
+  chinese:{lbl:'國文', col:'var(--chinese)',bg:'var(--chinese-bg)'},
+  social: {lbl:'社會', col:'var(--social)', bg:'var(--social-bg)'},
+};
+
+const ECFG=[
+  {key:'ch',   lbl:'國文',target:60,base:10,step:5,bonus:5,col:'var(--chinese)'},
+  {key:'math', lbl:'數學',target:50,base:10,step:1,bonus:1,col:'var(--math)'},
+  {key:'eng',  lbl:'英文',target:50,base:10,step:1,bonus:1,col:'var(--eng)'},
+  {key:'sci',  lbl:'自然',target:60,base:10,step:5,bonus:5,col:'var(--science)'},
+  {key:'geo',  lbl:'地理',target:80,base:10,step:5,bonus:5,col:'var(--geo)'},
+  {key:'hist', lbl:'歷史',target:80,base:10,step:5,bonus:5,col:'var(--hist)'},
+  {key:'civic',lbl:'公民',target:80,base:10,step:5,bonus:5,col:'var(--civic)'},
+];
+
+function ePts(cfg,score){
+  if(score===null||score===undefined||score==='')return 0;
+  const s=parseInt(score);if(isNaN(s)||s<cfg.target)return 0;
+  return cfg.base+Math.floor((s-cfg.target)/cfg.step)*(cfg.bonus||1);
+}
+
+function dPts(e){
+  if(!e)return 0;
+  let p=0;
+  if(e.math?.pt===1)p++;
+  if(e.eng?.pt===1)p++;
+  if(e.t3?.pt===1)p++;
+  p+=Math.min(3,parseInt(e.free?.pt||0));
+  if(e.att===1)p++;
+  return p;
+}
+
+function dk(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function fmt(d){return`${d.getMonth()+1}/${d.getDate()} 週${'日一二三四五六'[d.getDay()]}`;}
+const WN=['一','二','三','四','五','六','日']; // Monday first
+function dowMon(d){return(d.getDay()+6)%7;} // 0=Mon...6=Sun
+const MN=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+let data={classes:{},exam:{}};
+
+async function load(){
+  try{const r=await fetch(FB);const j=await r.json();if(j){data.classes=j.classes||{};data.exam=j.exam||{};}}catch(e){}
+  buildCal();buildExam();updSum();
+}
+async function save(){
+  try{await fetch(FB,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});}catch(e){}
+}
+
+function sw(t){
+  ['class','exam','rules'].forEach((id,i)=>{
+    document.querySelectorAll('.tab')[i].classList.toggle('active',id===t);
+    document.getElementById('s-'+id).classList.toggle('active',id===t);
+  });
+}
+
+function buildCal(){
+  const cal=document.getElementById('calendar');
+  cal.innerHTML='';
+
+  // Find Monday of the week containing planStart
+  const weekStart=new Date(planStart);
+  weekStart.setDate(weekStart.getDate()-dowMon(weekStart)); // back to Monday
+
+  // Build week-by-week rows until planEnd
+  const cur=new Date(weekStart);
+  let currentMonth=-1;
+  let currentSec=null,currentGrid=null;
+
+  while(cur<planEnd){
+    const d=new Date(cur);
+    const mo=d.getFullYear()*100+d.getMonth();
+
+    // New month section
+    if(mo!==currentMonth){
+      // finish previous grid
+      if(currentSec&&currentGrid){currentSec.appendChild(currentGrid);cal.appendChild(currentSec);}
+      currentMonth=mo;
+      currentSec=document.createElement('div');currentSec.className='cal-month';
+      const lbl=document.createElement('div');lbl.className='cal-mlabel';
+      lbl.textContent=`${d.getFullYear()} 年 ${MN[d.getMonth()]}`;currentSec.appendChild(lbl);
+      const wd=document.createElement('div');wd.className='cal-wd';
+      WN.forEach(w=>{const s=document.createElement('span');s.textContent=w;wd.appendChild(s);});
+      currentSec.appendChild(wd);
+      currentGrid=document.createElement('div');currentGrid.className='cal-grid';
+
+      // leading blanks: days before start of week that fall in prev month
+      // (already handled by starting at Monday of week, so no extra blanks needed)
+    }
+
+    const inRange=d>=planStart&&d<planEnd;
+    const isClass=inRange&&CLASS_DAYS.has(d.getDay());
+    const isToday=d.getTime()===today.getTime();
+    const key=dk(d);
+    const entry=data.classes[key];
+    const pts=dPts(entry);
+
+    const cell=document.createElement('div');
+    cell.className='cal-cell';
+    if(!inRange) cell.classList.add('outrange');
+    else if(!isClass) cell.classList.add('off');
+    if(isToday) cell.classList.add('today');
+    if(inRange&&isClass&&entry) cell.classList.add('has-data');
+
+    let html=`<div class="cell-date">${d.getDate()}</div>`;
+    if(inRange&&isClass){
+      if(pts>0)html+=`<div class="cell-stars">${'⭐'.repeat(Math.min(pts,6))}</div>`;
+      html+=`<div class="cell-pills">`;
+      const mg=entry?.math?.pt===1;
+      html+=`<div class="cell-pill" style="background:var(--math-bg);color:var(--math);opacity:${mg?1:0.3}">數</div>`;
+      const eg=entry?.eng?.pt===1;
+      html+=`<div class="cell-pill" style="background:var(--eng-bg);color:var(--eng);opacity:${eg?1:0.3}">英</div>`;
+      if(entry?.t3?.subj){
+        const t3m=SM[entry.t3.subj];const t3g=entry.t3.pt===1;
+        html+=`<div class="cell-pill" style="background:${t3m.bg};color:${t3m.col};opacity:${t3g?1:0.3}">${t3m.lbl.slice(0,2)}</div>`;
+      }
+      html+=`</div>`;
+    }
+    cell.innerHTML=html;
+    if(inRange&&isClass)cell.addEventListener('click',()=>openCM(key));
+    currentGrid.appendChild(cell);
+
+    cur.setDate(cur.getDate()+1);
+
+    // When we hit a new month boundary mid-week, flush current section and start new
+    const nextMo=cur.getFullYear()*100+cur.getMonth();
+    if(nextMo!==currentMonth&&cur<planEnd&&dowMon(cur)!==0){
+      // mid-week month change: fill remaining cells of week into current month, then flush
+      // actually let the loop handle it naturally - just flush here
+      if(currentSec&&currentGrid){currentSec.appendChild(currentGrid);cal.appendChild(currentSec);}
+      currentMonth=-1;currentSec=null;currentGrid=null;
+    }
+  }
+  if(currentSec&&currentGrid){currentSec.appendChild(currentGrid);cal.appendChild(currentSec);}
+}
+
+function buildExam(){
+  const c=document.getElementById('exam-cards');c.innerHTML='';
+  ECFG.forEach(cfg=>{
+    const score=data.exam[cfg.key];
+    const pts=ePts(cfg,score);
+    const has=score!==null&&score!==undefined&&score!=='';
+    const pct=has?Math.min(100,parseInt(score)):0;
+    const card=document.createElement('div');card.className='exam-card';
+    card.innerHTML=`
+      <div class="ec-top">
+        <span class="ec-name" style="color:${cfg.col}">${cfg.lbl}</span>
+        ${pts>0?`<span class="ec-pts">+${pts} 點</span>`:''}
+      </div>
+      <div class="ec-info">
+        <span>目標 ${cfg.target} 分・達標 ${cfg.base} 點・超標每${cfg.step}分+${cfg.bonus||1}點</span>
+        ${has?`<span class="ec-score">${score} 分</span>`:'<span style="color:var(--border)">未輸入</span>'}
+      </div>
+      <div class="ec-prog"><div class="ec-pf" style="width:${pct}%;background:${cfg.col}"></div></div>
+    `;
+    card.addEventListener('click',()=>openEM(cfg));
+    c.appendChild(card);
+  });
+}
+
+function updSum(){
+  let cp=0;Object.values(data.classes).forEach(e=>{cp+=dPts(e);});
+  let ep=0;ECFG.forEach(cfg=>{ep+=ePts(cfg,data.exam[cfg.key]);});
+  const tot=cp+ep;
+  document.getElementById('tot-pts').textContent=tot;
+  document.getElementById('tot-money').textContent=(tot*10).toLocaleString()+' 元';
+  document.getElementById('prog-f').style.width=Math.min(100,tot/150*100)+'%';
+  const diff=Math.ceil((examDay-today)/86400000);
+  document.getElementById('cd-n').innerHTML=`${diff} <span>天</span>`;
+}
+
+// Class modal state
+let ck=null;
+let tmathSc='',tmathR='',tengSc='',tengR='';
+let tt3subj='',tt3sc='',tt3r='';
+let tfd='',tfp=0,tatt=0;
+
+function openCM(key){
+  ck=key;
+  const e=data.classes[key]||{};
+  const [ky2,km2,kd2]=key.split('-').map(Number); document.getElementById('cm-t').textContent=fmt(new Date(ky2,km2-1,kd2));
+  document.getElementById('cm-s').textContent='數學 · 英文 · 第三科 · 任務 · 態度';
+
+  tmathSc=e.math?.score??''; tmathR=e.math?.range??'';
+  tengSc=e.eng?.score??'';   tengR=e.eng?.range??'';
+  tt3subj=e.t3?.subj??'';    tt3sc=e.t3?.score??'';  tt3r=e.t3?.range??'';
+  tfd=e.free?.desc??''; tfp=parseInt(e.free?.pt||0); tatt=e.att??0;
+
+  renderCMScores();
+
+  document.getElementById('cm-t3s').value=tt3subj;
+  document.getElementById('cm-t3sc').value=tt3sc;
+  document.getElementById('cm-t3r').value=tt3r;
+  updT3Star();
+
+  document.getElementById('cm-fd').value=tfd;
+  document.getElementById('cm-fp').value=tfp;
+  document.getElementById('cm-att').value=tatt;
+  updCMPrev();
+
+  // bind t3
+  document.getElementById('cm-t3s').onchange=e=>{tt3subj=e.target.value;updT3Star();updCMPrev();};
+  document.getElementById('cm-t3sc').oninput=e=>{tt3sc=e.target.value;updT3Star();updCMPrev();};
+  document.getElementById('cm-t3r').oninput=e=>{tt3r=e.target.value;};
+  document.getElementById('cm-fd').oninput=e=>{tfd=e.target.value;};
+  document.getElementById('cm-fp').onchange=e=>{tfp=parseInt(e.target.value);updCMPrev();};
+  document.getElementById('cm-att').onchange=e=>{tatt=parseInt(e.target.value);updCMPrev();};
+
+  const hasD=!!data.classes[key];
+  const btns=document.getElementById('cm-btns');
+  btns.innerHTML=hasD
+    ?`<button class="btn btn-x" id="cm-x">清除</button><button class="btn btn-c" id="cm-c">取消</button><button class="btn btn-s" id="cm-sv">儲存</button>`
+    :`<button class="btn btn-c" id="cm-c">取消</button><button class="btn btn-s" id="cm-sv">儲存</button>`;
+  if(hasD)document.getElementById('cm-x').onclick=async()=>{delete data.classes[ck];await save();buildCal();updSum();closeCM();};
+  document.getElementById('cm-c').onclick=closeCM;
+  document.getElementById('cm-sv').onclick=saveCM;
+  document.getElementById('oc').classList.add('show');
+}
+
+function renderCMScores(){
+  const c=document.getElementById('cm-scores');c.innerHTML='';
+  [{s:'math',sc:tmathSc,r:tmathR,lbl:'數學',col:'var(--math)'},{s:'eng',sc:tengSc,r:tengR,lbl:'英文',col:'var(--eng)'}].forEach(({s,sc,r,lbl,col})=>{
+    const got=sc!==''&&parseInt(sc)>=4;
+    const row=document.createElement('div');row.className='mrow';
+    row.innerHTML=`
+      <label style="color:${col}">${lbl}</label>
+      <input type="number" min="0" max="5" placeholder="對題" value="${sc}" data-s="${s}" class="sc-i"/>
+      <input type="text" placeholder="範圍(如4-1)" value="${r}" data-s="${s}" class="rng-i" style="width:84px"/>
+      <span class="mstar ${got?'yes':'no'}">${got?'⭐+1':'—'}</span>
+    `;
+    c.appendChild(row);
+  });
+  c.querySelectorAll('.sc-i').forEach(el=>el.addEventListener('input',e=>{
+    if(e.target.dataset.s==='math')tmathSc=e.target.value;
+    else tengSc=e.target.value;
+    renderCMScores();updCMPrev();
+  }));
+  c.querySelectorAll('.rng-i').forEach(el=>el.addEventListener('input',e=>{
+    if(e.target.dataset.s==='math')tmathR=e.target.value;
+    else tengR=e.target.value;
+  }));
+}
+
+function updT3Star(){
+  const got=tt3subj&&tt3sc!==''&&parseInt(tt3sc)>=4;
+  const star=document.getElementById('cm-t3star');
+  star.textContent=got?'⭐+1':'—';
+  star.className='mstar '+(got?'yes':'no');
+}
+
+function updCMPrev(){
+  let p=0;
+  if(tmathSc!==''&&parseInt(tmathSc)>=4)p++;
+  if(tengSc!==''&&parseInt(tengSc)>=4)p++;
+  if(tt3subj&&tt3sc!==''&&parseInt(tt3sc)>=4)p++;
+  p+=Math.min(3,tfp);
+  if(tatt===1)p++;
+  document.getElementById('cm-p').textContent=`今日可得 ${p} 點 ⭐`;
+}
+
+async function saveCM(){
+  const mathSc=tmathSc!==''?parseInt(tmathSc):null;
+  const engSc=tengSc!==''?parseInt(tengSc):null;
+  const t3Sc=tt3sc!==''?parseInt(tt3sc):null;
+  const entry={
+    math:{score:mathSc,range:tmathR,pt:(mathSc!==null&&mathSc>=4)?1:0},
+    eng: {score:engSc, range:tengR, pt:(engSc!==null&&engSc>=4)?1:0},
+    t3:  {subj:tt3subj,score:t3Sc, range:tt3r,pt:(tt3subj&&t3Sc!==null&&t3Sc>=4)?1:0},
+    free:{desc:tfd,pt:tfp},
+    att: tatt,
+  };
+  data.classes[ck]=entry;await save();buildCal();updSum();closeCM();
+}
+function closeCM(){document.getElementById('oc').classList.remove('show');}
+document.getElementById('oc').addEventListener('click',e=>{if(e.target.id==='oc')closeCM();});
+
+// Exam modal
+let ecfg=null;
+function openEM(cfg){
+  ecfg=cfg;
+  document.getElementById('em-t').textContent=cfg.lbl+' 段考成績';
+  document.getElementById('em-s').textContent=`目標 ${cfg.target} 分・達標 ${cfg.base} 點・超標每${cfg.step}分+${cfg.bonus||1}點`;
+  const cur=data.exam[cfg.key]??'';
+  document.getElementById('em-sc').value=cur;updEMPrev();
+  document.getElementById('em-sc').oninput=updEMPrev;
+  const hasD=cur!=='';
+  const btns=document.getElementById('em-btns');
+  btns.innerHTML=hasD
+    ?`<button class="btn btn-x" id="em-x">清除</button><button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`
+    :`<button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`;
+  if(hasD)document.getElementById('em-x').onclick=async()=>{delete data.exam[ecfg.key];await save();buildExam();updSum();closeEM();};
+  document.getElementById('em-c').onclick=closeEM;
+  document.getElementById('em-sv').onclick=async()=>{
+    const v=document.getElementById('em-sc').value;
+    if(v!=='')data.exam[ecfg.key]=parseInt(v);
+    await save();buildExam();updSum();closeEM();
+  };
+  document.getElementById('oe').classList.add('show');
+}
+function updEMPrev(){
+  const v=document.getElementById('em-sc').value;
+  const pts=ePts(ecfg,v);const s=parseInt(v);
+  if(!v){document.getElementById('em-p').textContent='輸入分數後顯示點數';document.getElementById('em-pts').textContent='';return;}
+  if(isNaN(s)||s<ecfg.target){
+    document.getElementById('em-p').textContent=`未達標（差 ${ecfg.target-s} 分）`;
+    document.getElementById('em-pts').textContent='';
+  }else{
+    document.getElementById('em-p').textContent=`達標！可得 ${pts} 點 ⭐`;
+    document.getElementById('em-pts').textContent=`+${pts}點`;
+  }
+}
+function closeEM(){document.getElementById('oe').classList.remove('show');}
+document.getElementById('oe').addEventListener('click',e=>{if(e.target.id==='oe')closeEM();});
+
+load();
+</script>
+</body>
+</html>
