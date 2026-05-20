@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>集點卡</title>
+<title>士傑 - 學習成效表</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Outfit:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap');
   :root{
-    --bg:#f7f5f0;--card:#fff;--border:#e2ddd6;
+    --bg:#f3f2f8;--card:#fff;--border:#dddaf0;
+    --accent:#4a3f8f;--accent-light:#ece9fb;--accent2:#7c6fd4;
     --math:#2d6fb5;--math-bg:#eaf1fa;
     --eng:#2a8a6a;--eng-bg:#e6f5f0;
     --science:#c8680a;--science-bg:#fef3e6;
@@ -17,7 +18,7 @@
     --hist:#8b5e00;--hist-bg:#fdf6e3;
     --civic:#2a5caa;--civic-bg:#eaf0fa;
     --natl:#5a7a00;--natl-bg:#f4fae6;
-    --text:#1a1815;--muted:#8a8680;
+    --text:#1a1830;--muted:#7a7898;
     --gold:#c8950a;--gold-bg:#fdf6e3;
     --red:#b83030;--green:#2d7a2d;
   }
@@ -25,24 +26,24 @@
   body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh;padding:24px 16px 60px;}
 
   .header{text-align:center;margin-bottom:20px;}
-  .header h1{font-size:1.5rem;font-weight:900;margin-bottom:4px;}
-  .header p{font-size:0.72rem;color:var(--muted);font-family:'DM Mono',monospace;}
+  .header h1{font-size:1.6rem;font-weight:900;margin-bottom:4px;font-family:'Outfit',sans-serif;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .header p{font-size:0.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;}
 
-  .pts-bar{background:var(--gold-bg);border:1.5px solid var(--gold);border-radius:14px;padding:14px 16px;margin-bottom:18px;}
+  .pts-bar{background:var(--accent-light);border:1.5px solid var(--accent2);border-radius:14px;padding:14px 16px;margin-bottom:18px;}
   .pts-top{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:8px;}
-  .pts-num{font-family:'DM Mono',monospace;font-size:2rem;font-weight:700;color:var(--gold);line-height:1;}
+  .pts-num{font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:700;color:var(--accent);line-height:1;}
   .pts-sub{font-size:0.63rem;color:var(--muted);margin-top:2px;}
   .pts-money{text-align:right;}
-  .money-n{font-family:'DM Mono',monospace;font-size:1.1rem;font-weight:700;}
+  .money-n{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:700;}
   .money-l{font-size:0.6rem;color:var(--muted);display:block;}
   .prog-w{background:var(--border);border-radius:99px;height:7px;overflow:hidden;}
-  .prog-f{height:100%;background:linear-gradient(90deg,var(--gold),#e8c020);border-radius:99px;transition:width 0.4s;}
+  .prog-f{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width 0.4s;}
   .redeem{font-size:0.68rem;color:var(--muted);text-align:center;margin-top:6px;}
-  .redeem strong{color:var(--text);}
+  .redeem strong{color:var(--accent);}
 
   .tabs{display:flex;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px;}
-  .tab{flex:1;padding:9px 4px;text-align:center;font-size:0.75rem;font-weight:700;cursor:pointer;color:var(--muted);background:var(--bg);border:none;transition:background 0.15s,color 0.15s;}
-  .tab.active{background:var(--text);color:white;}
+  .tab{flex:1;padding:9px 4px;text-align:center;font-size:0.75rem;font-weight:700;cursor:pointer;color:var(--muted);background:var(--bg);border:none;transition:background 0.15s,color 0.15s;font-family:'Outfit',sans-serif;}
+  .tab.active{background:var(--accent);color:white;box-shadow:0 2px 8px rgba(74,63,143,0.25);}
   .section{display:none;}.section.active{display:block;}
 
   .legend{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-bottom:16px;}
@@ -50,9 +51,9 @@
   .ldot{width:7px;height:7px;border-radius:50%;}
 
   .cal-month{margin-bottom:22px;}
-  .cal-mlabel{font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;text-align:center;}
+  .cal-mlabel{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;text-align:center;}
   .cal-wd{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;}
-  .cal-wd span{text-align:center;font-size:0.58rem;color:var(--muted);font-family:'DM Mono',monospace;}
+  .cal-wd span{text-align:center;font-size:0.58rem;color:var(--muted);font-family:'JetBrains Mono',monospace;}
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
 
   .cal-cell{aspect-ratio:1;border-radius:8px;border:1.5px solid var(--border);background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:3px 2px;cursor:pointer;transition:transform 0.1s,box-shadow 0.15s;position:relative;overflow:hidden;}
@@ -60,9 +61,9 @@
   .cal-cell.empty{border-color:transparent;background:transparent;cursor:default;}
   .cal-cell.outrange{background:var(--bg);opacity:0.3;cursor:default;}
   .cal-cell.off{background:var(--bg);opacity:0.45;cursor:default;}
-  .cal-cell.today{box-shadow:0 0 0 2px var(--text);}
-  .cal-cell.has-data{border-color:var(--gold);}
-  .cell-date{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);line-height:1;margin-bottom:1px;}
+  .cal-cell.today{box-shadow:0 0 0 2px var(--accent);}
+  .cal-cell.has-data{border-color:var(--accent2);}
+  .cell-date{font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--muted);line-height:1;margin-bottom:1px;}
   .cell-stars{font-size:0.58rem;line-height:1;text-align:center;margin-bottom:1px;}
   .cell-pills{display:flex;flex-direction:column;gap:1px;width:100%;padding:0 1px;}
   .cell-pill{font-size:0.34rem;font-weight:700;padding:1px 2px;border-radius:2px;text-align:center;}
@@ -71,15 +72,15 @@
   .exam-card:hover{box-shadow:0 3px 10px rgba(0,0,0,0.09);}
   .ec-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
   .ec-name{font-size:0.9rem;font-weight:700;}
-  .ec-pts{font-family:'DM Mono',monospace;font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold);}
+  .ec-pts{font-family:'JetBrains Mono',monospace;font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--accent-light);color:var(--accent);border:1px solid var(--accent2);}
   .ec-info{font-size:0.68rem;color:var(--muted);display:flex;align-items:center;justify-content:space-between;}
-  .ec-score{font-family:'DM Mono',monospace;font-size:1rem;font-weight:700;}
+  .ec-score{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:700;}
   .ec-prog{background:var(--border);border-radius:99px;height:5px;margin-top:7px;overflow:hidden;}
   .ec-pf{height:100%;border-radius:99px;transition:width 0.4s;}
 
-  .rule-block{background:var(--card);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:14px 16px;margin-bottom:12px;font-size:0.76rem;color:var(--muted);line-height:1.85;}
+  .rule-block{background:var(--card);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:14px 16px;margin-bottom:12px;font-size:0.76rem;color:var(--muted);line-height:1.85;}
   .rule-block strong{color:var(--text);}
-  .rule-title{font-weight:900;color:var(--text);font-size:0.82rem;display:block;margin-bottom:6px;}
+  .rule-title{font-weight:900;color:var(--text);font-size:0.82rem;display:block;margin-bottom:6px;font-family:'Outfit',sans-serif;}
   .rule-block.green{border-left-color:var(--green);}
   .rule-block.blue{border-left-color:var(--math);}
   .rule-block.red{border-left-color:var(--red);}
@@ -87,63 +88,76 @@
   .cd-row{display:flex;gap:10px;margin-top:16px;}
   .cd{flex:1;border-radius:10px;padding:11px 16px;text-align:center;}
   .cd.exam{background:#fdecea;border:1.5px solid #f0a0a0;}
-  .cd.guan{background:#eaf0fb;border:1.5px solid #a0b8e8;}
-  .cd-l{font-size:0.65rem;font-family:'DM Mono',monospace;letter-spacing:0.1em;margin-bottom:2px;}
+  .cd.guan{background:var(--accent-light);border:1.5px solid var(--accent2);}
+  .cd-l{font-size:0.65rem;font-family:'JetBrains Mono',monospace;letter-spacing:0.1em;margin-bottom:2px;}
   .cd.exam .cd-l{color:var(--red);}
-  .cd.guan .cd-l{color:#2a5caa;}
-  .cd-n{font-size:1.4rem;font-weight:900;}
+  .cd.guan .cd-l{color:var(--accent);}
+  .cd-n{font-size:1.4rem;font-weight:900;font-family:'Outfit',sans-serif;}
   .cd.exam .cd-n{color:var(--red);}
-  .cd.guan .cd-n{color:#2a5caa;}
+  .cd.guan .cd-n{color:var(--accent);}
   .cd-n span{font-size:0.85rem;font-weight:400;color:var(--muted);}
 
   .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.28);z-index:200;align-items:center;justify-content:center;padding:16px;}
   .overlay.show{display:flex;}
   .modal{background:white;border-radius:16px;padding:20px 17px 17px;width:100%;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.15);max-height:90vh;overflow-y:auto;}
-  .modal h3{font-size:0.95rem;font-weight:700;margin-bottom:2px;}
-  .msub{font-size:0.68rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:12px;}
-  .mprev{background:var(--gold-bg);border:1px solid var(--gold);border-radius:8px;padding:7px 12px;text-align:center;font-size:0.8rem;font-weight:700;color:var(--gold);margin-bottom:12px;}
+  .modal h3{font-size:0.95rem;font-weight:700;margin-bottom:2px;font-family:'Outfit',sans-serif;color:var(--accent);}
+  .msub{font-size:0.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:12px;}
+  .mprev{background:var(--accent-light);border:1px solid var(--accent2);border-radius:8px;padding:7px 12px;text-align:center;font-size:0.8rem;font-weight:700;color:var(--accent);margin-bottom:12px;}
   .mslabel{font-size:0.63rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:5px;margin-top:11px;}
   .mrow{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
   .mrow label{font-size:0.78rem;font-weight:700;min-width:30px;}
-  .mrow input[type=number]{width:56px;padding:7px 6px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Mono',monospace;font-size:0.85rem;text-align:center;background:var(--bg);color:var(--text);}
+  .mrow input[type=number]{width:56px;padding:7px 6px;border:1.5px solid var(--border);border-radius:7px;font-family:'JetBrains Mono',monospace;font-size:0.85rem;text-align:center;background:var(--bg);color:var(--text);}
   .mrow input[type=text]{flex:1;padding:7px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:'Noto Sans TC',sans-serif;font-size:0.8rem;background:var(--bg);color:var(--text);}
-  .mrow input:focus,.mrow select:focus{outline:none;border-color:var(--gold);}
+  .mrow input:focus,.mrow select:focus{outline:none;border-color:var(--accent);}
   .mrow .mstar{font-size:0.75rem;font-weight:700;min-width:32px;text-align:right;}
-  .mrow .mstar.yes{color:var(--gold);}.mrow .mstar.no{color:var(--muted);}
+  .mrow .mstar.yes{color:var(--accent2);}.mrow .mstar.no{color:var(--muted);}
   .mrow select{flex:1;padding:7px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:'Noto Sans TC',sans-serif;font-size:0.78rem;background:var(--bg);color:var(--text);}
   .mbtns{display:flex;gap:8px;margin-top:14px;}
 
   .status-note{padding:6px 10px;border-radius:7px;font-size:0.78rem;font-weight:700;margin-bottom:8px;}
   .status-note.confirmed{background:#eaf4ec;color:#3a7d44;border:1px solid #3a7d44;}
-  .status-note.pending{background:#fff8f0;color:#d4521a;border:1px solid #d4521a;}
-  .cal-cell.pending{background:#fff8f0;border-color:#e8962a;}
+  .status-note.pending{background:#f0edfc;color:var(--accent);border:1px solid var(--accent2);}
+  .cal-cell.pending{background:#f0edfc;border-color:var(--accent2);}
   .cal-cell.confirmed{background:#f0faf0;border-color:#3a7d44;}
   .cell-status{font-size:0.9rem;line-height:1;margin-top:1px;}
-  .pw-input{width:100%;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:1.1rem;text-align:center;letter-spacing:0.2em;margin-bottom:8px;box-sizing:border-box;}
+  .pw-input{width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:1.1rem;text-align:center;letter-spacing:0.2em;margin-bottom:8px;box-sizing:border-box;}
   .pw-error{color:#d4521a;font-size:0.78rem;min-height:18px;margin-bottom:4px;}
   .teacher-modal{background:white;border-radius:18px;padding:22px 18px 18px;width:100%;max-width:300px;box-shadow:0 12px 40px rgba(0,0,0,0.2);}
-  .teacher-modal h3{font-size:0.95rem;font-weight:700;margin-bottom:12px;color:#3a7d44;}
+  .teacher-modal h3{font-size:0.95rem;font-weight:700;margin-bottom:12px;color:var(--accent);font-family:'Outfit',sans-serif;}
   .btn{flex:1;padding:10px;border:none;border-radius:8px;font-family:'Noto Sans TC',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;transition:opacity 0.15s;}
   .btn:hover{opacity:0.82;}
-  .btn-s{background:var(--text);color:white;}
+  .btn-s{background:var(--accent);color:white;}
   .btn-c{background:var(--bg);color:var(--muted);border:1px solid var(--border);}
   .btn-x{background:#fdecea;color:var(--red);border:1px solid #f0a0a0;}
   .em-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
   .em-row label{font-size:0.8rem;color:var(--muted);min-width:55px;}
-  .em-row input{width:68px;padding:8px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Mono',monospace;font-size:1rem;text-align:center;background:var(--bg);}
-  .em-row input:focus{outline:none;border-color:var(--gold);}
-  .em-pts{font-size:0.82rem;color:var(--gold);font-weight:700;}
+  .em-row input{width:68px;padding:8px;border:1.5px solid var(--border);border-radius:7px;font-family:'JetBrains Mono',monospace;font-size:1rem;text-align:center;background:var(--bg);}
+  .em-row input:focus{outline:none;border-color:var(--accent);}
+  .em-pts{font-size:0.82rem;color:var(--accent2);font-weight:700;}
 
+  #history-chart-wrap{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:0;margin-bottom:18px;box-shadow:0 2px 8px rgba(74,63,143,0.07);display:flex;overflow:hidden;}
+  #chart-filter-panel{display:flex;flex-direction:column;gap:3px;padding:14px 10px;background:var(--accent-light);border-right:1.5px solid var(--border);min-width:72px;align-items:stretch;}
+  #chart-right{flex:1;padding:14px 14px 10px;overflow:hidden;}
+  #history-chart-wrap h2{font-family:'Outfit',sans-serif;font-size:0.9rem;font-weight:700;color:var(--accent);margin-bottom:8px;}
+  .cfp-label{font-size:0.58rem;font-weight:700;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;padding:2px 4px;font-family:'JetBrains Mono',monospace;}
+  .cfp-divider{height:1px;background:var(--border);margin:4px 0;}
+  .cfb{font-size:0.68rem;font-weight:700;padding:5px 6px;border-radius:7px;border:1.5px solid transparent;background:transparent;color:var(--muted);cursor:pointer;text-align:left;font-family:'Outfit',sans-serif;transition:all 0.15s;white-space:nowrap;}
+  .cfb:hover{background:var(--card);color:var(--accent);}
+  .cfb.active{background:var(--accent);color:white;border-color:var(--accent);}
+  #chart-subj-btns{display:flex;flex-direction:column;gap:2px;}
+  .chart-sem-btns{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;}
+  .csb{font-size:0.68rem;font-weight:700;padding:3px 9px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all 0.15s;}
+  .csb.active{background:var(--accent);color:white;border-color:var(--accent);}
   #history-table th, #history-table td { border: 1px solid var(--border); white-space: nowrap; }
   #history-table thead th { font-weight: 700; font-size: 0.75rem; color: var(--accent); }
   #history-table tbody td:first-child { font-size: 0.73rem; white-space: nowrap; }
-  #history-table tbody td { font-family: 'DM Mono', monospace; font-size: 0.78rem; }
+  #history-table tbody td { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>⭐ 集點卡</h1>
+  <h1>⭐ 士傑 - 學習成效表</h1>
   <p>每點 10 元 · 段考後換錢或選商品</p>
 </div>
 
@@ -182,6 +196,22 @@
 
 <!-- History -->
 <div class="section" id="s-history">
+  <div id="history-chart-wrap">
+    <div id="chart-filter-panel">
+      <div class="cfp-label">顯示</div>
+      <button class="cfb active" data-filter="total">📊 總分</button>
+      <div class="cfp-divider"></div>
+      <div class="cfp-label">單科</div>
+      <div id="chart-subj-btns"></div>
+      <div class="cfp-divider"></div>
+      <button class="cfb" data-filter="all">🔀 綜合</button>
+    </div>
+    <div id="chart-right">
+      <h2>📈 成績趨勢</h2>
+      <div class="chart-sem-btns" id="chart-sem-btns"></div>
+      <canvas id="history-chart" style="width:100%;max-height:260px;"></canvas>
+    </div>
+  </div>
   <div style="overflow-x:auto;">
     <table id="history-table" style="width:100%;border-collapse:collapse;font-size:0.78rem;"></table>
   </div>
@@ -340,14 +370,14 @@ const SM={
 };
 
 const ECFG=[
-  {key:'ch',   lbl:'國文', target:60,base:10,step:5,bonus:5},
-  {key:'math', lbl:'數學', target:50,base:10,step:1,bonus:1},
-  {key:'eng',  lbl:'英文', target:50,base:10,step:1,bonus:1},
-  {key:'natl', lbl:'自然', target:60,base:10,step:5,bonus:5},
-  {key:'geo',  lbl:'地理', target:80,base:10,step:5,bonus:5},
-  {key:'hist', lbl:'歷史', target:80,base:10,step:5,bonus:5},
-  {key:'civic',lbl:'公民', target:80,base:10,step:5,bonus:5},
-  {key:'soc',  lbl:'社會', target:60,base:10,step:5,bonus:5, auto:true, histOnly:true},
+  {key:'ch',   lbl:'國文', target:60,base:10,step:5,bonus:5, col:'#b83030'},
+  {key:'math', lbl:'數學', target:50,base:10,step:1,bonus:1, col:'#2d6fb5'},
+  {key:'eng',  lbl:'英文', target:50,base:10,step:1,bonus:1, col:'#2a8a6a'},
+  {key:'natl', lbl:'自然', target:60,base:10,step:5,bonus:5, col:'#5a7a00'},
+  {key:'geo',  lbl:'地理', target:80,base:10,step:5,bonus:5, col:'#1a7a5e'},
+  {key:'hist', lbl:'歷史', target:80,base:10,step:5,bonus:5, col:'#8b5e00'},
+  {key:'civic',lbl:'公民', target:80,base:10,step:5,bonus:5, col:'#2a5caa'},
+  {key:'soc',  lbl:'社會', target:60,base:10,step:5,bonus:5, col:'#7040aa', auto:true, histOnly:true},
 ];
 // Subjects displayed in history (soc is auto-calculated, not clickable for input in geo/hist/civic rows)
 const INPUT_SUBJS = ECFG.filter(s=>!s.auto); // geo/hist/civic are inputtable
@@ -490,15 +520,18 @@ function buildExam(){
     const pts=ePts(cfg,score);
     const has=score!==null&&score!==undefined&&score!=='';
     const pct=has?Math.min(100,parseInt(score)):0;
+    const col=cfg.col||'var(--accent)';
     const card=document.createElement('div');card.className='exam-card';
+    card.style.borderLeft=`3px solid ${col}`;
     card.innerHTML=`
-      <div class="ec-top"><span class="ec-name">${cfg.lbl}</span>${pts>0?`<span class="ec-pts">+${pts} 點</span>`:''}</div>
-      <div class="ec-info"><span>目標 ${cfg.target} 分・達標 ${cfg.base} 點</span>${has?`<span class="ec-score">${score} 分</span>`:'<span style="color:var(--border)">未輸入</span>'}</div>
-      <div class="ec-prog"><div class="ec-pf" style="width:${pct}%"></div></div>`;
+      <div class="ec-top"><span class="ec-name" style="color:${col}">${cfg.lbl}</span>${pts>0?`<span class="ec-pts" style="background:${col}18;color:${col};border-color:${col}88">+${pts} 點</span>`:''}</div>
+      <div class="ec-info"><span>目標 ${cfg.target} 分・達標 ${cfg.base} 點</span>${has?`<span class="ec-score" style="color:${col}">${score} 分</span>`:'<span style="color:var(--border)">未輸入</span>'}</div>
+      <div class="ec-prog"><div class="ec-pf" style="width:${pct}%;background:${col}"></div></div>`;
     card.addEventListener('click',()=>openEM(cfg));
     c.appendChild(card);
   });
 }
+
 
 function getSocScore(semKey, tKey) {
   const geo = data.exam[`hist_geo_${semKey}_${tKey}`];
@@ -623,8 +656,8 @@ function buildHistory(){
   foot.innerHTML=`<td colspan="${ECFG.length+3}" style="padding:6px 8px;font-size:0.68rem;color:var(--muted);font-style:italic;">* 社會 = (地理+歷史+公民) ÷ 3 自動計算・總分 = 國文+數學+英文+自然+社會</td>`;
   tbody.appendChild(foot);
   tbl.appendChild(tbody);
+  if (typeof buildHistoryChart === 'function') buildHistoryChart();
 }
-
 
 function updSum(){
   let cp=0;Object.values(data.classes).forEach(e=>{cp+=dPts(e);});
@@ -850,6 +883,11 @@ document.getElementById('oe').addEventListener('click',e=>{if(e.target.id==='oe'
 
 load();
 
+// Bind static filter panel buttons
+document.querySelectorAll('#chart-filter-panel > .cfb').forEach(b => {
+  b.onclick = () => { _chartActiveFilter = b.dataset.filter; buildHistoryChart(); };
+});
+
 // Teacher modal
 let _teacherKey = null, _teacherMode = null;
 
@@ -922,6 +960,148 @@ function openHistoryEM(sub, semKey, timeKey){
   document.getElementById('oe').classList.add('show');
 }
 
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+let _histChart = null;
+let _chartActiveSem = 'all';
+let _chartActiveFilter = 'total'; // 'total' | subj key | 'all'
+
+const CHART_COLORS = {
+  ch:    '#b83030',
+  math:  '#2d6fb5',
+  eng:   '#2a8a6a',
+  natl:  '#5a7a00',
+  geo:   '#1a7a5e',
+  hist:  '#8b5e00',
+  civic: '#2a5caa',
+  soc:   '#7040aa',
+};
+const TOTAL_COLOR = '#4a3f8f';
+
+function buildHistoryChart() {
+  // --- Filter panel buttons ---
+  const subjBtns = document.getElementById('chart-subj-btns');
+  if (!subjBtns) return;
+  subjBtns.innerHTML = '';
+  const displaySubjs = ECFG.filter(s => !s.histOnly);
+  const chartSubjs = [...displaySubjs, ECFG.find(s => s.key === 'soc')]; // include soc for chart
+  chartSubjs.forEach(sub => {
+    const b = document.createElement('button');
+    b.className = 'cfb' + (_chartActiveFilter === sub.key ? ' active' : '');
+    b.style.borderLeftColor = _chartActiveFilter === sub.key ? '' : CHART_COLORS[sub.key] + '88';
+    b.style.borderLeftWidth = '3px';
+    b.dataset.filter = sub.key;
+    b.textContent = sub.lbl;
+    if (_chartActiveFilter === sub.key) { b.style.background = CHART_COLORS[sub.key]; b.style.borderColor = CHART_COLORS[sub.key]; }
+    b.onclick = () => { _chartActiveFilter = sub.key; buildHistoryChart(); };
+    subjBtns.appendChild(b);
+  });
+  // Update top-level filter buttons
+  document.querySelectorAll('#chart-filter-panel > .cfb').forEach(b => {
+    b.classList.toggle('active', b.dataset.filter === _chartActiveFilter);
+  });
+
+  // --- Sem filter buttons ---
+  const semBtns = document.getElementById('chart-sem-btns');
+  semBtns.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'csb' + (_chartActiveSem === 'all' ? ' active' : '');
+  allBtn.textContent = '全部';
+  allBtn.onclick = () => { _chartActiveSem = 'all'; buildHistoryChart(); };
+  semBtns.appendChild(allBtn);
+  SEMESTERS.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'csb' + (_chartActiveSem === s.key ? ' active' : '');
+    b.textContent = s.lbl;
+    b.onclick = () => { _chartActiveSem = s.key; buildHistoryChart(); };
+    semBtns.appendChild(b);
+  });
+
+  // --- Data ---
+  const filteredSems = _chartActiveSem === 'all' ? SEMESTERS : SEMESTERS.filter(s => s.key === _chartActiveSem);
+  const labels = [];
+  filteredSems.forEach(s => { EXAM_TIMES.forEach(t => { labels.push(s.lbl + ' ' + t.key); }); });
+
+  let datasets = [];
+  const totalSubjKeys = ['ch','math','eng','natl','soc'];
+
+  if (_chartActiveFilter === 'total') {
+    // 總分 = ch+math+eng+natl+soc (soc = auto from geo+hist+civic avg)
+    const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => {
+      let total = 0, ok = true;
+      totalSubjKeys.forEach(key => {
+        if (key === 'soc') {
+          const g = data.exam[`hist_geo_${s.key}_${t.key}`];
+          const h = data.exam[`hist_hist_${s.key}_${t.key}`];
+          const cv = data.exam[`hist_civic_${s.key}_${t.key}`];
+          if (g && h && cv) total += (parseFloat(g)+parseFloat(h)+parseFloat(cv))/3;
+          else ok = false;
+        } else {
+          const v = data.exam[`hist_${key}_${s.key}_${t.key}`];
+          if (v !== null && v !== undefined && v !== '') total += parseFloat(v);
+          else ok = false;
+        }
+      });
+      return ok ? Math.round(total * 10) / 10 : null;
+    }));
+    datasets = [{ label: '總分', data: d, borderColor: TOTAL_COLOR, backgroundColor: TOTAL_COLOR+'22', pointBackgroundColor: TOTAL_COLOR, pointRadius: 5, pointHoverRadius: 7, tension: 0, spanGaps: true, borderWidth: 2.5 }];
+  } else if (_chartActiveFilter === 'all') {
+    datasets = chartSubjs.map(sub => {
+      const col = CHART_COLORS[sub.key] || '#888';
+      const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => {
+        if (sub.key === 'soc') {
+          const g = data.exam[`hist_geo_${s.key}_${t.key}`];
+          const h = data.exam[`hist_hist_${s.key}_${t.key}`];
+          const cv = data.exam[`hist_civic_${s.key}_${t.key}`];
+          return (g && h && cv) ? Math.round((parseFloat(g)+parseFloat(h)+parseFloat(cv))/3*10)/10 : null;
+        }
+        const v = data.exam[`hist_${sub.key}_${s.key}_${t.key}`];
+        return (v !== null && v !== undefined && v !== '') ? parseFloat(v) : null;
+      }));
+      return { label: sub.lbl, data: d, borderColor: col, backgroundColor: col+'22', pointBackgroundColor: col, pointRadius: 4, pointHoverRadius: 6, tension: 0, spanGaps: true };
+    });
+  } else {
+    // Single subject
+    const sub = ECFG.find(s => s.key === _chartActiveFilter);
+    if (sub) {
+      const col = CHART_COLORS[sub.key] || '#888';
+      const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => {
+        if (sub.key === 'soc') {
+          const g = data.exam[`hist_geo_${s.key}_${t.key}`];
+          const h = data.exam[`hist_hist_${s.key}_${t.key}`];
+          const cv = data.exam[`hist_civic_${s.key}_${t.key}`];
+          return (g && h && cv) ? Math.round((parseFloat(g)+parseFloat(h)+parseFloat(cv))/3*10)/10 : null;
+        }
+        const v = data.exam[`hist_${sub.key}_${s.key}_${t.key}`];
+        return (v !== null && v !== undefined && v !== '') ? parseFloat(v) : null;
+      }));
+      datasets = [{ label: sub.lbl, data: d, borderColor: col, backgroundColor: col+'22', pointBackgroundColor: col, pointRadius: 5, pointHoverRadius: 7, tension: 0, spanGaps: true, borderWidth: 2.5 }];
+    }
+  }
+
+  if (_histChart) { _histChart.destroy(); _histChart = null; }
+  const ctx = document.getElementById('history-chart');
+  if (!ctx) return;
+  const isTotal = _chartActiveFilter === 'total';
+  _histChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 8 } },
+        tooltip: { mode: 'index', intersect: false },
+      },
+      scales: {
+        y: { min: 0, max: isTotal ? 500 : 100, ticks: { stepSize: isTotal ? 100 : 20, font: { size: 10 } }, grid: { color: '#dddaf022' } },
+        x: { ticks: { font: { size: 9 }, maxRotation: 45 }, grid: { display: false } },
+      },
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    }
+  });
+}
 </script>
 
 </body>

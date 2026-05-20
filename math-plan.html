@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>數學計畫表</title>
+<title>辰祐 - 數學學習成效表</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Playfair+Display:wght@700&family=DM+Mono:wght@400;500&display=swap');
 
@@ -263,6 +263,19 @@
   .pw-input:focus { outline: none; border-color: #3a7d44; }
   .pw-error { font-size: 0.75rem; color: #b83030; text-align: center; margin-bottom: 8px; min-height: 18px; }
 
+  #history-chart-wrap{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:0;margin-bottom:18px;box-shadow:0 2px 8px rgba(212,82,26,0.07);display:flex;overflow:hidden;}
+  #chart-filter-panel{display:flex;flex-direction:column;gap:3px;padding:14px 10px;background:var(--accent-light);border-right:1.5px solid var(--border);min-width:72px;align-items:stretch;}
+  #chart-right{flex:1;padding:14px 14px 10px;overflow:hidden;}
+  #history-chart-wrap h2{font-family:'Playfair Display',serif;font-size:0.9rem;font-weight:700;color:var(--accent);margin-bottom:8px;}
+  .cfp-label{font-size:0.58rem;font-weight:700;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;padding:2px 4px;font-family:'DM Mono',monospace;}
+  .cfp-divider{height:1px;background:var(--border);margin:4px 0;}
+  .cfb{font-size:0.68rem;font-weight:700;padding:5px 6px;border-radius:7px;border:1.5px solid transparent;background:transparent;color:var(--muted);cursor:pointer;text-align:left;font-family:'DM Mono',monospace;transition:all 0.15s;white-space:nowrap;}
+  .cfb:hover{background:var(--card);color:var(--accent);}
+  .cfb.active{background:var(--accent);color:white;border-color:var(--accent);}
+  #chart-subj-btns{display:flex;flex-direction:column;gap:2px;}
+  .chart-sem-btns{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;}
+  .csb{font-size:0.68rem;font-weight:700;padding:3px 9px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;font-family:'DM Mono',monospace;transition:all 0.15s;}
+  .csb.active{background:var(--accent);color:white;border-color:var(--accent);}
   #history-table th, #history-table td { border: 1px solid var(--border); white-space: nowrap; }
   #history-table thead th { font-weight: 700; font-size: 0.75rem; color: var(--accent); }
   #history-table tbody td:first-child { font-size: 0.73rem; color: var(--text); white-space: nowrap; }
@@ -272,7 +285,7 @@
 <body>
 
 <div class="header">
-  <h1>📐 數學計畫表</h1>
+  <h1>📐 辰祐 - 數學學習成效表</h1>
   <p>第三次段考 · 暖身期1題/天 · 衝刺期2題/天</p>
   <div class="header-deco"></div>
 </div>
@@ -316,6 +329,22 @@
 
 <!-- History -->
 <div class="section" id="s-history">
+  <div id="history-chart-wrap">
+    <div id="chart-filter-panel">
+      <div class="cfp-label">顯示</div>
+      <button class="cfb active" data-filter="total">📊 總分</button>
+      <div class="cfp-divider"></div>
+      <div class="cfp-label">單科</div>
+      <div id="chart-subj-btns"></div>
+      <div class="cfp-divider"></div>
+      <button class="cfb" data-filter="all">🔀 綜合</button>
+    </div>
+    <div id="chart-right">
+      <h2>📈 成績趨勢</h2>
+      <div class="chart-sem-btns" id="chart-sem-btns"></div>
+      <canvas id="history-chart" style="width:100%;max-height:260px;"></canvas>
+    </div>
+  </div>
   <div style="overflow-x:auto;">
     <table id="history-table" style="width:100%;border-collapse:collapse;font-size:0.78rem;"></table>
   </div>
@@ -742,6 +771,7 @@ function buildHistory() {
     });
   });
   tbl.appendChild(tbody);
+  if (typeof buildHistoryChart === 'function') buildHistoryChart();
 }
 
 
@@ -861,13 +891,13 @@ function openDM(key) {
     const teacherBtn = document.createElement('button');
     teacherBtn.className = 'btn'; teacherBtn.style.cssText = 'background:#3a7d44;color:white;margin-top:6px;flex:none;width:100%;border-radius:9px;padding:10px;font-weight:700;font-size:0.82rem;border:none;cursor:pointer;';
     teacherBtn.textContent = '老師確認 ✓';
-    teacherBtn.onclick = () => openTeacherModal(key);
+    teacherBtn.onclick = () => openTeacherModal('confirm', key);
     btns.parentNode.insertBefore(teacherBtn, btns.nextSibling);
   }
 
   // Teacher edit button — show after confirmed
   if (isConfirmed) {
-    document.getElementById('dm-edit').onclick = () => openTeacherEditModal(key);
+    document.getElementById('dm-edit').onclick = () => openTeacherModal('edit', key);
   }
 
   document.getElementById('dm-c').onclick = closeDM;
@@ -920,12 +950,14 @@ function closeDM() {
 }
 document.getElementById('od').addEventListener('click', e => { if (e.target.id === 'od') closeDM(); });
 
-// Teacher confirm modal
-let teacherKey = null;
-function openTeacherModal(key) {
-  teacherKey = key;
+// Teacher modal — unified confirm + edit
+let _teacherKey = null, _teacherMode = null;
+
+function openTeacherModal(mode, key) {
+  _teacherMode = mode; _teacherKey = key;
   document.getElementById('pw-input').value = '';
   document.getElementById('pw-error').textContent = '';
+  document.querySelector('#o-teacher h3').textContent = mode === 'edit' ? '✏️ 老師修改' : '✅ 老師確認';
   document.getElementById('o-teacher').classList.add('show');
   setTimeout(() => document.getElementById('pw-input').focus(), 100);
 }
@@ -934,32 +966,26 @@ document.getElementById('pw-confirm').onclick = async () => {
   const pw = document.getElementById('pw-input').value;
   if (pw !== '777') {
     document.getElementById('pw-error').textContent = '密碼錯誤，請再試一次';
-    document.getElementById('pw-input').value = '';
-    return;
+    document.getElementById('pw-input').value = ''; return;
   }
-  const mode = document.getElementById('pw-confirm').dataset.mode;
   document.getElementById('o-teacher').classList.remove('show');
-  // reset title for next time
-  document.querySelector('#o-teacher h3').textContent = '✅ 老師確認';
-  document.getElementById('pw-confirm').dataset.mode = '';
 
-  if (mode === 'edit') {
-    // unlock the confirmed entry for editing
-    const key = teacherEditKey;
-    const e = data.daily[key] || {};
-    // re-render buttons as editable (keep status=confirmed but allow save)
+  if (_teacherMode === 'edit') {
+    // unlock for editing — show full buttons including 清除
     const btns = document.getElementById('dm-btns');
-    btns.innerHTML = `<button class="btn btn-c" id="dm-c">取消</button><button class="btn btn-s" id="dm-sv">儲存（保留確認）</button>`;
+    btns.innerHTML = `<button class="btn btn-x" id="dm-x">清除</button><button class="btn btn-c" id="dm-c">取消</button><button class="btn btn-s" id="dm-sv">儲存</button>`;
+    document.getElementById('dm-x').onclick = async () => {
+      delete data.daily[dk_cur]; await save(); buildCal(); updSum(); closeDM();
+    };
     document.getElementById('dm-c').onclick = closeDM;
     document.getElementById('dm-sv').onclick = async () => {
       data.daily[dk_cur] = {
         material: tMaterial, range: tRange,
         photo: tPhoto, free: { desc: tFd, pt: tFp },
-        status: 'confirmed'  // keep confirmed after edit
+        status: 'confirmed'
       };
       await save(); buildCal(); updSum(); closeDM();
     };
-    // enable all inputs
     document.getElementById('dm-material').disabled = false;
     document.getElementById('math-range').disabled = false;
     document.getElementById('photo-row').style.pointerEvents = '';
@@ -967,8 +993,8 @@ document.getElementById('pw-confirm').onclick = async () => {
     document.getElementById('dm-fp').disabled = false;
   } else {
     // confirm
-    if (data.daily[teacherKey]) {
-      data.daily[teacherKey].status = 'confirmed';
+    if (data.daily[_teacherKey]) {
+      data.daily[_teacherKey].status = 'confirmed';
       await save(); buildCal(); updSum();
     }
     closeDM();
@@ -980,19 +1006,6 @@ document.getElementById('pw-input').addEventListener('keydown', e => {
 document.getElementById('o-teacher').addEventListener('click', e => {
   if (e.target.id === 'o-teacher') document.getElementById('o-teacher').classList.remove('show');
 });
-
-// Teacher edit modal (unlock confirmed entry)
-let teacherEditKey = null;
-function openTeacherEditModal(key) {
-  teacherEditKey = key;
-  // reuse pw modal but change title & confirm action
-  document.getElementById('pw-input').value = '';
-  document.getElementById('pw-error').textContent = '';
-  document.querySelector('#o-teacher h3').textContent = '✏️ 老師修改';
-  document.getElementById('pw-confirm').dataset.mode = 'edit';
-  document.getElementById('o-teacher').classList.add('show');
-  setTimeout(() => document.getElementById('pw-input').focus(), 100);
-}
 
 // Exam modal (math only — current exam)
 const MATH_CFG = SUBJECTS.find(s => s.key === 'math');
@@ -1035,6 +1048,115 @@ function closeEM() { document.getElementById('oe').classList.remove('show'); }
 document.getElementById('oe').addEventListener('click', e => { if (e.target.id === 'oe') closeEM(); });
 
 load();
+
+document.querySelectorAll('#chart-filter-panel > .cfb').forEach(b => {
+  b.onclick = () => { _chartActiveFilter = b.dataset.filter; buildHistoryChart(); };
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+let _histChart = null;
+let _chartActiveSem = 'all';
+let _chartActiveFilter = 'total';
+
+const CHART_COLORS_MP = {
+  ch:   '#d4521a',
+  math: '#2d6fb5',
+  eng:  '#2a8a6a',
+  natl: '#5a7a00',
+  soc:  '#7040aa',
+};
+const TOTAL_COLOR_MP = '#d4521a';
+
+function buildHistoryChart() {
+  const subjBtns = document.getElementById('chart-subj-btns');
+  if (!subjBtns) return;
+  subjBtns.innerHTML = '';
+  SUBJECTS.forEach(sub => {
+    const col = CHART_COLORS_MP[sub.key] || '#888';
+    const b = document.createElement('button');
+    b.className = 'cfb' + (_chartActiveFilter === sub.key ? ' active' : '');
+    b.dataset.filter = sub.key;
+    b.textContent = sub.lbl;
+    if (_chartActiveFilter === sub.key) { b.style.background = col; b.style.borderColor = col; }
+    else { b.style.borderLeftWidth = '3px'; b.style.borderLeftColor = col + '88'; }
+    b.onclick = () => { _chartActiveFilter = sub.key; buildHistoryChart(); };
+    subjBtns.appendChild(b);
+  });
+  document.querySelectorAll('#chart-filter-panel > .cfb').forEach(b => {
+    b.classList.toggle('active', b.dataset.filter === _chartActiveFilter);
+  });
+
+  const semBtns = document.getElementById('chart-sem-btns');
+  semBtns.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'csb' + (_chartActiveSem === 'all' ? ' active' : '');
+  allBtn.textContent = '全部';
+  allBtn.onclick = () => { _chartActiveSem = 'all'; buildHistoryChart(); };
+  semBtns.appendChild(allBtn);
+  SEMESTERS.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'csb' + (_chartActiveSem === s.key ? ' active' : '');
+    b.textContent = s.lbl;
+    b.onclick = () => { _chartActiveSem = s.key; buildHistoryChart(); };
+    semBtns.appendChild(b);
+  });
+
+  const filteredSems = _chartActiveSem === 'all' ? SEMESTERS : SEMESTERS.filter(s => s.key === _chartActiveSem);
+  const labels = [];
+  filteredSems.forEach(s => { EXAM_TIMES.forEach(t => { labels.push(s.lbl + ' ' + t.key); }); });
+
+  let datasets = [];
+  if (_chartActiveFilter === 'total') {
+    const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => {
+      let total = 0, ok = true;
+      SUBJECTS.forEach(sub => {
+        const v = data.exam[`hist_${sub.key}_${s.key}_${t.key}`];
+        if (v !== null && v !== undefined && v !== '') total += parseFloat(v);
+        else ok = false;
+      });
+      return ok ? Math.round(total * 10) / 10 : null;
+    }));
+    datasets = [{ label: '總分', data: d, borderColor: TOTAL_COLOR_MP, backgroundColor: TOTAL_COLOR_MP+'22', pointBackgroundColor: TOTAL_COLOR_MP, pointRadius: 5, pointHoverRadius: 7, tension: 0, spanGaps: true, borderWidth: 2.5 }];
+  } else if (_chartActiveFilter === 'all') {
+    datasets = SUBJECTS.map(sub => {
+      const col = CHART_COLORS_MP[sub.key] || '#888';
+      const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => {
+        const v = data.exam[`hist_${sub.key}_${s.key}_${t.key}`];
+        return (v !== null && v !== undefined && v !== '') ? parseFloat(v) : null;
+      }));
+      return { label: sub.lbl, data: d, borderColor: col, backgroundColor: col+'22', pointBackgroundColor: col, pointRadius: 4, pointHoverRadius: 6, tension: 0, spanGaps: true };
+    });
+  } else {
+    const sub = SUBJECTS.find(s => s.key === _chartActiveFilter);
+    if (sub) {
+      const col = CHART_COLORS_MP[sub.key] || '#888';
+      const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => {
+        const v = data.exam[`hist_${sub.key}_${s.key}_${t.key}`];
+        return (v !== null && v !== undefined && v !== '') ? parseFloat(v) : null;
+      }));
+      datasets = [{ label: sub.lbl, data: d, borderColor: col, backgroundColor: col+'22', pointBackgroundColor: col, pointRadius: 5, pointHoverRadius: 7, tension: 0, spanGaps: true, borderWidth: 2.5 }];
+    }
+  }
+
+  if (_histChart) { _histChart.destroy(); _histChart = null; }
+  const ctx = document.getElementById('history-chart');
+  if (!ctx) return;
+  const isTotal = _chartActiveFilter === 'total';
+  _histChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 8 } }, tooltip: { mode: 'index', intersect: false } },
+      scales: {
+        y: { min: 0, max: isTotal ? 500 : 100, ticks: { stepSize: isTotal ? 100 : 20, font: { size: 10 } }, grid: { color: '#e2ddd644' } },
+        x: { ticks: { font: { size: 9 }, maxRotation: 45 }, grid: { display: false } },
+      },
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    }
+  });
+}
 </script>
 </body>
 </html>
