@@ -305,6 +305,19 @@
   </div>
 </div>
 
+<!-- Teacher modal -->
+<div class="overlay" id="o-teacher">
+  <div class="teacher-modal">
+    <h3 id="tm-title">✅ 老師確認</h3>
+    <input type="password" class="pw-input" id="pw-input" placeholder="••••" maxlength="10" />
+    <div class="pw-error" id="pw-error"></div>
+    <div class="mbtns">
+      <button class="btn btn-c" id="pw-cancel">取消</button>
+      <button class="btn btn-s" style="background:#3a7d44" id="pw-confirm">確認 ✓</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const FB='https://math-plan-default-rtdb.asia-southeast1.firebasedatabase.app/s2_cal3.json';
 const today=new Date();today.setHours(0,0,0,0);
@@ -637,74 +650,90 @@ let tmathSc='',tmathR='',tengSc='',tengR='';
 let tt3subj='',tt3sc='',tt3r='';
 let tfd='',tfp=0,tatt=0;
 
-function openCM(key){
-  ck=key;
-  const e=data.classes[key]||{};
-  const [ky2,km2,kd2]=key.split('-').map(Number); document.getElementById('cm-t').textContent=fmt(new Date(ky2,km2-1,kd2));
-  document.getElementById('cm-s').textContent='數學 · 英文 · 第三科 · 任務 · 態度';
+function openCM(key) {
+  // 徹底清理所有殘留
+  document.querySelectorAll('#oc .btn[style], #teacher-confirm-btn').forEach(b => b.remove());
+  document.getElementById('cm-btns').innerHTML = '';
 
-  tmathSc=e.math?.score??''; tmathR=e.math?.range??'';
-  tengSc=e.eng?.score??'';   tengR=e.eng?.range??'';
-  tt3subj=e.t3?.subj??'';    tt3sc=e.t3?.score??'';  tt3r=e.t3?.range??'';
-  tfd=e.free?.desc??''; tfp=parseInt(e.free?.pt||0); tatt=e.att??0;
+  ck = key;
+  const e = data.classes[key] || {};
+  const [ky2, km2, kd2] = key.split('-').map(Number);
+  document.getElementById('cm-t').textContent = fmt(new Date(ky2, km2-1, kd2));
+  document.getElementById('cm-s').textContent = '數學 · 英文 · 第三科 · 任務 · 態度';
+
+  tmathSc = e.math?.score ?? ''; tmathR = e.math?.range ?? '';
+  tengSc = e.eng?.score ?? '';   tengR = e.eng?.range ?? '';
+  tt3subj = e.t3?.subj ?? '';    tt3sc = e.t3?.score ?? '';  tt3r = e.t3?.range ?? '';
+  tfd = e.free?.desc ?? '';
+  tfp = parseInt(e.free?.pt || 0);
+  tatt = e.att ?? 0;
 
   renderCMScores();
-
-  document.getElementById('cm-t3s').value=tt3subj;
-  document.getElementById('cm-t3sc').value=tt3sc;
-  document.getElementById('cm-t3r').value=tt3r;
   updT3Star();
-
-  document.getElementById('cm-fd').value=tfd;
-  document.getElementById('cm-fp').value=tfp;
-  document.getElementById('cm-att').value=tatt;
   updCMPrev();
 
-  // bind t3
-  document.getElementById('cm-t3s').onchange=e=>{tt3subj=e.target.value;updT3Star();updCMPrev();};
-  document.getElementById('cm-t3sc').oninput=e=>{tt3sc=e.target.value;updT3Star();updCMPrev();};
-  document.getElementById('cm-t3r').oninput=e=>{tt3r=e.target.value;};
-  document.getElementById('cm-fd').oninput=e=>{tfd=e.target.value;};
-  document.getElementById('cm-fp').onchange=e=>{tfp=parseInt(e.target.value);updCMPrev();};
-  document.getElementById('cm-att').onchange=e=>{tatt=parseInt(e.target.value);updCMPrev();};
+  document.getElementById('cm-t3s').value = tt3subj;
+  document.getElementById('cm-t3sc').value = tt3sc;
+  document.getElementById('cm-t3r').value = tt3r;
+  document.getElementById('cm-fd').value = tfd;
+  document.getElementById('cm-fp').value = tfp;
+  document.getElementById('cm-att').value = tatt;
 
-  const hasD=!!data.classes[key];
-  const isConfirmed=e.status==='confirmed';
-  const btns=document.getElementById('cm-btns');
+  document.getElementById('cm-t3s').onchange = e => { tt3subj = e.target.value; updT3Star(); updCMPrev(); };
+  document.getElementById('cm-t3sc').oninput = e => { tt3sc = e.target.value; updT3Star(); updCMPrev(); };
+  document.getElementById('cm-t3r').oninput = e => { tt3r = e.target.value; };
+  document.getElementById('cm-fd').oninput = e => { tfd = e.target.value; };
+  document.getElementById('cm-fp').onchange = e => { tfp = parseInt(e.target.value); updCMPrev(); };
+  document.getElementById('cm-att').onchange = e => { tatt = parseInt(e.target.value); updCMPrev(); };
 
-  // status note
-  const note=document.getElementById('cm-status-note');
-  if(isConfirmed){note.style.display='block';note.className='status-note confirmed';note.textContent='✅ 老師已確認';}
-  else if(e.status==='pending'){note.style.display='block';note.className='status-note pending';note.textContent='🟠 等待老師確認中';}
-  else{note.style.display='none';}
+  const note = document.getElementById('cm-status-note');
+  const isConfirmed = e.status === 'confirmed';
+  const isPending = e.status === 'pending';
 
-  // lock inputs if confirmed
-  ['cm-t3s','cm-t3sc','cm-t3r','cm-fd','cm-fp','cm-att'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.disabled=isConfirmed;
-  });
-  document.querySelectorAll('.score-btn').forEach(b=>b.style.pointerEvents=isConfirmed?'none':'');
-
-  if(isConfirmed){
-    btns.innerHTML=`<button class="btn btn-c" id="cm-c">關閉</button><button class="btn" id="cm-edit" style="background:#2a5caa;color:white;border:none;border-radius:9px;padding:10px;font-weight:700;font-size:0.82rem;cursor:pointer;flex:1;">老師修改 ✏️</button>`;
-    document.getElementById('cm-edit').onclick=()=>openTeacherModal('edit',key);
-  } else if(hasD){
-    btns.innerHTML=`<button class="btn btn-x" id="cm-x">清除</button><button class="btn btn-c" id="cm-c">取消</button><button class="btn btn-s" id="cm-sv">儲存</button>`;
-    document.getElementById('cm-x').onclick=async()=>{delete data.classes[ck];await save();buildCal();updSum();closeCM();};
+  if (isConfirmed) {
+    note.style.display = 'block'; note.className = 'status-note confirmed'; note.textContent = '✅ 老師已確認';
+  } else if (isPending) {
+    note.style.display = 'block'; note.className = 'status-note pending'; note.textContent = '🟠 等待老師確認中';
   } else {
-    btns.innerHTML=`<button class="btn btn-c" id="cm-c">取消</button><button class="btn btn-s" id="cm-sv">儲存</button>`;
+    note.style.display = 'none';
   }
 
-  // pending: show teacher confirm button
-  if(e.status==='pending'){
-    const tb=document.createElement('button');
-    tb.className='btn';tb.style.cssText='background:#3a7d44;color:white;margin-top:6px;flex:none;width:100%;border-radius:9px;padding:10px;font-weight:700;font-size:0.82rem;border:none;cursor:pointer;';
-    tb.textContent='老師確認 ✓';
-    tb.onclick=()=>openTeacherModal('confirm',key);
-    btns.parentNode.insertBefore(tb,btns.nextSibling);
+  const lock = isConfirmed;
+  ['cm-t3s','cm-t3sc','cm-t3r','cm-fd','cm-fp','cm-att'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.disabled = lock;
+  });
+  // 數英欄位是動態產生的，renderCMScores 之後才能鎖定
+  document.querySelectorAll('#cm-scores input').forEach(el => { el.disabled = lock; });
+
+  const btns = document.getElementById('cm-btns');
+  if (isConfirmed) {
+    btns.innerHTML = `<button class="btn btn-c" id="cm-c">關閉</button><button class="btn" id="cm-edit" style="background:#2a5caa;color:white;border:none;border-radius:9px;padding:10px;font-weight:700;font-size:0.82rem;cursor:pointer;flex:1;">老師修改 ✏️</button>`;
+    document.getElementById('cm-edit').onclick = () => openTeacherModal('edit', key);
+  } else if (Object.keys(e).length > 0) {
+    btns.innerHTML = `<button class="btn btn-x" id="cm-x">清除</button><button class="btn btn-c" id="cm-c">取消</button><button class="btn btn-s" id="cm-sv">儲存</button>`;
+    document.getElementById('cm-x').onclick = async () => { delete data.classes[ck]; await save(); buildCal(); updSum(); closeCM(); };
+  } else {
+    btns.innerHTML = `<button class="btn btn-c" id="cm-c">取消</button><button class="btn btn-s" id="cm-sv">儲存</button>`;
   }
 
-  document.getElementById('cm-c').onclick=closeCM;
-  if(!isConfirmed){const sv=document.getElementById('cm-sv');if(sv)sv.onclick=()=>saveCM(false);}
+  if (isPending) {
+    let tb = document.getElementById('teacher-confirm-btn');
+    if (!tb) {
+      tb = document.createElement('button');
+      tb.id = 'teacher-confirm-btn';
+      tb.className = 'btn';
+      tb.style.cssText = 'background:#3a7d44;color:white;margin-top:8px;width:100%;padding:11px;font-weight:700;border-radius:9px;border:none;cursor:pointer;';
+      tb.textContent = '老師確認 ✓';
+      btns.parentNode.insertBefore(tb, btns.nextSibling);
+    }
+    tb.onclick = () => openTeacherModal('confirm', key);
+  }
+
+  document.getElementById('cm-c').onclick = closeCM;
+  if (!isConfirmed) {
+    const sv = document.getElementById('cm-sv');
+    if (sv) sv.onclick = () => saveCM(false);
+  }
   document.getElementById('oc').classList.add('show');
 }
 
@@ -766,10 +795,22 @@ async function saveCM(keepConfirmed){
   };
   data.classes[ck]=entry;await save();buildCal();updSum();closeCM();
 }
-function closeCM(){
+function closeCM() {
   document.getElementById('oc').classList.remove('show');
-  // remove any dynamically added teacher buttons
-  document.querySelectorAll('#cm-btns ~ button').forEach(b=>b.remove());
+  document.getElementById('oc').style.opacity = '1';
+  document.getElementById('oc').style.pointerEvents = 'auto';
+  // 清理所有動態按鈕
+  document.querySelectorAll('#teacher-confirm-btn, #oc .btn[style]').forEach(b => b.remove());
+  document.getElementById('cm-btns').innerHTML = '';
+  // 完全解除鎖定
+  ['cm-t3s','cm-t3sc','cm-t3r','cm-fd','cm-fp','cm-att'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.disabled = false; }
+  });
+  document.querySelectorAll('.score-btn, .mrow input, .mrow select').forEach(el => {
+    el.disabled = false;
+    el.style.pointerEvents = '';
+  });
 }
 document.getElementById('oc').addEventListener('click',e=>{if(e.target.id==='oc')closeCM();});
 
@@ -813,22 +854,28 @@ load();
 let _teacherKey = null, _teacherMode = null;
 
 function openTeacherModal(mode, key) {
-  _teacherMode = mode; _teacherKey = key;
+  _teacherMode = mode;
+  _teacherKey = key;
   document.getElementById('pw-input').value = '';
   document.getElementById('pw-error').textContent = '';
   document.getElementById('tm-title').textContent = mode === 'edit' ? '✏️ 老師修改' : '✅ 老師確認';
   document.getElementById('o-teacher').classList.add('show');
   setTimeout(() => document.getElementById('pw-input').focus(), 100);
 }
-document.getElementById('pw-cancel').onclick = () => { document.getElementById('o-teacher').classList.remove('show'); };
+
+function closeTeacherModal() {
+  document.getElementById('o-teacher').classList.remove('show');
+}
+
+document.getElementById('pw-cancel').onclick = closeTeacherModal;
 document.getElementById('pw-confirm').onclick = async () => {
-  const pw = document.getElementById('pw-input').value;
+  const pw = document.getElementById('pw-input').value.trim();
   if (pw !== '777') {
     document.getElementById('pw-error').textContent = '密碼錯誤，請再試一次';
-    document.getElementById('pw-input').value = ''; return;
+    return;
   }
-  document.getElementById('o-teacher').classList.remove('show');
-
+  document.getElementById('pw-error').textContent = '';
+  closeTeacherModal();
   if (_teacherMode === 'edit') {
     const btns = document.getElementById('cm-btns');
     btns.innerHTML = `<button class="btn btn-x" id="cm-x">清除</button><button class="btn btn-c" id="cm-c">取消</button><button class="btn btn-s" id="cm-sv">儲存</button>`;
@@ -836,6 +883,7 @@ document.getElementById('pw-confirm').onclick = async () => {
     document.getElementById('cm-c').onclick = closeCM;
     document.getElementById('cm-sv').onclick = () => saveCM(true);
     ['cm-t3s','cm-t3sc','cm-t3r','cm-fd','cm-fp','cm-att'].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = false; });
+    document.querySelectorAll('#cm-scores input').forEach(el => { el.disabled = false; });
     document.querySelectorAll('.score-btn').forEach(b => b.style.pointerEvents = '');
   } else {
     if (data.classes[_teacherKey]) {
@@ -846,7 +894,7 @@ document.getElementById('pw-confirm').onclick = async () => {
   }
 };
 document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('pw-confirm').click(); });
-document.getElementById('o-teacher').addEventListener('click', e => { if (e.target.id === 'o-teacher') document.getElementById('o-teacher').classList.remove('show'); });
+document.getElementById('o-teacher').addEventListener('click', e => { if (e.target.id === 'o-teacher') closeTeacherModal(); });
 
 
 function openHistoryEM(sub, semKey, timeKey){
@@ -875,19 +923,6 @@ function openHistoryEM(sub, semKey, timeKey){
 }
 
 </script>
-
-<!-- Teacher modal -->
-<div class="overlay" id="o-teacher">
-  <div class="teacher-modal">
-    <h3 id="tm-title">✅ 老師確認</h3>
-    <input type="password" class="pw-input" id="pw-input" placeholder="••••" maxlength="10" />
-    <div class="pw-error" id="pw-error"></div>
-    <div class="mbtns">
-      <button class="btn btn-c" id="pw-cancel">取消</button>
-      <button class="btn btn-s" style="background:#3a7d44" id="pw-confirm">確認 ✓</button>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>
