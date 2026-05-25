@@ -235,11 +235,44 @@
     border: 1.5px solid var(--border); border-radius: 8px;
     font-family: 'Noto Sans TC', sans-serif; font-size: 0.85rem;
     color: var(--text); background: var(--bg); margin-bottom: 8px;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239a8070' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 12px center; cursor: pointer;
+    cursor: pointer;
   }
   .material-select:focus { outline: none; border-color: var(--accent); }
+
+  /* Custom dropdown (Android LINE compatible) */
+  .custom-select-wrap { position: relative; margin-bottom: 8px; }
+  .custom-select-btn {
+    width: 100%; padding: 8px 36px 8px 10px;
+    border: 1.5px solid var(--border); border-radius: 8px;
+    font-family: 'Noto Sans TC', sans-serif; font-size: 0.85rem;
+    color: var(--text); background: var(--bg);
+    cursor: pointer; text-align: left; position: relative;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .custom-select-btn::after {
+    content: '';
+    width: 12px; height: 8px; flex-shrink: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239a8070' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: center;
+    transition: transform 0.2s;
+  }
+  .custom-select-btn.open::after { transform: rotate(180deg); }
+  .custom-select-btn.open { border-color: var(--accent); }
+  .custom-select-opts {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: white; border: 1.5px solid var(--accent);
+    border-radius: 10px; z-index: 9999; overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  }
+  .custom-select-opts.show { display: block; }
+  .custom-select-opt {
+    padding: 11px 14px; font-size: 0.85rem; font-family: 'Noto Sans TC', sans-serif;
+    color: var(--text); cursor: pointer; border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  .custom-select-opt:last-child { border-bottom: none; }
+  .custom-select-opt:hover, .custom-select-opt:active { background: var(--accent-light); color: var(--accent); }
+  .custom-select-opt.selected { color: var(--accent); font-weight: 700; background: var(--accent-light); }
 
   .photo-row {
     display: flex; align-items: center; justify-content: space-between;
@@ -447,14 +480,20 @@
     <div id="dm-status-note" style="display:none"></div>
 
     <div class="mslabel" id="modal-phase-label">今天寫了什麼？</div>
-    <select class="material-select" id="dm-material">
-      <option value="">── 請選擇 ──</option>
-      <option value="課本">課本</option>
-      <option value="習作">習作</option>
-      <option value="講義">講義</option>
-      <option value="考卷">考卷</option>
-      <option value="作業抵免">作業抵免（學校作業／課前作業）</option>
-    </select>
+    <div class="custom-select-wrap">
+      <button type="button" class="custom-select-btn" id="dm-material-btn">
+        <span id="dm-material-label">── 請選擇 ──</span>
+      </button>
+      <div class="custom-select-opts" id="dm-material-opts">
+        <div class="custom-select-opt" data-value="">── 請選擇 ──</div>
+        <div class="custom-select-opt" data-value="課本">課本</div>
+        <div class="custom-select-opt" data-value="習作">習作</div>
+        <div class="custom-select-opt" data-value="講義">講義</div>
+        <div class="custom-select-opt" data-value="考卷">考卷</div>
+        <div class="custom-select-opt" data-value="作業抵免">作業抵免（學校作業／課前作業）</div>
+      </div>
+    </div>
+    <input type="hidden" id="dm-material" value="">
     <div class="mrow" style="margin-bottom:10px;">
       <input type="text" id="math-range" placeholder="範圍（例：4-1）" style="font-size:0.75rem;" />
     </div>
@@ -890,7 +929,7 @@ function openDM(key) {
   tFd = e.free?.desc || '';
   tFp = parseInt(e.free?.pt || 0);
 
-  document.getElementById('dm-material').value = tMaterial;
+  setCustomSelect(tMaterial);
   document.getElementById('math-range').value = tRange;
   document.getElementById('dm-fd').value = tFd;
   document.getElementById('dm-fp').value = tFp;
@@ -899,13 +938,14 @@ function openDM(key) {
 
   // lock inputs if confirmed (teacher edit button will unlock)
   const locked = e.status === 'confirmed';
-  document.getElementById('dm-material').disabled = locked;
+  document.getElementById('dm-material-btn').disabled = locked;
+  document.getElementById('dm-material-btn').style.opacity = locked ? '0.6' : '1';
   document.getElementById('math-range').disabled = locked;
   document.getElementById('photo-row').style.pointerEvents = locked ? 'none' : '';
   document.getElementById('dm-fd').disabled = locked;
   document.getElementById('dm-fp').disabled = locked;
 
-  document.getElementById('dm-material').onchange = ev => { tMaterial = ev.target.value; };
+  // custom select handles tMaterial updates via initCustomSelect
   document.getElementById('math-range').oninput = ev => { tRange = ev.target.value; };
   document.getElementById('photo-row').onclick = () => { tPhoto = !tPhoto; updPhotoRow(); };
   document.getElementById('dm-fd').oninput = ev => { tFd = ev.target.value; };
@@ -1026,7 +1066,8 @@ document.getElementById('pw-confirm').onclick = async () => {
       };
       await save(); buildCal(); updSum(); closeDM();
     };
-    document.getElementById('dm-material').disabled = false;
+    document.getElementById('dm-material-btn').disabled = false;
+    document.getElementById('dm-material-btn').style.opacity = '1';
     document.getElementById('math-range').disabled = false;
     document.getElementById('photo-row').style.pointerEvents = '';
     document.getElementById('dm-fd').disabled = false;
@@ -1087,6 +1128,54 @@ function updEMPrev() {
 function closeEM() { document.getElementById('oe').classList.remove('show'); }
 document.getElementById('oe').addEventListener('click', e => { if (e.target.id === 'oe') closeEM(); });
 
+// Custom select for Android LINE compatibility
+function initCustomSelect() {
+  const btn = document.getElementById('dm-material-btn');
+  const opts = document.getElementById('dm-material-opts');
+  if (!btn || !opts) return;
+
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    const isOpen = opts.classList.contains('show');
+    opts.classList.toggle('show', !isOpen);
+    btn.classList.toggle('open', !isOpen);
+  };
+
+  opts.querySelectorAll('.custom-select-opt').forEach(opt => {
+    opt.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const val = opt.dataset.value;
+      tMaterial = val;
+      document.getElementById('dm-material').value = val;
+      document.getElementById('dm-material-label').textContent = opt.textContent;
+      opts.querySelectorAll('.custom-select-opt').forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+      opts.classList.remove('show');
+      btn.classList.remove('open');
+    });
+  });
+
+  document.addEventListener('click', () => {
+    opts.classList.remove('show');
+    btn.classList.remove('open');
+  });
+}
+
+function setCustomSelect(val) {
+  document.getElementById('dm-material').value = val || '';
+  const opts = document.getElementById('dm-material-opts');
+  if (!opts) return;
+  let label = '── 請選擇 ──';
+  opts.querySelectorAll('.custom-select-opt').forEach(opt => {
+    const isMatch = opt.dataset.value === val;
+    opt.classList.toggle('selected', isMatch);
+    if (isMatch) label = opt.textContent;
+  });
+  document.getElementById('dm-material-label').textContent = label;
+}
+
+
+initCustomSelect();
 load();
 
 document.querySelectorAll('#chart-filter-panel > .cfb').forEach(b => {
