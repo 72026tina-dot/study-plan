@@ -306,8 +306,36 @@ function dk(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0
 function wk(d){const t=new Date(d);t.setHours(0,0,0,0);t.setDate(t.getDate()+4-(t.getDay()||7));const y=t.getFullYear();const w=Math.ceil((((t-new Date(y,0,1))/86400000)+1)/7);return `${y}-W${String(w).padStart(2,'0')}`;}
 function isAbroad(d){return d>=ABROAD_START&&d<=ABROAD_END;}
 
+// ── Firebase Config ──
+const FB_URL='https://math-plan-default-rtdb.asia-southeast1.firebasedatabase.app/summer_v4';
+let fbSaveTimer=null;
+
+async function fbLoad(){
+  try{
+    const r=await fetch(FB_URL+'.json');
+    if(r.ok){const d=await r.json();if(d)return d;}
+  }catch(e){console.warn('Firebase load failed, using localStorage',e);}
+  // fallback to localStorage
+  try{const s=localStorage.getItem('summer_v4');if(s)return JSON.parse(s);}catch(e){}
+  return null;
+}
+
+async function fbSave(data){
+  try{
+    await fetch(FB_URL+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    localStorage.setItem('summer_v4',JSON.stringify(data)); // keep local backup
+  }catch(e){
+    console.warn('Firebase save failed, saved to localStorage only',e);
+    localStorage.setItem('summer_v4',JSON.stringify(data));
+  }
+}
+
 function loadData(){try{const s=localStorage.getItem('summer_v4');if(s)return JSON.parse(s);}catch(e){}return{days:{},weeks:{},official:[],practice:[]};}
-function saveData(){try{localStorage.setItem('summer_v4',JSON.stringify(DATA));}catch(e){};}
+function saveData(){
+  clearTimeout(fbSaveTimer);
+  fbSaveTimer=setTimeout(()=>fbSave(DATA),600); // debounce 600ms
+  try{localStorage.setItem('summer_v4',JSON.stringify(DATA));}catch(e){}
+}
 
 const DEF_DAYS={
   '2026-07-01':[{subj:'math',book:'第1冊',kind:'複習'},{subj:'eng',book:'第1冊',kind:'複習'}],
@@ -337,12 +365,21 @@ const DEF_WEEKS={
   '2026-W29':'第3冊 全科複習','2026-W30':'第4冊 複習開始',
 };
 
-let DATA=loadData();
-(function(){let ch=false;
+let DATA={days:{},weeks:{},official:[],practice:[]};
+
+// Show loading indicator
+document.body.insertAdjacentHTML('afterbegin',`<div id="fb-loading" style="position:fixed;inset:0;background:rgba(255,255,255,0.88);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-family:'Outfit',sans-serif;"><div style="font-size:1.6rem">☁️</div><div style="font-size:0.85rem;color:#4a3f8f;font-weight:700">從雲端載入資料中…</div><div style="font-size:0.65rem;color:#aaa">Firebase Realtime Database</div></div>`);
+
+(async function initData(){
+  const saved=await fbLoad();
+  if(saved)DATA=saved;
+  let ch=false;
   Object.entries(DEF_DAYS).forEach(([k,v])=>{if(DATA.days[k]===undefined){DATA.days[k]=v;ch=true;}});
   Object.entries(DEF_WEEKS).forEach(([k,v])=>{if(DATA.weeks[k]===undefined){DATA.weeks[k]=v;ch=true;}});
   if(!DATA.official)DATA.official=[];if(!DATA.practice)DATA.practice=[];
   if(ch)saveData();
+  document.getElementById('fb-loading').remove();
+  buildCalendar();
 })();
 
 // ── Grade helpers ──
@@ -572,8 +609,6 @@ function closeExam(){document.getElementById('exam-overlay').classList.remove('s
   document.getElementById(id).addEventListener('click',function(e){if(e.target===this){closeDay();closeWG();closeExam();}});
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDay();closeWG();closeExam();}});
-
-buildCalendar();
 </script>
 </body>
 </html>
