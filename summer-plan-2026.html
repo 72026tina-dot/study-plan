@@ -136,6 +136,22 @@
   .tb-lbl{font-size:0.62rem;color:var(--muted);}
   .subj-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:12px;}
 
+  /* ── Countdown ── */
+  .countdown-wrap{padding:10px 12px 4px;display:flex;flex-direction:column;gap:8px;}
+  .cd-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(139,111,94,0.07);}
+  .cd-card.gsat{border-left:3px solid var(--pink);}
+  .cd-card.custom{border-left:3px solid var(--sage);}
+  .cd-left{flex:1;}
+  .cd-name{font-family:'Noto Serif TC',serif;font-size:0.82rem;font-weight:700;color:var(--accent);margin-bottom:2px;}
+  .cd-date{font-size:0.62rem;color:var(--muted);}
+  .cd-days{text-align:right;}
+  .cd-num{font-family:'Noto Serif TC',serif;font-size:1.8rem;font-weight:900;color:var(--accent);line-height:1;}
+  .cd-lbl{font-size:0.58rem;color:var(--muted);}
+  .cd-add-btn{width:100%;padding:9px;border:1.5px dashed var(--border);border-radius:10px;background:transparent;color:var(--accent2);font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Noto Serif TC',serif;margin-bottom:4px;}
+  .cd-add-btn:hover{background:var(--accent-light);}
+  .cd-edit-btn{background:none;border:none;font-size:0.65rem;color:#c8b4a8;cursor:pointer;padding:2px 4px;}
+  .cd-edit-btn:hover{color:var(--accent);}
+
   @media(max-width:480px){.cal-cell{min-height:66px;}.cell-pill{font-size:0.38rem;}.subj-grid{grid-template-columns:1fr 1fr;}}
   @media print{.tabs,.legend{display:none!important;}body{background:white;padding:10px;}.section{display:block!important;}}
 </style>
@@ -144,6 +160,24 @@
 <div class="header">
   <h1>🌸 暑假計畫 &amp; 成績記錄</h1>
   <div class="header-sub">♡ 2026 · 7–8 月 · 國二升國三 ♡</div>
+</div>
+
+<!-- ══ COUNTDOWN ══ -->
+<div class="countdown-wrap" id="countdown-wrap"></div>
+
+<!-- Countdown modal -->
+<div class="overlay" id="cd-overlay">
+  <div class="modal">
+    <h3 id="cd-modal-title">➕ 新增倒數</h3>
+    <div class="modal-sub">自訂倒數目標日期</div>
+    <div class="field-row"><label>名稱（例：一模）</label><input type="text" id="cd-input-name" placeholder="輸入名稱…" maxlength="20"/></div>
+    <div class="field-row"><label>日期</label><input type="date" id="cd-input-date"/></div>
+    <div class="mbtns">
+      <button class="btn btn-c" onclick="closeCdModal()">取消</button>
+      <button class="btn btn-x" id="cd-del-btn" style="display:none" onclick="deleteCd()">刪除</button>
+      <button class="btn btn-s" onclick="saveCd()">儲存</button>
+    </div>
+  </div>
 </div>
 
 <div class="tabs">
@@ -385,6 +419,7 @@ document.body.insertAdjacentHTML('afterbegin',`<div id="fb-loading" style="posit
   if(ch)saveData();
   document.getElementById('fb-loading').remove();
   buildCalendar();
+  renderCountdown();
 })();
 
 // ── Grade helpers ──
@@ -450,8 +485,7 @@ function buildCalendar(){
 
 function renderCell(date,key){
   const slots=DATA.days[key]||[];
-  const isAb=isAbroad(date);
-  let html=`<div class="cell-date">${date.getDate()}${isAb?' <span style="font-size:0.36rem;color:#9070c0">✈</span>':''}</div><div class="cell-items">`;
+  let html=`<div class="cell-date">${date.getDate()}</div><div class="cell-items">`;
   if(!slots.length){html+=`<div class="cell-empty-hint">＋ 點此填寫</div>`;}
   else{slots.forEach(sl=>{
     if(!sl.subj)return;const sm=SUBJECTS[sl.subj];if(!sm)return;
@@ -467,7 +501,7 @@ function openDay(key,date){
   if(!editSlots.length)editSlots=[{subj:'',book:'',kind:''}];
   const wd='日一二三四五六'[date.getDay()];
   document.getElementById('dm-title').textContent=`${date.getMonth()+1}/${date.getDate()} 週${wd}`;
-  document.getElementById('dm-sub').textContent=key+(isAbroad(date)?' ✈ 出國期間':'');
+  document.getElementById('dm-sub').textContent=key;
   renderSlots();document.getElementById('day-overlay').classList.add('show');
 }
 function renderSlots(){
@@ -609,11 +643,65 @@ function deleteExam(){
 }
 function closeExam(){document.getElementById('exam-overlay').classList.remove('show');examType=null;examEditId=null;}
 
+// ── Countdown ──
+const GSAT_DATE=new Date(2027,4,15); // 2027/5/15 會考
+function daysUntil(d){const now=new Date();now.setHours(0,0,0,0);return Math.ceil((d-now)/86400000);}
+
+let cdEditId=null;
+
+function renderCountdown(){
+  const wrap=document.getElementById('countdown-wrap');
+  wrap.innerHTML='';
+  // Fixed: 會考
+  const gsatDays=daysUntil(GSAT_DATE);
+  wrap.innerHTML+=`<div class="cd-card gsat">
+    <div class="cd-left"><div class="cd-name">🌸 2027 國中會考</div><div class="cd-date">2027 年 5 月 15 日</div></div>
+    <div class="cd-days"><div class="cd-num">${gsatDays}</div><div class="cd-lbl">天後</div></div>
+  </div>`;
+  // Custom countdowns
+  (DATA.countdowns||[]).forEach(cd=>{
+    const d=new Date(cd.date);const days=daysUntil(d);
+    const dateStr=cd.date.replace(/-/g,'/');
+    wrap.innerHTML+=`<div class="cd-card custom">
+      <div class="cd-left"><div class="cd-name">🎯 ${cd.name}</div><div class="cd-date">${dateStr}</div></div>
+      <div class="cd-days"><div class="cd-num">${days>=0?days:0}</div><div class="cd-lbl">${days>=0?'天後':'已過'}</div></div>
+      <button class="cd-edit-btn" onclick="openCdModal('${cd.id}')">✏️</button>
+    </div>`;
+  });
+  wrap.innerHTML+=`<button class="cd-add-btn" onclick="openCdModal(null)">＋ 新增倒數</button>`;
+}
+
+function openCdModal(id){
+  cdEditId=id;
+  document.getElementById('cd-modal-title').textContent=id?'✏️ 編輯倒數':'➕ 新增倒數';
+  document.getElementById('cd-del-btn').style.display=id?'block':'none';
+  const rec=id?(DATA.countdowns||[]).find(c=>c.id===id):null;
+  document.getElementById('cd-input-name').value=rec?.name||'';
+  document.getElementById('cd-input-date').value=rec?.date||'';
+  document.getElementById('cd-overlay').classList.add('show');
+  setTimeout(()=>document.getElementById('cd-input-name').focus(),80);
+}
+function saveCd(){
+  const name=document.getElementById('cd-input-name').value.trim();
+  const date=document.getElementById('cd-input-date').value;
+  if(!name||!date){alert('請填寫名稱和日期');return;}
+  if(!DATA.countdowns)DATA.countdowns=[];
+  if(cdEditId){const i=DATA.countdowns.findIndex(c=>c.id===cdEditId);if(i>=0)DATA.countdowns[i]={id:cdEditId,name,date};}
+  else{DATA.countdowns.push({id:Date.now().toString(),name,date});}
+  saveData();closeCdModal();renderCountdown();
+}
+function deleteCd(){
+  if(!cdEditId)return;
+  DATA.countdowns=(DATA.countdowns||[]).filter(c=>c.id!==cdEditId);
+  saveData();closeCdModal();renderCountdown();
+}
+function closeCdModal(){document.getElementById('cd-overlay').classList.remove('show');cdEditId=null;}
+
 // ── Overlay close ──
-['day-overlay','wg-overlay','exam-overlay'].forEach(id=>{
-  document.getElementById(id).addEventListener('click',function(e){if(e.target===this){closeDay();closeWG();closeExam();}});
+['day-overlay','wg-overlay','exam-overlay','cd-overlay'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){if(e.target===this){closeDay();closeWG();closeExam();closeCdModal();}});
 });
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDay();closeWG();closeExam();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDay();closeWG();closeExam();closeCdModal();}});
 </script>
 </body>
 </html>
