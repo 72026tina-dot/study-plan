@@ -226,7 +226,7 @@
     <h3 id="dm-title"></h3>
     <div class="modal-sub" id="dm-sub"></div>
     <div id="dm-slots"></div>
-    <button class="add-slot-btn" onclick="addSlot()" id="add-slot-btn">＋ 新增科目（最多3科）</button>
+    <button class="add-slot-btn" onclick="addSlot()" id="add-slot-btn">＋ 新增科目</button>
     <div class="mbtns">
       <button class="btn btn-c" onclick="closeDay()">取消</button>
       <button class="btn btn-x" onclick="clearDay()">清除</button>
@@ -464,14 +464,15 @@ function renderCell(date,key){
     if(!sl.subj)return;const sm=SUBJECTS[sl.subj];if(!sm)return;
     const k=(sl.kind||'').replace('講課-','講·');
     const b=(sl.book||'');
-    html+=`<div class="cell-pill" style="background:${sm.bg};color:${sm.col}">${sm.lbl}・${k||'—'} ${b}</div>`;
+    const n=sl.note?` (${sl.note})`:'';
+    html+=`<div class="cell-pill" style="background:${sm.bg};color:${sm.col}">${sm.lbl}・${k||'—'} ${b}${n}</div>`;
   });}
   html+=`</div>`;return html;
 }
 
 function openDay(key,date){
   editKey=key;editSlots=JSON.parse(JSON.stringify(DATA.days[key]||[]));
-  if(!editSlots.length)editSlots=[{subj:'',book:'',kind:''}];
+  if(!editSlots.length)editSlots=[{subj:'',book:'',kind:'',note:''}];
   const wd='日一二三四五六'[date.getDay()];
   document.getElementById('dm-title').textContent=`${date.getMonth()+1}/${date.getDate()} 週${wd}`;
   document.getElementById('dm-sub').textContent=key;
@@ -485,15 +486,16 @@ function renderSlots(){
       <div class="field-row"><label>科目</label><select onchange="slotChange(${i},'subj',this.value)"><option value="">── 選科目 ──</option>${Object.entries(SUBJECTS).map(([k,v])=>`<option value="${k}" ${sl.subj===k?'selected':''}>${v.lbl}</option>`).join('')}</select></div>
       <div class="field-row"><label>冊數 / 回次</label><select onchange="slotChange(${i},'book',this.value)"><option value="">── 選冊數 ──</option>${BOOKS.map(b=>`<option value="${b}" ${sl.book===b?'selected':''}>${b}</option>`).join('')}</select></div>
       <div class="field-row"><label>性質</label><select onchange="slotChange(${i},'kind',this.value)"><option value="">── 選性質 ──</option>${KINDS.map(k=>`<option value="${k}" ${sl.kind===k?'selected':''}>${k}</option>`).join('')}</select></div>
+      <div class="field-row"><label>備註（例：單元1-2、第3課）</label><input type="text" placeholder="輸入備註…" value="${(sl.note||'').replace(/"/g,'&quot;')}" oninput="slotChange(${i},'note',this.value)"/></div>
       <div id="sl-prev-${i}"></div>`;
     w.appendChild(sec);updatePreview(i);
   });
-  document.getElementById('add-slot-btn').style.display=editSlots.length>=3?'none':'block';
+  document.getElementById('add-slot-btn').style.display='block';
 }
 function slotChange(i,f,v){editSlots[i][f]=v;updatePreview(i);}
-function updatePreview(i){const sl=editSlots[i];const p=document.getElementById(`sl-prev-${i}`);if(!p)return;if(!sl.subj){p.innerHTML='';return;}const sm=SUBJECTS[sl.subj];p.innerHTML=`<div class="preview-pill" style="background:${sm.bg};color:${sm.col}">${sm.lbl}${sl.kind?'・'+sl.kind:''}${sl.book?' '+sl.book:''}</div>`;}
-function addSlot(){if(editSlots.length>=3)return;editSlots.push({subj:'',book:'',kind:''});renderSlots();}
-function removeSlot(i){editSlots.splice(i,1);if(!editSlots.length)editSlots=[{subj:'',book:'',kind:''}];renderSlots();}
+function updatePreview(i){const sl=editSlots[i];const p=document.getElementById(`sl-prev-${i}`);if(!p)return;if(!sl.subj){p.innerHTML='';return;}const sm=SUBJECTS[sl.subj];const noteTxt=sl.note?` (${sl.note})`:'';p.innerHTML=`<div class="preview-pill" style="background:${sm.bg};color:${sm.col}">${sm.lbl}${sl.kind?'・'+sl.kind:''}${sl.book?' '+sl.book:''}${noteTxt}</div>`;}
+function addSlot(){editSlots.push({subj:'',book:'',kind:'',note:''});renderSlots();}
+function removeSlot(i){editSlots.splice(i,1);if(!editSlots.length)editSlots=[{subj:'',book:'',kind:'',note:''}];renderSlots();}
 function saveDay(){DATA.days[editKey]=editSlots.filter(s=>s.subj);saveData();closeDay();buildCalendar();}
 function clearDay(){DATA.days[editKey]=[];saveData();closeDay();buildCalendar();}
 function closeDay(){document.getElementById('day-overlay').classList.remove('show');editKey=null;editSlots=[];}
