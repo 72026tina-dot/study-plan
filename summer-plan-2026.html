@@ -224,6 +224,7 @@
     <button class="leg filt-btn" data-subj="geo" onclick="toggleSubjFilter('geo')"><span class="ldot" style="background:var(--geo)"></span>地理</button>
     <button class="leg filt-btn" data-subj="hist" onclick="toggleSubjFilter('hist')"><span class="ldot" style="background:var(--hist)"></span>歷史</button>
     <button class="leg filt-btn" data-subj="civic" onclick="toggleSubjFilter('civic')"><span class="ldot" style="background:var(--civic)"></span>公民</button>
+    <button class="leg filt-btn" data-subj="__course__" onclick="toggleSubjFilter('__course__')">🏫 課程</button>
   </div>
   <div class="months-wrap" id="months-wrap"></div>
 </div>
@@ -489,7 +490,9 @@ function buildCalendar(){
         if((DATA.dayType&&DATA.dayType[key])==='course')cell.classList.add('is-course');
         cell.innerHTML=renderCell(date,key);
         if(subjFilter){
-          const has=(DATA.days[key]||[]).some(sl=>sl.subj===subjFilter);
+          const has=subjFilter==='__course__'
+            ? ((DATA.dayType&&DATA.dayType[key])==='course')
+            : (DATA.days[key]||[]).some(sl=>sl.subj===subjFilter);
           cell.classList.add(has?'highlight':'dim');
         }
         cell.onclick=(e)=>{ if(dragJustHappened)return; openDay(key,date); };
