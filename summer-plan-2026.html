@@ -9,19 +9,20 @@
   :root{
     --bg:#faf7f4;--card:#fffefb;--border:#e8ddd4;
     --accent:#8b6f5e;--accent-light:#f5ede8;--accent2:#b8957e;
-    --math:#5b7fb5;--math-bg:#eaf0f8;
-    --eng:#4fa088;--eng-bg:#e8f5f1;
-    --bio:#8a9e3a;--bio-bg:#f1f6e2;
-    --chem:#c97a3a;--chem-bg:#fbede0;
-    --earth:#2fa090;--earth-bg:#e3f6f2;
-    --geo:#a0772a;--geo-bg:#f7eddb;
-    --hist:#8a5fb0;--hist-bg:#f1e9f8;
-    --civic:#d4609a;--civic-bg:#fbe9f1;
-    --chinese:#c0504f;--chinese-bg:#fbeaea;
+    /* 五大類同色系，深淺分科目，避開亮粉色 */
+    --chinese:#a85a4a;--chinese-bg:#f7e9e4;      /* 國文：磚紅 */
+    --math:#3f6fa8;--math-bg:#e6eef6;            /* 數學：靛藍 */
+    --geo:#8a6a2a;--geo-bg:#f2ecdc;              /* 社會(淺)：地理 - 卡其棕 */
+    --hist:#705220;--hist-bg:#ece4d4;            /* 社會(中)：歷史 - 深棕 */
+    --civic:#b08838;--civic-bg:#f6efdd;          /* 社會(深淺2)：公民 - 金棕 */
+    --bio:#4a8a4a;--bio-bg:#e6f2e6;              /* 自然(淺)：生物 - 草綠 */
+    --chem:#2a6a3a;--chem-bg:#e0eee2;            /* 自然(中)：理化 - 深綠 */
+    --earth:#6aa05a;--earth-bg:#ecf5e6;          /* 自然(深淺2)：地科 - 黃綠 */
+    --eng:#6a4a8a;--eng-bg:#ece4f2;              /* 英文：紫 */
     --essay:#9a7a9a;--essay-bg:#f5edf5;
     --text:#4a3b32;--muted:#b09888;
     --official:#c07850;--practice:#7a90b8;
-    --pink:#d4a5a0;--sage:#a8b89a;--lavender:#b8a8c8;
+    --pink:#c89a8a;--sage:#a8b89a;--lavender:#b8a8c8;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh;padding:0 0 60px;}
@@ -43,6 +44,10 @@
   /* ── Calendar ── */
   .legend{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-bottom:12px;}
   .leg{display:flex;align-items:center;gap:4px;font-size:0.62rem;color:var(--muted);padding:3px 8px;border-radius:20px;border:1px solid var(--border);background:var(--card);}
+  .filt-btn{cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all 0.15s;}
+  .filt-btn.active{background:var(--accent-light);border-color:var(--accent2);color:var(--accent);font-weight:700;}
+  .cal-cell.dim{opacity:0.25;}
+  .cal-cell.highlight{box-shadow:0 0 0 2px var(--accent2);}
   .ldot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
   .months-wrap{display:flex;flex-direction:column;gap:26px;}
   .cal-mlabel{font-family:'Noto Serif TC',serif;font-size:.95rem;font-weight:700;color:var(--accent);margin-bottom:9px;text-align:center;letter-spacing:0.1em;}
@@ -58,6 +63,9 @@
   .cal-cell:hover{transform:scale(1.04);box-shadow:0 4px 14px rgba(139,111,94,0.14);}
   .cal-cell.empty{border-color:transparent;background:transparent;cursor:default;pointer-events:none;}
   .cal-cell.today{box-shadow:0 0 0 2px var(--accent)!important;background:#fdf5f0;}
+  .cal-cell.is-course{background:#efe7df;}
+  .cal-cell.is-course.today{background:#f5e8da;}
+  .cell-course-tag{font-size:0.4rem;font-weight:700;color:#8b6f5e;background:#e0d2c2;border-radius:3px;padding:0px 3px;display:inline-block;margin-bottom:1px;letter-spacing:0.02em;}
   .cell-date{font-size:0.58rem;color:var(--muted);line-height:1;margin-bottom:2px;font-family:'Noto Sans TC',sans-serif;}
   .cell-items{display:flex;flex-direction:column;gap:2px;flex:1;}
   .cell-pill{font-size:0.42rem;font-weight:700;padding:2px 3px;border-radius:4px;line-height:1.3;cursor:grab;touch-action:pan-y;}
@@ -101,6 +109,9 @@
   .modal{background:var(--card);border-radius:20px;padding:20px 16px 16px;width:100%;max-width:380px;box-shadow:0 10px 40px rgba(139,111,94,0.18);max-height:92vh;overflow-y:auto;border:1px solid var(--border);}
   .modal h3{font-size:0.92rem;font-weight:700;margin-bottom:2px;font-family:'Noto Serif TC',serif;color:var(--accent);letter-spacing:0.04em;}
   .modal-sub{font-size:0.62rem;color:var(--muted);margin-bottom:12px;}
+  .daytype-row{display:flex;gap:10px;margin-bottom:12px;background:#faf5f0;border:1px solid var(--border);border-radius:10px;padding:8px 10px;}
+  .daytype-opt{display:flex;align-items:center;gap:5px;font-size:0.74rem;font-weight:700;color:var(--text);cursor:pointer;}
+  .daytype-opt input{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;}
   .slot-section{background:#faf5f0;border-radius:10px;padding:10px 12px;margin-bottom:9px;border:1px solid var(--border);}
   .slot-num{font-size:0.58rem;font-weight:700;color:var(--accent2);margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;}
   .field-row{display:flex;flex-direction:column;gap:3px;margin-bottom:6px;}
@@ -202,17 +213,17 @@
 
 <!-- ══ CAL ══ -->
 <div class="section active" id="s-cal">
-  <div class="legend">
-    <div class="leg"><div class="ldot" style="background:var(--math)"></div>數學</div>
-    <div class="leg"><div class="ldot" style="background:var(--eng)"></div>英文</div>
-    <div class="leg"><div class="ldot" style="background:var(--chinese)"></div>國文</div>
-    <div class="leg"><div class="ldot" style="background:var(--bio)"></div>生物</div>
-    <div class="leg"><div class="ldot" style="background:var(--chem)"></div>理化</div>
-    <div class="leg"><div class="ldot" style="background:var(--earth)"></div>地科</div>
-    <div class="leg"><div class="ldot" style="background:var(--geo)"></div>地理</div>
-    <div class="leg"><div class="ldot" style="background:var(--hist)"></div>歷史</div>
-    <div class="leg"><div class="ldot" style="background:var(--civic)"></div>公民</div>
-    <div class="leg">🎯 週目標</div><div class="leg">📝 點格填寫</div><div class="leg">✋ 長按拖曳搬移</div>
+  <div class="legend" id="subj-filter">
+    <button class="leg filt-btn active" data-subj="" onclick="toggleSubjFilter('')">全部</button>
+    <button class="leg filt-btn" data-subj="math" onclick="toggleSubjFilter('math')"><span class="ldot" style="background:var(--math)"></span>數學</button>
+    <button class="leg filt-btn" data-subj="eng" onclick="toggleSubjFilter('eng')"><span class="ldot" style="background:var(--eng)"></span>英文</button>
+    <button class="leg filt-btn" data-subj="chinese" onclick="toggleSubjFilter('chinese')"><span class="ldot" style="background:var(--chinese)"></span>國文</button>
+    <button class="leg filt-btn" data-subj="bio" onclick="toggleSubjFilter('bio')"><span class="ldot" style="background:var(--bio)"></span>生物</button>
+    <button class="leg filt-btn" data-subj="chem" onclick="toggleSubjFilter('chem')"><span class="ldot" style="background:var(--chem)"></span>理化</button>
+    <button class="leg filt-btn" data-subj="earth" onclick="toggleSubjFilter('earth')"><span class="ldot" style="background:var(--earth)"></span>地科</button>
+    <button class="leg filt-btn" data-subj="geo" onclick="toggleSubjFilter('geo')"><span class="ldot" style="background:var(--geo)"></span>地理</button>
+    <button class="leg filt-btn" data-subj="hist" onclick="toggleSubjFilter('hist')"><span class="ldot" style="background:var(--hist)"></span>歷史</button>
+    <button class="leg filt-btn" data-subj="civic" onclick="toggleSubjFilter('civic')"><span class="ldot" style="background:var(--civic)"></span>公民</button>
   </div>
   <div class="months-wrap" id="months-wrap"></div>
 </div>
@@ -240,6 +251,10 @@
   <div class="modal">
     <h3 id="dm-title"></h3>
     <div class="modal-sub" id="dm-sub"></div>
+    <div class="daytype-row">
+      <label class="daytype-opt"><input type="radio" name="daytype" value="self" id="dt-self" onchange="setDayType('self')"> 📖 自我學習</label>
+      <label class="daytype-opt"><input type="radio" name="daytype" value="course" id="dt-course" onchange="setDayType('course')"> 🏫 課程</label>
+    </div>
     <div id="dm-slots"></div>
     <button class="add-slot-btn" onclick="addSlot()" id="add-slot-btn">＋ 新增科目</button>
     <div class="mbtns">
@@ -433,6 +448,15 @@ function calcTotal(rec){
 // ── Calendar ──
 let editKey=null,editSlots=[],editWGKey=null;
 
+let subjFilter='';
+function toggleSubjFilter(s){
+  subjFilter=(subjFilter===s)?'':s;
+  document.querySelectorAll('.filt-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.subj===subjFilter);
+  });
+  buildCalendar();
+}
+
 function buildCalendar(){
   const wrap=document.getElementById('months-wrap');wrap.innerHTML='';
   [{year:2026,month:6,label:'2026 年 7 月'},{year:2026,month:7,label:'2026 年 8 月'}].forEach(({year,month,label})=>{
@@ -462,7 +486,12 @@ function buildCalendar(){
         if(date.getTime()===today.getTime())cell.classList.add('today');
         const key=dk(date);
         cell.dataset.key=key;
+        if((DATA.dayType&&DATA.dayType[key])==='course')cell.classList.add('is-course');
         cell.innerHTML=renderCell(date,key);
+        if(subjFilter){
+          const has=(DATA.days[key]||[]).some(sl=>sl.subj===subjFilter);
+          cell.classList.add(has?'highlight':'dim');
+        }
         cell.onclick=(e)=>{ if(dragJustHappened)return; openDay(key,date); };
         setupCellDnD(cell);
         grid.appendChild(cell);
@@ -589,7 +618,8 @@ function movePillToDate(fromKey,fromIdx,toKey){
 
 function renderCell(date,key){
   const slots=DATA.days[key]||[];
-  let html=`<div class="cell-date">${date.getDate()}</div><div class="cell-items">`;
+  const isCourse=(DATA.dayType&&DATA.dayType[key])==='course';
+  let html=`<div class="cell-date">${date.getDate()}</div>${isCourse?`<div class="cell-course-tag">🏫課程</div>`:''}<div class="cell-items">`;
   if(!slots.length){html+=`<div class="cell-empty-hint">＋ 點此填寫</div>`;}
   else{slots.forEach((sl,idx)=>{
     if(!sl.subj)return;const sm=SUBJECTS[sl.subj];if(!sm)return;
@@ -607,7 +637,14 @@ function openDay(key,date){
   const wd='日一二三四五六'[date.getDay()];
   document.getElementById('dm-title').textContent=`${date.getMonth()+1}/${date.getDate()} 週${wd}`;
   document.getElementById('dm-sub').textContent=key;
+  const dt=(DATA.dayType&&DATA.dayType[key])||'self';
+  document.getElementById('dt-self').checked=dt==='self';
+  document.getElementById('dt-course').checked=dt==='course';
   renderSlots();document.getElementById('day-overlay').classList.add('show');
+}
+function setDayType(v){
+  if(!DATA.dayType)DATA.dayType={};
+  DATA.dayType[editKey]=v;
 }
 function renderSlots(){
   const w=document.getElementById('dm-slots');w.innerHTML='';
