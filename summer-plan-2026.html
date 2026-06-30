@@ -9,15 +9,15 @@
   :root{
     --bg:#faf7f4;--card:#fffefb;--border:#e8ddd4;
     --accent:#8b6f5e;--accent-light:#f5ede8;--accent2:#b8957e;
-    --math:#7a8fa6;--math-bg:#eef2f6;
-    --eng:#7a9e8a;--eng-bg:#eef5f1;
-    --bio:#8a9e6a;--bio-bg:#f1f5ea;
-    --chem:#b8906a;--chem-bg:#f8f0e8;
-    --earth:#6a9e8a;--earth-bg:#eaf5f1;
-    --geo:#a07850;--geo-bg:#f5ede2;
-    --hist:#9a7aaa;--hist-bg:#f2edf8;
-    --civic:#7a8faa;--civic-bg:#edf0f8;
-    --chinese:#c08070;--chinese-bg:#fbeeea;
+    --math:#5b7fb5;--math-bg:#eaf0f8;
+    --eng:#4fa088;--eng-bg:#e8f5f1;
+    --bio:#8a9e3a;--bio-bg:#f1f6e2;
+    --chem:#c97a3a;--chem-bg:#fbede0;
+    --earth:#2fa090;--earth-bg:#e3f6f2;
+    --geo:#a0772a;--geo-bg:#f7eddb;
+    --hist:#8a5fb0;--hist-bg:#f1e9f8;
+    --civic:#d4609a;--civic-bg:#fbe9f1;
+    --chinese:#c0504f;--chinese-bg:#fbeaea;
     --essay:#9a7a9a;--essay-bg:#f5edf5;
     --text:#4a3b32;--muted:#b09888;
     --official:#c07850;--practice:#7a90b8;
@@ -178,6 +178,20 @@
       <button class="btn btn-s" onclick="saveCd()">儲存</button>
     </div>
   </div>
+</div>
+
+<!-- Copy/Move choice modal -->
+<div class="overlay" id="cm-overlay">
+  <div class="modal" style="max-width:300px;text-align:center;">
+    <h3 style="margin-bottom:6px;">拖曳項目</h3>
+    <div class="modal-sub" id="cm-sub" style="margin-bottom:16px;">移到 7/10？</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn btn-s" onclick="resolveDragChoice('move')">📦 移動（搬走）</button>
+      <button class="btn" style="background:var(--sage);color:white;" onclick="resolveDragChoice('copy')">📋 複製（兩邊都有）</button>
+      <button class="btn btn-c" onclick="resolveDragChoice('cancel')">取消</button>
+    </div>
+  </div>
+</div>
 </div>
 
 <div class="tabs">
@@ -471,7 +485,8 @@ function setupCellDnD(cell){
   cell.addEventListener('drop',e=>{
     e.preventDefault();cell.style.boxShadow='';
     if(!dragSrc)return;
-    movePillToDate(dragSrc.date,dragSrc.idx,cell.dataset.key);
+    if(dragSrc.date===cell.dataset.key){dragSrc=null;return;}
+    askDragChoice(dragSrc.date,dragSrc.idx,cell.dataset.key);
     dragSrc=null;
   });
   // Pills inside: mouse dragstart
@@ -522,8 +537,8 @@ function setupCellDnD(cell){
         const touch=e.changedTouches[0];
         const target=document.elementFromPoint(touch.clientX,touch.clientY);
         const targetCell=target?.closest('.cal-cell');
-        if(targetCell&&targetCell.dataset.key){
-          movePillToDate(dragSrc.date,dragSrc.idx,targetCell.dataset.key);
+        if(targetCell&&targetCell.dataset.key&&targetCell.dataset.key!==dragSrc.date){
+          askDragChoice(dragSrc.date,dragSrc.idx,targetCell.dataset.key);
           dragJustHappened=true;setTimeout(()=>dragJustHappened=false,300);
         }
       }
@@ -534,6 +549,32 @@ function setupCellDnD(cell){
   });
 }
 
+let pendingDrag=null; // {fromKey, fromIdx, toKey}
+function askDragChoice(fromKey,fromIdx,toKey){
+  const item=(DATA.days[fromKey]||[])[fromIdx];
+  if(!item)return;
+  pendingDrag={fromKey,fromIdx,toKey};
+  const sm=SUBJECTS[item.subj];
+  const fromLbl=fromKey.slice(5).replace('-','/');
+  const toLbl=toKey.slice(5).replace('-','/');
+  document.getElementById('cm-sub').innerHTML=`<b style="color:${sm?.col||'inherit'}">${sm?.lbl||''}${item.book?' '+item.book:''}</b><br>從 ${fromLbl} → ${toLbl}`;
+  document.getElementById('cm-overlay').classList.add('show');
+}
+function resolveDragChoice(action){
+  document.getElementById('cm-overlay').classList.remove('show');
+  if(!pendingDrag||action==='cancel'){pendingDrag=null;return;}
+  const{fromKey,fromIdx,toKey}=pendingDrag;
+  if(action==='move')movePillToDate(fromKey,fromIdx,toKey);
+  else if(action==='copy')copyPillToDate(fromKey,fromIdx,toKey);
+  pendingDrag=null;
+}
+function copyPillToDate(fromKey,fromIdx,toKey){
+  const item=(DATA.days[fromKey]||[])[fromIdx];
+  if(!item)return;
+  if(!DATA.days[toKey])DATA.days[toKey]=[];
+  DATA.days[toKey].push({...item});
+  saveData();buildCalendar();
+}
 function movePillToDate(fromKey,fromIdx,toKey){
   if(fromKey===toKey)return;
   const fromSlots=DATA.days[fromKey]||[];
@@ -763,10 +804,10 @@ function deleteCd(){
 function closeCdModal(){document.getElementById('cd-overlay').classList.remove('show');cdEditId=null;}
 
 // ── Overlay close ──
-['day-overlay','wg-overlay','exam-overlay','cd-overlay'].forEach(id=>{
-  document.getElementById(id).addEventListener('click',function(e){if(e.target===this){closeDay();closeWG();closeExam();closeCdModal();}});
+['day-overlay','wg-overlay','exam-overlay','cd-overlay','cm-overlay'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){if(e.target===this){closeDay();closeWG();closeExam();closeCdModal();resolveDragChoice('cancel');}});
 });
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDay();closeWG();closeExam();closeCdModal();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDay();closeWG();closeExam();closeCdModal();resolveDragChoice('cancel');}});
 </script>
 </body>
 </html>
