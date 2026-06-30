@@ -60,7 +60,8 @@
   .cal-cell.today{box-shadow:0 0 0 2px var(--accent)!important;background:#fdf5f0;}
   .cell-date{font-size:0.58rem;color:var(--muted);line-height:1;margin-bottom:2px;font-family:'Noto Sans TC',sans-serif;}
   .cell-items{display:flex;flex-direction:column;gap:2px;flex:1;}
-  .cell-pill{font-size:0.42rem;font-weight:700;padding:2px 3px;border-radius:4px;line-height:1.3;}
+  .cell-pill{font-size:0.42rem;font-weight:700;padding:2px 3px;border-radius:4px;line-height:1.3;cursor:grab;touch-action:pan-y;}
+  .cell-pill:active{cursor:grabbing;}
   .cell-empty-hint{font-size:0.4rem;color:#d4c4b8;margin-top:2px;}
 
   /* ── Exam table ── */
@@ -197,7 +198,7 @@
     <div class="leg"><div class="ldot" style="background:var(--geo)"></div>地理</div>
     <div class="leg"><div class="ldot" style="background:var(--hist)"></div>歷史</div>
     <div class="leg"><div class="ldot" style="background:var(--civic)"></div>公民</div>
-    <div class="leg">🎯 週目標</div><div class="leg">📝 點格填寫</div>
+    <div class="leg">🎯 週目標</div><div class="leg">📝 點格填寫</div><div class="leg">✋ 長按拖曳搬移</div>
   </div>
   <div class="months-wrap" id="months-wrap"></div>
 </div>
@@ -446,8 +447,10 @@ function buildCalendar(){
         cell.className='cal-cell';
         if(date.getTime()===today.getTime())cell.classList.add('today');
         const key=dk(date);
+        cell.dataset.key=key;
         cell.innerHTML=renderCell(date,key);
-        cell.onclick=()=>openDay(key,date);
+        cell.onclick=(e)=>{ if(dragJustHappened)return; openDay(key,date); };
+        setupCellDnD(cell);
         grid.appendChild(cell);
       });
       blk.appendChild(grid);sec.appendChild(blk);
@@ -456,16 +459,103 @@ function buildCalendar(){
   });
 }
 
+// ── Drag & Drop (mouse + touch) ──
+let dragSrc=null; // {date, idx}
+let dragJustHappened=false;
+let touchDragEl=null,touchGhost=null,touchStartPos=null,touchTimer=null,touchDragging=false;
+
+function setupCellDnD(cell){
+  // Cell as drop target (mouse)
+  cell.addEventListener('dragover',e=>{e.preventDefault();cell.style.boxShadow='0 0 0 2px var(--accent2)';});
+  cell.addEventListener('dragleave',()=>{cell.style.boxShadow='';});
+  cell.addEventListener('drop',e=>{
+    e.preventDefault();cell.style.boxShadow='';
+    if(!dragSrc)return;
+    movePillToDate(dragSrc.date,dragSrc.idx,cell.dataset.key);
+    dragSrc=null;
+  });
+  // Pills inside: mouse dragstart
+  cell.querySelectorAll('.cell-pill').forEach(pill=>{
+    pill.addEventListener('dragstart',e=>{
+      dragSrc={date:pill.dataset.date,idx:parseInt(pill.dataset.idx)};
+      e.dataTransfer.effectAllowed='move';
+      setTimeout(()=>pill.style.opacity='0.3',0);
+    });
+    pill.addEventListener('dragend',()=>{pill.style.opacity='';dragSrc=null;});
+    // Touch (mobile) long-press drag
+    pill.addEventListener('touchstart',e=>{
+      const touch=e.touches[0];
+      touchStartPos={x:touch.clientX,y:touch.clientY};
+      touchDragEl=pill;touchDragging=false;
+      touchTimer=setTimeout(()=>{
+        touchDragging=true;
+        dragSrc={date:pill.dataset.date,idx:parseInt(pill.dataset.idx)};
+        pill.style.opacity='0.3';
+        touchGhost=pill.cloneNode(true);
+        touchGhost.style.cssText='position:fixed;pointer-events:none;z-index:999;opacity:0.85;width:'+pill.offsetWidth+'px;transform:scale(1.1);box-shadow:0 4px 16px rgba(0,0,0,0.25);';
+        touchGhost.style.left=(touch.clientX-pill.offsetWidth/2)+'px';
+        touchGhost.style.top=(touch.clientY-14)+'px';
+        document.body.appendChild(touchGhost);
+        if(navigator.vibrate)navigator.vibrate(12);
+      },350);
+    },{passive:true});
+    pill.addEventListener('touchmove',e=>{
+      if(touchTimer&&!touchDragging){
+        const touch=e.touches[0];
+        const dx=Math.abs(touch.clientX-touchStartPos.x),dy=Math.abs(touch.clientY-touchStartPos.y);
+        if(dx>10||dy>10){clearTimeout(touchTimer);touchTimer=null;}
+        return;
+      }
+      if(!touchDragging)return;
+      e.preventDefault();
+      const touch=e.touches[0];
+      if(touchGhost){touchGhost.style.left=(touch.clientX-touchGhost.offsetWidth/2)+'px';touchGhost.style.top=(touch.clientY-14)+'px';}
+      document.querySelectorAll('.cal-cell').forEach(c=>c.style.boxShadow='');
+      const target=document.elementFromPoint(touch.clientX,touch.clientY);
+      const targetCell=target?.closest('.cal-cell');
+      if(targetCell&&!targetCell.classList.contains('empty'))targetCell.style.boxShadow='0 0 0 2px var(--accent2)';
+    },{passive:false});
+    pill.addEventListener('touchend',e=>{
+      clearTimeout(touchTimer);touchTimer=null;
+      document.querySelectorAll('.cal-cell').forEach(c=>c.style.boxShadow='');
+      if(touchDragging&&dragSrc){
+        const touch=e.changedTouches[0];
+        const target=document.elementFromPoint(touch.clientX,touch.clientY);
+        const targetCell=target?.closest('.cal-cell');
+        if(targetCell&&targetCell.dataset.key){
+          movePillToDate(dragSrc.date,dragSrc.idx,targetCell.dataset.key);
+          dragJustHappened=true;setTimeout(()=>dragJustHappened=false,300);
+        }
+      }
+      if(touchGhost){touchGhost.remove();touchGhost=null;}
+      if(touchDragEl)touchDragEl.style.opacity='';
+      touchDragging=false;dragSrc=null;touchDragEl=null;
+    });
+  });
+}
+
+function movePillToDate(fromKey,fromIdx,toKey){
+  if(fromKey===toKey)return;
+  const fromSlots=DATA.days[fromKey]||[];
+  const item=fromSlots[fromIdx];
+  if(!item)return;
+  fromSlots.splice(fromIdx,1);
+  DATA.days[fromKey]=fromSlots;
+  if(!DATA.days[toKey])DATA.days[toKey]=[];
+  DATA.days[toKey].push(item);
+  saveData();buildCalendar();
+}
+
 function renderCell(date,key){
   const slots=DATA.days[key]||[];
   let html=`<div class="cell-date">${date.getDate()}</div><div class="cell-items">`;
   if(!slots.length){html+=`<div class="cell-empty-hint">＋ 點此填寫</div>`;}
-  else{slots.forEach(sl=>{
+  else{slots.forEach((sl,idx)=>{
     if(!sl.subj)return;const sm=SUBJECTS[sl.subj];if(!sm)return;
     const k=(sl.kind||'').replace('講課-','講·');
     const b=(sl.book||'');
     const n=sl.note?` (${sl.note})`:'';
-    html+=`<div class="cell-pill" style="background:${sm.bg};color:${sm.col}">${sm.lbl}・${k||'—'} ${b}${n}</div>`;
+    html+=`<div class="cell-pill" draggable="true" data-date="${key}" data-idx="${idx}" style="background:${sm.bg};color:${sm.col}">${sm.lbl}・${k||'—'} ${b}${n}</div>`;
   });}
   html+=`</div>`;return html;
 }
