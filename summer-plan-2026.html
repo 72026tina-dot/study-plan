@@ -57,7 +57,6 @@
   .cal-cell{border-radius:10px;border:1px solid var(--border);background:var(--card);display:flex;flex-direction:column;padding:4px 3px 3px;cursor:pointer;transition:transform 0.12s,box-shadow 0.15s;min-height:78px;}
   .cal-cell:hover{transform:scale(1.04);box-shadow:0 4px 14px rgba(139,111,94,0.14);}
   .cal-cell.empty{border-color:transparent;background:transparent;cursor:default;pointer-events:none;}
-  .cal-cell.abroad{background:#f7f3ee;border-color:#d8ccc4;}
   .cal-cell.today{box-shadow:0 0 0 2px var(--accent)!important;background:#fdf5f0;}
   .cell-date{font-size:0.58rem;color:var(--muted);line-height:1;margin-bottom:2px;font-family:'Noto Sans TC',sans-serif;}
   .cell-items{display:flex;flex-direction:column;gap:2px;flex:1;}
@@ -376,33 +375,8 @@ function saveData(){
   try{localStorage.setItem('summer_v4',JSON.stringify(DATA));}catch(e){}
 }
 
-const DEF_DAYS={
-  '2026-07-01':[{subj:'math',book:'第1冊',kind:'複習'},{subj:'eng',book:'第1冊',kind:'複習'}],
-  '2026-07-02':[{subj:'math',book:'第1冊',kind:'講課-複習'},{subj:'bio',book:'第1冊',kind:'講課-複習'}],
-  '2026-07-03':[{subj:'chinese',book:'第1冊',kind:'閱讀測驗'},{subj:'geo',book:'第1冊',kind:'整理筆記'}],
-  '2026-07-04':[{subj:'math',book:'第1冊',kind:'題目練習'}],
-  '2026-07-05':[{subj:'eng',book:'第1冊',kind:'講課-複習'},{subj:'hist',book:'第1冊',kind:'講課-複習'}],
-  '2026-07-06':[{subj:'math',book:'第1冊',kind:'錯題訂正'},{subj:'chem',book:'第1冊',kind:'整理筆記'}],
-  '2026-07-07':[{subj:'math',book:'第2冊',kind:'講課-預習'},{subj:'civic',book:'第1冊',kind:'講課-複習'}],
-  '2026-07-08':[{subj:'eng',book:'第1冊',kind:'閱讀測驗'},{subj:'bio',book:'第1冊',kind:'題目練習'}],
-  '2026-07-09':[{subj:'eng',book:'第2冊',kind:'講課-預習'},{subj:'earth',book:'第1冊',kind:'講課-複習'}],
-  '2026-07-10':[{subj:'chinese',book:'第1冊',kind:'題目練習'},{subj:'hist',book:'第1冊',kind:'題目練習'}],
-  '2026-07-11':[{subj:'geo',book:'第1冊',kind:'複習'},{subj:'civic',book:'第1冊',kind:'複習'}],
-  '2026-07-12':[{subj:'math',book:'第2冊',kind:'講課-複習'},{subj:'geo',book:'第2冊',kind:'講課-預習'}],
-  '2026-07-13':[{subj:'bio',book:'第2冊',kind:'複習'},{subj:'eng',book:'第2冊',kind:'整理筆記'}],
-  '2026-07-14':[{subj:'chinese',book:'第2冊',kind:'講課-預習'},{subj:'chem',book:'第1冊',kind:'講課-複習'}],
-  '2026-07-15':[{subj:'math',book:'第2冊',kind:'錯題訂正'},{subj:'earth',book:'第1冊',kind:'題目練習'}],
-  '2026-07-16':[{subj:'math',book:'第3冊',kind:'講課-預習'},{subj:'hist',book:'第2冊',kind:'講課-複習'}],
-  '2026-07-17':[{subj:'eng',book:'第2冊',kind:'題目練習'},{subj:'civic',book:'第2冊',kind:'複習'}],
-  '2026-07-18':[{subj:'chinese',book:'第2冊',kind:'題目練習'},{subj:'geo',book:'第2冊',kind:'整理筆記'}],
-  '2026-07-19':[{subj:'eng',book:'第3冊',kind:'講課-預習'},{subj:'bio',book:'第3冊',kind:'講課-預習'}],
-  '2026-07-20':[{subj:'math',book:'第3冊',kind:'複習'},{subj:'hist',book:'第3冊',kind:'整理筆記'}],
-  '2026-07-21':[{subj:'math',book:'第3冊',kind:'講課-複習'},{subj:'chem',book:'第3冊',kind:'講課-預習'}],
-};
-const DEF_WEEKS={
-  '2026-W27':'第1冊 全科複習','2026-W28':'第2冊 全科複習',
-  '2026-W29':'第3冊 全科複習','2026-W30':'第4冊 複習開始',
-};
+const DEF_DAYS={};
+const DEF_WEEKS={};
 
 let DATA={days:{},weeks:{},official:[],practice:[]};
 
@@ -470,7 +444,6 @@ function buildCalendar(){
         const cell=document.createElement('div');
         if(!date){cell.className='cal-cell empty';grid.appendChild(cell);return;}
         cell.className='cal-cell';
-        if(isAbroad(date))cell.classList.add('abroad');
         if(date.getTime()===today.getTime())cell.classList.add('today');
         const key=dk(date);
         cell.innerHTML=renderCell(date,key);
