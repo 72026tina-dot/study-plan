@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>辰祐 - 數學學習成效表</title>
+<title>辰祐 - 數理學習成效表</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Playfair+Display:wght@700&family=DM+Mono:wght@400;500&display=swap');
 
@@ -330,8 +330,8 @@
 <body>
 
 <div class="header">
-  <h1>📐 辰祐 - 數學學習成效表</h1>
-  <p>第三次段考 · 暖身期1題/天 · 衝刺期2題/天</p>
+  <h1>📐 辰祐 - 數理學習成效表</h1>
+  <p>每週三、五各小考一次（數學／理化）</p>
   <div class="header-deco"></div>
 </div>
 
@@ -345,7 +345,7 @@
 </div>
 
 <div class="tabs">
-  <button class="tab active" onclick="sw('daily')">📖 每日記錄</button>
+  <button class="tab active" onclick="sw('daily')">📖 每週小考</button>
   <button class="tab" onclick="sw('exam')">📝 段考成績</button>
   <button class="tab" onclick="sw('history')">📊 歷史成績</button>
   <button class="tab" onclick="sw('rules')">📋 規則</button>
@@ -354,14 +354,13 @@
 <!-- Daily -->
 <div class="section active" id="s-daily">
   <div class="week-streak-row">
-    <span class="streak-label">連續完整週 <strong id="streak-count">0</strong> 週</span>
-    <span class="streak-pts" id="streak-pts-disp">週點數：0 點</span>
+    <span class="streak-label">小考完成 <strong id="quiz-done-count">0</strong> / <span id="quiz-total-count">0</span> 次</span>
+    <span class="streak-pts" id="quiz-pts-disp">小考點數：0 點</span>
   </div>
   <div class="legend">
-    <div class="leg">🟠 待老師確認</div>
-    <div class="leg">🟢 老師已確認</div>
-    <div class="leg">⭐ 暖身週完成+1點</div>
-    <div class="leg">⭐⭐ 衝刺週完成+2點</div>
+    <div class="leg">✓ 全對 +1點</div>
+    <div class="leg">～ 錯1題 +0.5點</div>
+    <div class="leg">✗ 未達標 0點</div>
     <div class="leg">📌 任務加點</div>
   </div>
   <div id="calendar"></div>
@@ -426,13 +425,12 @@
 <!-- Rules -->
 <div class="section" id="s-rules">
   <div class="rule-block">
-    <span class="rule-title">📖 每日練習 &amp; 每週達標</span>
-    <strong>暖身期</strong>（5/18–6/10）：每天寫 1 題<br>
-    <strong>衝刺期</strong>（6/11–段考前）：每天寫 2 題<br>
-    寫完後需<strong>拍照（含訂正）傳給老師</strong>，老師確認後格子變綠色。<br><br>
-    <strong>整週（週一到週日）每天都完成且老師已確認</strong>：<br>
-    　暖身週 → +<strong>1 點</strong>／衝刺週 → +<strong>2 點</strong><br><br>
-    📌 <strong>作業抵免</strong>：當天有寫學校數學作業或老師出的週末課前作業，選「作業抵免」並拍照傳給老師，同樣算完成，不需額外寫題目。
+    <span class="rule-title">📖 每週小考規則</span>
+    上課日：<strong>每週三、五</strong>，每次小考<strong>數學或理化各 5 題</strong>。<br><br>
+    <strong>5 題全對</strong> → +<strong>1 點</strong><br>
+    <strong>錯 1 題（對 4 題）</strong> → +<strong>0.5 點</strong><br>
+    <strong>錯 2 題以上</strong> → 0 點<br><br>
+    輸入後直接儲存即可；若要<strong>修改</strong>已存的紀錄，需輸入密碼確認。
   </div>
 
   <div class="rule-block gold">
@@ -449,8 +447,9 @@
 
   <div class="rule-block blue">
     <span class="rule-title">📝 段考達標獎勵</span>
-    數學段考達到目標分數得基本點數，超標另有加分：<br>
-    <strong>數學</strong> 60 分 → 達標 <strong>10 點</strong>，超標每 1 分 +1 點
+    段考達到目標分數得基本點數，超標另有加分：<br>
+    <strong>數學</strong> 60 分 → 達標 <strong>10 點</strong>，超標每 1 分 +1 點<br>
+    <strong>自然</strong> 70 分 → 達標 <strong>10 點</strong>，超標每 1 分 +1 點
   </div>
 
   <div class="rule-block red">
@@ -462,7 +461,7 @@
 
 <div class="cd-row">
   <div class="cd exam">
-    <div class="cd-l">⚠ 段考倒數</div>
+    <div class="cd-l">🏫 開學倒數</div>
     <div class="cd-n" id="cd-n">— <span>天</span></div>
   </div>
   <div class="cd guan">
@@ -475,34 +474,38 @@
 <div class="overlay" id="od">
   <div class="modal">
     <h3 id="dm-t"></h3>
-    <div class="msub" id="dm-s"></div>
+    <div class="msub" id="dm-s">每週小考・數學或理化各5題</div>
 
     <div id="dm-status-note" style="display:none"></div>
 
-    <div class="mslabel" id="modal-phase-label">今天寫了什麼？</div>
+    <div class="mslabel">科目</div>
     <div class="custom-select-wrap">
-      <button type="button" class="custom-select-btn" id="dm-material-btn">
-        <span id="dm-material-label">── 請選擇 ──</span>
+      <button type="button" class="custom-select-btn" id="dm-subject-btn">
+        <span id="dm-subject-label">── 請選擇 ──</span>
       </button>
-      <div class="custom-select-opts" id="dm-material-opts">
+      <div class="custom-select-opts" id="dm-subject-opts">
         <div class="custom-select-opt" data-value="">── 請選擇 ──</div>
-        <div class="custom-select-opt" data-value="課本">課本</div>
-        <div class="custom-select-opt" data-value="習作">習作</div>
-        <div class="custom-select-opt" data-value="講義">講義</div>
-        <div class="custom-select-opt" data-value="考卷">考卷</div>
-        <div class="custom-select-opt" data-value="作業抵免">作業抵免（學校作業／課前作業）</div>
+        <div class="custom-select-opt" data-value="math">數學</div>
+        <div class="custom-select-opt" data-value="sci">理化</div>
       </div>
     </div>
-    <input type="hidden" id="dm-material" value="">
-    <div class="mrow" style="margin-bottom:10px;">
-      <input type="text" id="math-range" placeholder="範圍（例：4-1）" style="font-size:0.75rem;" />
+
+    <div class="mslabel">對題數（共 5 題）</div>
+    <div class="custom-select-wrap">
+      <button type="button" class="custom-select-btn" id="dm-correct-btn">
+        <span id="dm-correct-label">── 請選擇 ──</span>
+      </button>
+      <div class="custom-select-opts" id="dm-correct-opts">
+        <div class="custom-select-opt" data-value="5">5 題（全對）</div>
+        <div class="custom-select-opt" data-value="4">4 題（錯 1 題）</div>
+        <div class="custom-select-opt" data-value="3">3 題</div>
+        <div class="custom-select-opt" data-value="2">2 題</div>
+        <div class="custom-select-opt" data-value="1">1 題</div>
+        <div class="custom-select-opt" data-value="0">0 題</div>
+      </div>
     </div>
 
-    <div class="mslabel">📸 拍照確認</div>
-    <div class="photo-row" id="photo-row">
-      <span>已拍照（含訂正）傳給老師</span>
-      <span id="photo-icon">○</span>
-    </div>
+    <div class="mprev" id="dm-preview">選好科目與對題數後顯示點數</div>
 
     <div class="mslabel">📌 自由任務</div>
     <div class="mrow">
@@ -552,14 +555,12 @@
 const FB = 'https://math-plan-default-rtdb.asia-southeast1.firebasedatabase.app/s1_mathplan.json';
 const today = new Date(); today.setHours(0,0,0,0);
 
-const testExam = new Date(today.getFullYear(), 5, 25);
-if (testExam < today) testExam.setFullYear(today.getFullYear() + 1);
-const examDay = testExam;
+const schoolStart = new Date(2026, 7, 31); // 開學：8/31
+const examDay = schoolStart;
 const guanKaoDay = new Date(2028, 4, 20); // 2028/5/20 predicted
 
-const planStart = new Date(2026, 4, 18);
-const planEnd = new Date(2026, 5, 27);
-const sprintStart = new Date(2026, 5, 11); // 2 weeks before 6/25 = 6/11
+const planStart = new Date(2026, 6, 1);
+const planEnd = new Date(2026, 8, 1);
 
 const SUBJECTS = [
   {key:'ch',   lbl:'國文', target:60, base:10, step:5, bonus:5},
@@ -576,6 +577,11 @@ const SEMESTERS = [
 const EXAM_TIMES = [{key:'1',lbl:'第一次'},{key:'2',lbl:'第二次'},{key:'3',lbl:'第三次'}];
 // Legacy single-subject ePts (for updSum compatibility)
 const EXAM_CFG = SUBJECTS.find(s=>s.key==='math');
+// Subjects tracked on the 段考成績 (current exam) page
+const EXAM_SUBJECTS = [
+  SUBJECTS.find(s => s.key === 'math'),
+  { key: 'natl_exam', lbl: '自然', target: 70, base: 10, step: 1, bonus: 1 },
+];
 
 function ePts(score, cfg) {
   cfg = cfg || EXAM_CFG;
@@ -587,6 +593,13 @@ function ePts(score, cfg) {
 function dk(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function fmt(d) { return `${d.getMonth()+1}/${d.getDate()} （${'日一二三四五六'[d.getDay()]}）`; }
 function dowMon(d) { return (d.getDay() + 6) % 7; }
+function isQuizDay(d) { const w = dowMon(d); return w === 2 || w === 4; } // Wed & Fri
+function quizPtsFor(correct) {
+  const c = parseInt(correct);
+  if (c === 5) return 1;
+  if (c === 4) return 0.5;
+  return 0;
+}
 const WN = ['一','二','三','四','五','六','日'];
 const MN = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 
@@ -611,28 +624,14 @@ async function save() {
   try { await fetch(FB, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) }); } catch(e) {}
 }
 
-// Calculate weekly streak points
-function isSprint(d) { return d >= sprintStart; }
-
-function calcWeekPts() {
+// Calculate quiz points from confirmed twice-weekly quizzes
+function calcQuizPts() {
   let pts = 0;
-  const cur = new Date(planStart);
-  cur.setDate(cur.getDate() - dowMon(cur));
-  while (cur < planEnd) {
-    let weekComplete = true;
-    let weekHasAnyPlanDay = false;
-    let weekIsSprint = false;
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(cur); d.setDate(d.getDate() + i);
-      if (d >= planStart && d < planEnd) {
-        weekHasAnyPlanDay = true;
-        if (isSprint(d)) weekIsSprint = true;
-        if (!data.daily[dk(d)]?.material) { weekComplete = false; break; }
-      }
+  Object.values(data.daily).forEach(e => {
+    if (e && e.status === 'confirmed' && e.correct !== undefined && e.correct !== null && e.correct !== '') {
+      pts += quizPtsFor(e.correct);
     }
-    if (weekHasAnyPlanDay && weekComplete) pts += weekIsSprint ? 2 : 1;
-    cur.setDate(cur.getDate() + 7);
-  }
+  });
   return pts;
 }
 
@@ -642,14 +641,18 @@ function calcFreePts() {
   return pts;
 }
 
-function isWeekComplete(weekMonday) {
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(weekMonday); d.setDate(d.getDate() + i);
-    if (d >= planStart && d < planEnd) {
-      if (!data.daily[dk(d)]?.material) return false;
+function quizCounts() {
+  let total = 0, done = 0;
+  const cur = new Date(planStart);
+  while (cur < planEnd) {
+    if (isQuizDay(cur)) {
+      total++;
+      const e = data.daily[dk(cur)];
+      if (e && e.status === 'confirmed') done++;
     }
+    cur.setDate(cur.getDate() + 1);
   }
-  return true;
+  return { done, total };
 }
 
 function sw(t) {
@@ -684,36 +687,36 @@ function buildCal() {
       WN.forEach(w => { const s = document.createElement('span'); s.textContent = w; wd.appendChild(s); });
       currentSec.appendChild(wd);
       currentGrid = document.createElement('div'); currentGrid.className = 'cal-grid';
+      // pad the start of this month's grid so the first day lands in its correct weekday column
+      const offset = dowMon(d);
+      for (let i = 0; i < offset; i++) {
+        const filler = document.createElement('div');
+        filler.className = 'cal-cell empty';
+        currentGrid.appendChild(filler);
+      }
     }
 
-    const inRange = d >= planStart && d < planEnd;
+    const inRange = d >= planStart && d < planEnd && isQuizDay(d);
     const isToday = d.getTime() === today.getTime();
     const key = dk(d);
     const entry = data.daily[key];
-    const done = !!entry?.done;
-
-    // check if this day is in a complete week
-    const weekMon = new Date(d); weekMon.setDate(weekMon.getDate() - dowMon(weekMon));
-    const weekWin = inRange && isWeekComplete(weekMon);
+    const confirmed = entry?.status === 'confirmed';
 
     const cell = document.createElement('div');
     cell.className = 'cal-cell';
     if (!inRange) cell.classList.add('outrange');
     if (isToday) cell.classList.add('today');
-    const status = entry?.status;
-    const sprint = inRange && isSprint(d);
-    if (status === 'confirmed') cell.classList.add('confirmed');
-    else if (status === 'pending') cell.classList.add('pending');
-    else if (entry?.material && !weekWin) cell.classList.add(sprint ? 'done-sprint' : 'done');
-    if (weekWin) cell.classList.add(sprint ? 'week-win-sprint' : 'week-win');
+    if (confirmed) cell.classList.add('confirmed');
 
     let html = `<div class="cell-date">${d.getDate()}</div>`;
     if (inRange) {
-      if (status === 'confirmed') html += `<div class="cell-status">🟢</div>`;
-      else if (status === 'pending') html += `<div class="cell-status">🟠</div>`;
-      else if (entry?.material) html += `<div class="cell-check">✓</div>`;
-      if (weekWin) html += `<div class="cell-star">⭐</div>`;
-      else if (!status) html += `<div class="cell-dot ${entry?.material ? 'done' : ''}"></div>`;
+      if (confirmed) {
+        const pts = quizPtsFor(entry.correct);
+        const icon = pts >= 1 ? '✓' : (pts > 0 ? '～' : '✗');
+        html += `<div class="cell-check">${icon}</div>`;
+      } else {
+        html += `<div class="cell-dot"></div>`;
+      }
     }
     cell.innerHTML = html;
     if (inRange) cell.addEventListener('click', () => openDM(key));
@@ -744,25 +747,26 @@ function initSemSel() {
 
 function buildExam() {
   const c = document.getElementById('exam-cards'); c.innerHTML = '';
-  const MATH = SUBJECTS.find(s => s.key === 'math');
-  const score = data.exam[MATH.key];
-  const pts = ePts(score, MATH);
-  const has = score !== null && score !== undefined && score !== '';
-  const pct = has ? Math.min(100, parseInt(score)) : 0;
-  const card = document.createElement('div'); card.className = 'exam-card';
-  card.innerHTML = `
-    <div class="ec-top">
-      <span class="ec-name">${MATH.lbl} 段考</span>
-      ${pts > 0 ? `<span class="ec-pts">+${pts} 點</span>` : ''}
-    </div>
-    <div class="ec-info">
-      <span>目標 ${MATH.target} 分・達標 ${MATH.base} 點・超標每1分+1點</span>
-      ${has ? `<span class="ec-score">${score} 分</span>` : '<span style="color:var(--border)">未輸入</span>'}
-    </div>
-    <div class="ec-prog"><div class="ec-pf" style="width:${pct}%"></div></div>
-  `;
-  card.addEventListener('click', () => openEM());
-  c.appendChild(card);
+  EXAM_SUBJECTS.forEach(cfg => {
+    const score = data.exam[cfg.key];
+    const pts = ePts(score, cfg);
+    const has = score !== null && score !== undefined && score !== '';
+    const pct = has ? Math.min(100, parseInt(score)) : 0;
+    const card = document.createElement('div'); card.className = 'exam-card';
+    card.innerHTML = `
+      <div class="ec-top">
+        <span class="ec-name">${cfg.lbl} 段考</span>
+        ${pts > 0 ? `<span class="ec-pts">+${pts} 點</span>` : ''}
+      </div>
+      <div class="ec-info">
+        <span>目標 ${cfg.target} 分・達標 ${cfg.base} 點・超標每1分+1點</span>
+        ${has ? `<span class="ec-score">${score} 分</span>` : '<span style="color:var(--border)">未輸入</span>'}
+      </div>
+      <div class="ec-prog"><div class="ec-pf" style="width:${pct}%"></div></div>
+    `;
+    card.addEventListener('click', () => openEM(cfg));
+    c.appendChild(card);
+  });
 }
 
 function buildHistory() {
@@ -889,18 +893,19 @@ function updHistoryEMPrev(sub) {
 }
 
 function updSum() {
-  const weekPts = calcWeekPts();
+  const quizTotal = calcQuizPts();
   const freePts = calcFreePts();
-  // Math exam points — uses the original single key 'math' (current exam only)
-  const mathSub = SUBJECTS.find(s => s.key === 'math');
-  const examPts = ePts(data.exam[mathSub.key], mathSub);
-  const tot = weekPts + freePts + examPts;
+  let examPts = 0;
+  EXAM_SUBJECTS.forEach(cfg => { examPts += ePts(data.exam[cfg.key], cfg); });
+  const tot = quizTotal + freePts + examPts;
 
   document.getElementById('tot-pts').textContent = tot;
   document.getElementById('tot-money').textContent = (tot * 10).toLocaleString() + ' 元';
   document.getElementById('prog-f').style.width = Math.min(100, tot / 80 * 100) + '%';
-  document.getElementById('streak-count').textContent = weekPts;
-  document.getElementById('streak-pts-disp').textContent = `週點數：${weekPts} 點`;
+  const qc = quizCounts();
+  document.getElementById('quiz-done-count').textContent = qc.done;
+  document.getElementById('quiz-total-count').textContent = qc.total;
+  document.getElementById('quiz-pts-disp').textContent = `小考點數：${quizTotal} 點`;
 
   const diff = Math.ceil((examDay - today) / 86400000);
   document.getElementById('cd-n').innerHTML = `${diff} <span>天</span>`;
@@ -908,90 +913,79 @@ function updSum() {
   document.getElementById('cd-guan').innerHTML = `${guanDiff} <span>天</span>`;
 }
 
-// Daily modal
-// status: null = empty, 'pending' = student done+photo, 'confirmed' = teacher confirmed
+// Daily modal (weekly quiz entry)
+// status: null = empty, 'confirmed' = teacher locked it in with password
 let dk_cur = null;
-let tMaterial = '', tRange = '', tPhoto = false, tFd = '', tFp = 0;
+let tSubject = '', tCorrect = '', tFd = '', tFp = 0;
 
 function openDM(key) {
   dk_cur = key;
   const e = data.daily[key] || {};
   const [ky,km,kd]=key.split('-').map(Number); const dObj = new Date(ky,km-1,kd);
-  const isSp = isSprint(dObj);
 
   document.getElementById('dm-t').textContent = fmt(dObj);
-  document.getElementById('dm-s').textContent = isSp ? '衝刺期・每天 2 題' : '暖身期・每天 1 題';
-  document.getElementById('modal-phase-label').textContent = isSp ? '今天寫了什麼？（衝刺期 2 題）' : '今天寫了什麼？（暖身期 1 題）';
+  document.getElementById('dm-s').textContent = '每週小考・數學或理化各5題，全對+1點、錯1題+0.5點';
 
-  tMaterial = e.material || '';
-  tRange = e.range || '';
-  tPhoto = !!e.photo;
+  tSubject = e.subject || '';
+  tCorrect = (e.correct !== undefined && e.correct !== null) ? String(e.correct) : '';
   tFd = e.free?.desc || '';
   tFp = parseInt(e.free?.pt || 0);
 
-  setCustomSelect(tMaterial);
-  document.getElementById('math-range').value = tRange;
+  setCustomSelect('dm-subject-opts', 'dm-subject-label', tSubject);
+  setCustomSelect('dm-correct-opts', 'dm-correct-label', tCorrect);
   document.getElementById('dm-fd').value = tFd;
   document.getElementById('dm-fp').value = tFp;
-  updPhotoRow();
+  updDMPreview();
   updStatusNote(e.status);
 
   // lock inputs if confirmed (teacher edit button will unlock)
   const locked = e.status === 'confirmed';
-  document.getElementById('dm-material-btn').disabled = locked;
-  document.getElementById('dm-material-btn').style.opacity = locked ? '0.6' : '1';
-  document.getElementById('math-range').disabled = locked;
-  document.getElementById('photo-row').style.pointerEvents = locked ? 'none' : '';
+  document.getElementById('dm-subject-btn').disabled = locked;
+  document.getElementById('dm-subject-btn').style.opacity = locked ? '0.6' : '1';
+  document.getElementById('dm-correct-btn').disabled = locked;
+  document.getElementById('dm-correct-btn').style.opacity = locked ? '0.6' : '1';
   document.getElementById('dm-fd').disabled = locked;
   document.getElementById('dm-fp').disabled = locked;
 
-  // custom select handles tMaterial updates via initCustomSelect
-  document.getElementById('math-range').oninput = ev => { tRange = ev.target.value; };
-  document.getElementById('photo-row').onclick = () => { tPhoto = !tPhoto; updPhotoRow(); };
   document.getElementById('dm-fd').oninput = ev => { tFd = ev.target.value; };
   document.getElementById('dm-fp').onchange = ev => { tFp = parseInt(ev.target.value); };
 
-  const hasD = !!data.daily[key];
   const isConfirmed = e.status === 'confirmed';
   const btns = document.getElementById('dm-btns');
 
   if (isConfirmed) {
     btns.innerHTML = `<button class="btn btn-c" id="dm-c">關閉</button><button class="btn" id="dm-edit" style="background:#2a5caa;color:white;border:none;border-radius:9px;padding:10px;font-weight:700;font-size:0.82rem;cursor:pointer;flex:1;">老師修改 ✏️</button>`;
-  } else if (hasD) {
-    btns.innerHTML = `<button class="btn btn-x" id="dm-x">清除</button><button class="btn btn-c" id="dm-c">取消</button><button class="btn btn-s" id="dm-sv">儲存</button>`;
-    document.getElementById('dm-x').onclick = async () => {
-      delete data.daily[dk_cur]; await save(); buildCal(); updSum(); closeDM();
-    };
   } else {
     btns.innerHTML = `<button class="btn btn-c" id="dm-c">取消</button><button class="btn btn-s" id="dm-sv">儲存</button>`;
   }
 
-  // Teacher confirm button — always show if pending
-  if (e.status === 'pending') {
-    const teacherBtn = document.createElement('button');
-    teacherBtn.className = 'btn'; teacherBtn.style.cssText = 'background:#3a7d44;color:white;margin-top:6px;flex:none;width:100%;border-radius:9px;padding:10px;font-weight:700;font-size:0.82rem;border:none;cursor:pointer;';
-    teacherBtn.textContent = '老師確認 ✓';
-    teacherBtn.onclick = () => openTeacherModal('confirm', key);
-    btns.parentNode.insertBefore(teacherBtn, btns.nextSibling);
-  }
-
-  // Teacher edit button — show after confirmed
+  document.getElementById('dm-c').onclick = closeDM;
   if (isConfirmed) {
     document.getElementById('dm-edit').onclick = () => openTeacherModal('edit', key);
-  }
-
-  document.getElementById('dm-c').onclick = closeDM;
-  if (!isConfirmed) {
+  } else {
     const sv = document.getElementById('dm-sv');
     if (sv) sv.onclick = saveDM;
   }
   document.getElementById('od').classList.add('show');
 }
 
-function updPhotoRow() {
-  const row = document.getElementById('photo-row');
-  row.classList.toggle('checked', tPhoto);
-  document.getElementById('photo-icon').textContent = tPhoto ? '✓' : '○';
+async function saveDM() {
+  if (!tSubject || tCorrect === '') { alert('請選擇科目與對題數'); return; }
+  data.daily[dk_cur] = {
+    subject: tSubject, correct: parseInt(tCorrect),
+    free: { desc: tFd, pt: tFp }, status: 'confirmed'
+  };
+  await save(); buildCal(); updSum(); closeDM();
+}
+
+function updDMPreview() {
+  const prev = document.getElementById('dm-preview');
+  if (!tSubject || tCorrect === '') { prev.textContent = '選好科目與對題數後顯示點數'; return; }
+  const pts = quizPtsFor(tCorrect);
+  const subLbl = tSubject === 'math' ? '數學' : '理化';
+  prev.textContent = pts > 0
+    ? `${subLbl} ${tCorrect}/5 → 可得 ${pts} 點 ⭐`
+    : `${subLbl} ${tCorrect}/5 → 未達標，0 點`;
 }
 
 function updStatusNote(status) {
@@ -999,27 +993,10 @@ function updStatusNote(status) {
   if (status === 'confirmed') {
     note.style.display = 'block';
     note.className = 'status-note confirmed';
-    note.textContent = '✅ 老師已確認';
-  } else if (status === 'pending') {
-    note.style.display = 'block';
-    note.className = 'status-note pending';
-    note.textContent = '🟠 等待老師確認中';
+    note.textContent = '✅ 已儲存（如需修改請按「老師修改」）';
   } else {
     note.style.display = 'none';
   }
-}
-
-async function saveDM() {
-  const entry = data.daily[dk_cur] || {};
-  const newStatus = (tMaterial && tPhoto) ? 'pending' : null;
-  // don't downgrade confirmed
-  const finalStatus = entry.status === 'confirmed' ? 'confirmed' : newStatus;
-  data.daily[dk_cur] = {
-    material: tMaterial, range: tRange,
-    photo: tPhoto, free: { desc: tFd, pt: tFp },
-    status: finalStatus
-  };
-  await save(); buildCal(); updSum(); closeDM();
 }
 
 function closeDM() {
@@ -1059,26 +1036,19 @@ document.getElementById('pw-confirm').onclick = async () => {
     };
     document.getElementById('dm-c').onclick = closeDM;
     document.getElementById('dm-sv').onclick = async () => {
+      if (!tSubject || tCorrect === '') { alert('請選擇科目與對題數'); return; }
       data.daily[dk_cur] = {
-        material: tMaterial, range: tRange,
-        photo: tPhoto, free: { desc: tFd, pt: tFp },
-        status: 'confirmed'
+        subject: tSubject, correct: parseInt(tCorrect),
+        free: { desc: tFd, pt: tFp }, status: 'confirmed'
       };
       await save(); buildCal(); updSum(); closeDM();
     };
-    document.getElementById('dm-material-btn').disabled = false;
-    document.getElementById('dm-material-btn').style.opacity = '1';
-    document.getElementById('math-range').disabled = false;
-    document.getElementById('photo-row').style.pointerEvents = '';
+    document.getElementById('dm-subject-btn').disabled = false;
+    document.getElementById('dm-subject-btn').style.opacity = '1';
+    document.getElementById('dm-correct-btn').disabled = false;
+    document.getElementById('dm-correct-btn').style.opacity = '1';
     document.getElementById('dm-fd').disabled = false;
     document.getElementById('dm-fp').disabled = false;
-  } else {
-    // confirm
-    if (data.daily[_teacherKey]) {
-      data.daily[_teacherKey].status = 'confirmed';
-      await save(); buildCal(); updSum();
-    }
-    closeDM();
   }
 };
 document.getElementById('pw-input').addEventListener('keydown', e => {
@@ -1088,13 +1058,14 @@ document.getElementById('o-teacher').addEventListener('click', e => {
   if (e.target.id === 'o-teacher') document.getElementById('o-teacher').classList.remove('show');
 });
 
-// Exam modal (math only — current exam)
-const MATH_CFG = SUBJECTS.find(s => s.key === 'math');
-function openEM() {
-  document.getElementById('em-t').textContent = '數學段考成績';
+// Exam modal (supports multiple subjects: math, natural science)
+let _emCfg = null;
+function openEM(cfg) {
+  _emCfg = cfg;
+  document.getElementById('em-t').textContent = `${cfg.lbl}段考成績`;
   document.getElementById('em-p').style.display = '';
-  document.getElementById('em-s').textContent = `目標 ${MATH_CFG.target} 分・達標 ${MATH_CFG.base} 點・超標每1分+1點`;
-  const cur = data.exam[MATH_CFG.key] ?? '';
+  document.getElementById('em-s').textContent = `目標 ${cfg.target} 分・達標 ${cfg.base} 點・超標每1分+1點`;
+  const cur = data.exam[cfg.key] ?? '';
   document.getElementById('em-sc').value = cur; updEMPrev();
   document.getElementById('em-sc').oninput = updEMPrev;
   const hasD = cur !== '';
@@ -1103,22 +1074,23 @@ function openEM() {
     ? `<button class="btn btn-x" id="em-x">清除</button><button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`
     : `<button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`;
   if (hasD) document.getElementById('em-x').onclick = async () => {
-    delete data.exam[MATH_CFG.key]; await save(); buildExam(); updSum(); closeEM();
+    delete data.exam[cfg.key]; await save(); buildExam(); updSum(); closeEM();
   };
   document.getElementById('em-c').onclick = closeEM;
   document.getElementById('em-sv').onclick = async () => {
     const v = document.getElementById('em-sc').value;
-    if (v !== '') data.exam[MATH_CFG.key] = parseFloat(v);
+    if (v !== '') data.exam[cfg.key] = parseFloat(v);
     await save(); buildExam(); updSum(); closeEM();
   };
   document.getElementById('oe').classList.add('show');
 }
 function updEMPrev() {
+  const cfg = _emCfg;
   const v = document.getElementById('em-sc').value;
-  const pts = ePts(v, MATH_CFG); const s = parseInt(v);
+  const pts = ePts(v, cfg); const s = parseInt(v);
   if (!v) { document.getElementById('em-p').textContent = '輸入分數後顯示點數'; document.getElementById('em-pts').textContent = ''; return; }
-  if (isNaN(s) || s < MATH_CFG.target) {
-    document.getElementById('em-p').textContent = `未達標（差 ${MATH_CFG.target - s} 分）`;
+  if (isNaN(s) || s < cfg.target) {
+    document.getElementById('em-p').textContent = `未達標（差 ${cfg.target - s} 分）`;
     document.getElementById('em-pts').textContent = '';
   } else {
     document.getElementById('em-p').textContent = `達標！可得 ${pts} 點 ⭐`;
@@ -1129,14 +1101,20 @@ function closeEM() { document.getElementById('oe').classList.remove('show'); }
 document.getElementById('oe').addEventListener('click', e => { if (e.target.id === 'oe') closeEM(); });
 
 // Custom select for Android LINE compatibility
-function initCustomSelect() {
-  const btn = document.getElementById('dm-material-btn');
-  const opts = document.getElementById('dm-material-opts');
+function initCustomSelect(btnId, optsId, labelId, onSelect) {
+  const btn = document.getElementById(btnId);
+  const opts = document.getElementById(optsId);
   if (!btn || !opts) return;
 
   btn.onclick = (e) => {
     e.stopPropagation();
     const isOpen = opts.classList.contains('show');
+    document.querySelectorAll('.custom-select-opts.show').forEach(o => {
+      if (o !== opts) { o.classList.remove('show'); }
+    });
+    document.querySelectorAll('.custom-select-btn.open').forEach(b => {
+      if (b !== btn) { b.classList.remove('open'); }
+    });
     opts.classList.toggle('show', !isOpen);
     btn.classList.toggle('open', !isOpen);
   };
@@ -1145,9 +1123,8 @@ function initCustomSelect() {
     opt.addEventListener('click', (e) => {
       e.stopPropagation();
       const val = opt.dataset.value;
-      tMaterial = val;
-      document.getElementById('dm-material').value = val;
-      document.getElementById('dm-material-label').textContent = opt.textContent;
+      onSelect(val, opt.textContent);
+      document.getElementById(labelId).textContent = opt.textContent;
       opts.querySelectorAll('.custom-select-opt').forEach(o => o.classList.remove('selected'));
       opt.classList.add('selected');
       opts.classList.remove('show');
@@ -1161,9 +1138,8 @@ function initCustomSelect() {
   });
 }
 
-function setCustomSelect(val) {
-  document.getElementById('dm-material').value = val || '';
-  const opts = document.getElementById('dm-material-opts');
+function setCustomSelect(optsId, labelId, val) {
+  const opts = document.getElementById(optsId);
   if (!opts) return;
   let label = '── 請選擇 ──';
   opts.querySelectorAll('.custom-select-opt').forEach(opt => {
@@ -1171,11 +1147,12 @@ function setCustomSelect(val) {
     opt.classList.toggle('selected', isMatch);
     if (isMatch) label = opt.textContent;
   });
-  document.getElementById('dm-material-label').textContent = label;
+  document.getElementById(labelId).textContent = label;
 }
 
 
-initCustomSelect();
+initCustomSelect('dm-subject-btn', 'dm-subject-opts', 'dm-subject-label', (val) => { tSubject = val; updDMPreview(); });
+initCustomSelect('dm-correct-btn', 'dm-correct-opts', 'dm-correct-label', (val) => { tCorrect = val; updDMPreview(); });
 load();
 
 document.querySelectorAll('#chart-filter-panel > .cfb').forEach(b => {
