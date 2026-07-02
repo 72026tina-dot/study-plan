@@ -420,6 +420,7 @@ document.body.insertAdjacentHTML('afterbegin',`<div id="fb-loading" style="posit
   let ch=false;
   Object.entries(DEF_DAYS).forEach(([k,v])=>{if(DATA.days[k]===undefined){DATA.days[k]=v;ch=true;}});
   Object.entries(DEF_WEEKS).forEach(([k,v])=>{if(DATA.weeks[k]===undefined){DATA.weeks[k]=v;ch=true;}});
+  if(!DATA.days)DATA.days={};if(!DATA.weeks)DATA.weeks={};
   if(!DATA.official)DATA.official=[];if(!DATA.practice)DATA.practice=[];
   if(ch)saveData();
   document.getElementById('fb-loading').remove();
