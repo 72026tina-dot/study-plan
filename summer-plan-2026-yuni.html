@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>暑假計畫 2026</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;600;700&family=Ma+Shan+Zheng&display=swap');
+  :root{
+    --bg:#f2f7fb;--card:#ffffff;--border:#d6e4ef;
+    --accent:#3d6f9e;--accent-light:#e6f0f8;--accent2:#6c9cc4;
+    /* 五大類同色系，深淺分科目，避開亮粉色 */
+    --chinese:#a85a4a;--chinese-bg:#f7e9e4;      /* 國文：磚紅 */
+    --math:#3f6fa8;--math-bg:#e6eef6;            /* 數學：靛藍 */
+    --geo:#8a6a2a;--geo-bg:#f2ecdc;              /* 社會(淺)：地理 - 卡其棕 */
+    --hist:#705220;--hist-bg:#ece4d4;            /* 社會(中)：歷史 - 深棕 */
+    --civic:#b08838;--civic-bg:#f6efdd;          /* 社會(深淺2)：公民 - 金棕 */
+    --bio:#4a8a4a;--bio-bg:#e6f2e6;              /* 自然(淺)：生物 - 草綠 */
+    --chem:#2a6a3a;--chem-bg:#e0eee2;            /* 自然(中)：理化 - 深綠 */
+    --earth:#6aa05a;--earth-bg:#ecf5e6;          /* 自然(深淺2)：地科 - 黃綠 */
+    --eng:#6a4a8a;--eng-bg:#ece4f2;              /* 英文：紫 */
+    --essay:#9a7a9a;--essay-bg:#f5edf5;
+    --text:#2c3e4d;--muted:#8aa4b8;
+    --official:#c07850;--practice:#7a90b8;
+    --pink:#4a7fb5;--sage:#7bafc9;--lavender:#8aa8c8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh;padding:0 0 60px;}
+
+  /* ── Header ── */
+  .header{text-align:center;padding:22px 14px 14px;position:relative;}
+  .header::before{content:'✿';position:absolute;left:18px;top:18px;font-size:1.2rem;opacity:0.35;}
+  .header::after{content:'✿';position:absolute;right:18px;top:18px;font-size:1.2rem;opacity:0.35;}
+  .header h1{font-size:1.45rem;font-weight:700;margin-bottom:4px;font-family:'Noto Serif TC',serif;color:var(--accent);letter-spacing:0.05em;}
+  .header-sub{font-size:0.68rem;color:var(--muted);letter-spacing:0.08em;background:var(--accent-light);display:inline-block;padding:3px 14px;border-radius:20px;border:1px solid var(--border);}
+
+  /* ── Tabs ── */
+  .tabs{display:flex;border-bottom:1.5px solid var(--border);background:var(--card);position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(61,111,158,0.08);}
+  .tab{flex:1;padding:11px 4px;text-align:center;font-size:0.72rem;font-weight:700;cursor:pointer;color:var(--muted);background:transparent;border:none;border-bottom:2px solid transparent;margin-bottom:-1.5px;font-family:'Noto Serif TC',serif;transition:all 0.18s;letter-spacing:0.03em;}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .section{display:none;padding:14px 12px 20px;}
+  .section.active{display:block;}
+
+  /* ── Calendar ── */
+  .legend{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-bottom:12px;}
+  .leg{display:flex;align-items:center;gap:4px;font-size:0.62rem;color:var(--muted);padding:3px 8px;border-radius:20px;border:1px solid var(--border);background:var(--card);}
+  .filt-btn{cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all 0.15s;}
+  .filt-btn.active{background:var(--accent-light);border-color:var(--accent2);color:var(--accent);font-weight:700;}
+  .cal-cell.dim{opacity:0.25;}
+  .cal-cell.highlight{box-shadow:0 0 0 2px var(--accent2);}
+  .ldot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .months-wrap{display:flex;flex-direction:column;gap:26px;}
+  .cal-mlabel{font-family:'Noto Serif TC',serif;font-size:.95rem;font-weight:700;color:var(--accent);margin-bottom:9px;text-align:center;letter-spacing:0.1em;}
+  .cal-wd{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;}
+  .cal-wd span{text-align:center;font-size:0.58rem;color:var(--muted);padding:2px 0;font-family:'Noto Sans TC',sans-serif;}
+  .week-block{display:flex;flex-direction:column;gap:2px;margin-bottom:5px;}
+  .week-goal-cell{background:var(--accent-light);border:1px solid var(--border);border-left:3px solid var(--accent2);border-radius:8px;padding:5px 10px;display:flex;align-items:center;gap:7px;cursor:pointer;transition:box-shadow 0.15s;margin-bottom:2px;}
+  .week-goal-cell:hover{box-shadow:0 2px 10px rgba(61,111,158,0.15);}
+  .wg-label{font-size:0.55rem;font-weight:700;color:var(--accent2);white-space:nowrap;}
+  .wg-text{font-size:0.68rem;font-weight:700;color:var(--accent);flex:1;font-family:'Noto Serif TC',serif;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+  .cal-cell{border-radius:10px;border:1px solid var(--border);background:var(--card);display:flex;flex-direction:column;padding:4px 3px 3px;cursor:pointer;transition:transform 0.12s,box-shadow 0.15s;min-height:78px;}
+  .cal-cell:hover{transform:scale(1.04);box-shadow:0 4px 14px rgba(61,111,158,0.14);}
+  .cal-cell.empty{border-color:transparent;background:transparent;cursor:default;pointer-events:none;}
+  .cal-cell.today{box-shadow:0 0 0 2px var(--accent)!important;background:#eaf3fa;}
+  .cal-cell.is-course{background:#dde8f0;}
+  .cal-cell.is-course.today{background:#dceaf5;}
+  .cell-course-tag{font-size:0.4rem;font-weight:700;color:#3d6f9e;background:#d2e3f0;border-radius:3px;padding:0px 3px;display:inline-block;margin-bottom:1px;letter-spacing:0.02em;}
+  .cell-date{font-size:0.58rem;color:var(--muted);line-height:1;margin-bottom:2px;font-family:'Noto Sans TC',sans-serif;}
+  .cell-items{display:flex;flex-direction:column;gap:2px;flex:1;}
+  .cell-pill{font-size:0.42rem;font-weight:700;padding:2px 3px;border-radius:4px;line-height:1.3;cursor:grab;touch-action:pan-y;}
+  .cell-pill:active{cursor:grabbing;}
+  .cell-empty-hint{font-size:0.4rem;color:#a8c0d4;margin-top:2px;}
+
+  /* ── Exam table ── */
+  .exam-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+  .exam-top h2{font-family:'Noto Serif TC',serif;font-size:.95rem;font-weight:700;color:var(--accent);letter-spacing:0.05em;}
+  .add-exam-btn{padding:7px 16px;border:none;border-radius:20px;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:'Noto Serif TC',serif;color:white;}
+  .add-exam-btn.official{background:var(--official);}
+  .add-exam-btn.practice{background:var(--practice);}
+  .exam-table-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--border);background:var(--card);margin-bottom:10px;box-shadow:0 2px 10px rgba(61,111,158,0.06);}
+  table.exam-tbl{width:100%;border-collapse:collapse;min-width:600px;}
+  table.exam-tbl thead th{padding:9px 6px;font-size:0.67rem;font-weight:700;text-align:center;white-space:nowrap;border-bottom:1px solid var(--border);background:#eef5fa;position:sticky;top:0;font-family:'Noto Serif TC',serif;color:var(--muted);}
+  table.exam-tbl thead th.th-name{text-align:left;padding-left:12px;min-width:130px;}
+  table.exam-tbl thead th.th-date{min-width:80px;}
+  table.exam-tbl tbody tr{border-bottom:1px solid #dfe9f0;cursor:pointer;transition:background 0.12s;}
+  table.exam-tbl tbody tr:last-child{border-bottom:none;}
+  table.exam-tbl tbody tr:hover{background:#eaf3fa;}
+  table.exam-tbl td{padding:9px 6px;font-size:0.72rem;text-align:center;vertical-align:middle;}
+  table.exam-tbl td.td-name{text-align:left;padding-left:12px;font-weight:700;font-size:0.78rem;font-family:'Noto Serif TC',serif;}
+  table.exam-tbl td.td-date{font-size:0.65rem;color:var(--muted);}
+  .grade-badge{display:inline-block;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:6px;border:1px solid transparent;}
+  .gA2{background:#e6f7e6;color:#3a7a3a;border-color:#a8d8a8;}
+  .gA1{background:#edfae6;color:#447a44;border-color:#b8dca8;}
+  .gA0{background:#f2fae8;color:#547a34;border-color:#c4dca0;}
+  .gB2{background:#faf4dc;color:#7a6010;border-color:#d8c470;}
+  .gB1{background:#fbf7e8;color:#8a6818;border-color:#e0cc80;}
+  .gB0{background:#fcfae8;color:#9a7020;border-color:#e8d888;}
+  .gC{background:#faeaea;color:#a84040;border-color:#d8a0a0;}
+  .gEssay{background:var(--essay-bg);color:var(--essay);}
+  .td-total{font-size:0.82rem;font-weight:900;font-family:'Noto Serif TC',serif;}
+  .td-total.official{color:var(--official);}
+  .td-total.practice{color:var(--practice);}
+  .ec-empty{text-align:center;padding:36px;color:var(--muted);font-size:0.8rem;}
+
+  /* ── Modals ── */
+  .overlay{display:none;position:fixed;inset:0;background:rgba(74,59,50,0.28);z-index:200;align-items:center;justify-content:center;padding:16px;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--card);border-radius:20px;padding:20px 16px 16px;width:100%;max-width:380px;box-shadow:0 10px 40px rgba(61,111,158,0.18);max-height:92vh;overflow-y:auto;border:1px solid var(--border);}
+  .modal h3{font-size:0.92rem;font-weight:700;margin-bottom:2px;font-family:'Noto Serif TC',serif;color:var(--accent);letter-spacing:0.04em;}
+  .modal-sub{font-size:0.62rem;color:var(--muted);margin-bottom:12px;}
+  .daytype-row{display:flex;gap:10px;margin-bottom:12px;background:#eef5fa;border:1px solid var(--border);border-radius:10px;padding:8px 10px;}
+  .daytype-opt{display:flex;align-items:center;gap:5px;font-size:0.74rem;font-weight:700;color:var(--text);cursor:pointer;}
+  .daytype-opt input{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;}
+  .slot-section{background:#eef5fa;border-radius:10px;padding:10px 12px;margin-bottom:9px;border:1px solid var(--border);}
+  .slot-num{font-size:0.58rem;font-weight:700;color:var(--accent2);margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;}
+  .field-row{display:flex;flex-direction:column;gap:3px;margin-bottom:6px;}
+  .field-row label{font-size:0.62rem;font-weight:700;color:var(--muted);}
+  .field-row select,.field-row input[type=text]{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-family:'Noto Sans TC',sans-serif;font-size:0.76rem;background:var(--card);color:var(--text);}
+  .field-row select:focus,.field-row input:focus{outline:none;border-color:var(--accent2);}
+  .preview-pill{font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:6px;margin-top:5px;display:inline-block;}
+  .add-slot-btn{width:100%;padding:8px;border:1.5px dashed var(--border);border-radius:9px;background:transparent;color:var(--accent2);font-size:0.72rem;font-weight:700;cursor:pointer;margin-bottom:9px;font-family:'Noto Serif TC',serif;}
+  .add-slot-btn:hover{background:var(--accent-light);}
+  .remove-slot-btn{background:none;border:none;color:#9db8cc;font-size:0.72rem;cursor:pointer;padding:0;}
+  .remove-slot-btn:hover{color:#c08070;}
+  .mbtns{display:flex;gap:8px;margin-top:12px;}
+  .btn{flex:1;padding:9px;border:none;border-radius:10px;font-family:'Noto Serif TC',serif;font-size:0.8rem;font-weight:700;cursor:pointer;transition:opacity 0.15s;}
+  .btn:hover{opacity:0.82;}
+  .btn-s{background:var(--accent);color:white;}
+  .btn-c{background:var(--bg);color:var(--muted);border:1px solid var(--border);}
+  .btn-x{background:#faeaea;color:#a84040;border:1px solid #d8a0a0;}
+  .wg-hint{font-size:0.66rem;color:var(--muted);margin-bottom:10px;line-height:1.7;}
+  .wg-modal-input{width:100%;padding:9px;border:1px solid var(--border);border-radius:9px;font-family:'Noto Serif TC',serif;font-size:0.86rem;margin-bottom:7px;background:var(--card);color:var(--text);}
+  .wg-modal-input:focus{outline:none;border-color:var(--accent2);}
+
+  /* exam modal */
+  .em-type-badge{display:inline-block;font-size:0.63rem;font-weight:700;padding:2px 10px;border-radius:10px;margin-bottom:11px;}
+  .emb-official{background:#fdf2ea;color:var(--official);border:1px solid #e8c8a8;}
+  .emb-practice{background:#edf2fa;color:var(--practice);border:1px solid #a8b8d8;}
+  .em-row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+  .em-field{display:flex;flex-direction:column;gap:3px;}
+  .em-field label{font-size:0.62rem;font-weight:700;color:var(--muted);}
+  .em-field select,.em-field input{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-family:'Noto Sans TC',sans-serif;font-size:0.75rem;background:var(--card);color:var(--text);}
+  .em-field select:focus,.em-field input:focus{outline:none;border-color:var(--accent2);}
+  .total-bar{background:var(--accent-light);border:1px solid var(--border);border-left:3px solid var(--accent2);border-radius:10px;padding:10px 14px;text-align:center;margin-bottom:11px;}
+  .tb-num{font-size:1.5rem;font-weight:900;color:var(--accent);font-family:'Noto Serif TC',serif;}
+  .tb-lbl{font-size:0.62rem;color:var(--muted);}
+  .subj-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:12px;}
+
+  /* ── Countdown ── */
+  .countdown-wrap{padding:10px 12px 4px;display:flex;flex-direction:column;gap:8px;}
+  .cd-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(61,111,158,0.07);}
+  .cd-card.gsat{border-left:3px solid var(--pink);}
+  .cd-card.custom{border-left:3px solid var(--sage);}
+  .cd-left{flex:1;}
+  .cd-name{font-family:'Noto Serif TC',serif;font-size:0.82rem;font-weight:700;color:var(--accent);margin-bottom:2px;}
+  .cd-date{font-size:0.62rem;color:var(--muted);}
+  .cd-days{text-align:right;}
+  .cd-num{font-family:'Noto Serif TC',serif;font-size:1.8rem;font-weight:900;color:var(--accent);line-height:1;}
+  .cd-lbl{font-size:0.58rem;color:var(--muted);}
+  .cd-add-btn{width:100%;padding:9px;border:1.5px dashed var(--border);border-radius:10px;background:transparent;color:var(--accent2);font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Noto Serif TC',serif;margin-bottom:4px;}
+  .cd-add-btn:hover{background:var(--accent-light);}
+  .cd-edit-btn{background:none;border:none;font-size:0.65rem;color:#9db8cc;cursor:pointer;padding:2px 4px;}
+  .cd-edit-btn:hover{color:var(--accent);}
+
+  @media(max-width:480px){.cal-cell{min-height:66px;}.cell-pill{font-size:0.38rem;}.subj-grid{grid-template-columns:1fr 1fr;}}
+  @media print{.tabs,.legend{display:none!important;}body{background:white;padding:10px;}.section{display:block!important;}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🌸 暑假計畫 &amp; 成績記錄</h1>
+  <div class="header-sub">♡ 2026 · 7–8 月 · 國二升國三 ♡</div>
+</div>
+
+<!-- ══ COUNTDOWN ══ -->
+<div class="countdown-wrap" id="countdown-wrap"></div>
+
+<!-- Countdown modal -->
+<div class="overlay" id="cd-overlay">
+  <div class="modal">
+    <h3 id="cd-modal-title">➕ 新增倒數</h3>
+    <div class="modal-sub">自訂倒數目標日期</div>
+    <div class="field-row"><label>名稱（例：一模）</label><input type="text" id="cd-input-name" placeholder="輸入名稱…" maxlength="20"/></div>
+    <div class="field-row"><label>日期</label><input type="date" id="cd-input-date"/></div>
+    <div class="mbtns">
+      <button class="btn btn-c" onclick="closeCdModal()">取消</button>
+      <button class="btn btn-x" id="cd-del-btn" style="display:none" onclick="deleteCd()">刪除</button>
+      <button class="btn btn-s" onclick="saveCd()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Copy/Move choice modal -->
+<div class="overlay" id="cm-overlay">
+  <div class="modal" style="max-width:300px;text-align:center;">
+    <h3 style="margin-bottom:6px;">拖曳項目</h3>
+    <div class="modal-sub" id="cm-sub" style="margin-bottom:16px;">移到 7/10？</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn btn-s" onclick="resolveDragChoice('move')">📦 移動（搬走）</button>
+      <button class="btn" style="background:var(--sage);color:white;" onclick="resolveDragChoice('copy')">📋 複製（兩邊都有）</button>
+      <button class="btn btn-c" onclick="resolveDragChoice('cancel')">取消</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="sw('cal')">📅 讀書計畫</button>
+  <button class="tab" onclick="sw('official')">🏫 正式模考</button>
+  <button class="tab" onclick="sw('practice')">✏️ 練習模考</button>
+</div>
+
+<!-- ══ CAL ══ -->
+<div class="section active" id="s-cal">
+  <div class="legend" id="subj-filter">
+    <button class="leg filt-btn active" data-subj="" onclick="toggleSubjFilter('')">全部</button>
+    <button class="leg filt-btn" data-subj="math" onclick="toggleSubjFilter('math')"><span class="ldot" style="background:var(--math)"></span>數學</button>
+    <button class="leg filt-btn" data-subj="eng" onclick="toggleSubjFilter('eng')"><span class="ldot" style="background:var(--eng)"></span>英文</button>
+    <button class="leg filt-btn" data-subj="chinese" onclick="toggleSubjFilter('chinese')"><span class="ldot" style="background:var(--chinese)"></span>國文</button>
+    <button class="leg filt-btn" data-subj="bio" onclick="toggleSubjFilter('bio')"><span class="ldot" style="background:var(--bio)"></span>生物</button>
+    <button class="leg filt-btn" data-subj="chem" onclick="toggleSubjFilter('chem')"><span class="ldot" style="background:var(--chem)"></span>理化</button>
+    <button class="leg filt-btn" data-subj="earth" onclick="toggleSubjFilter('earth')"><span class="ldot" style="background:var(--earth)"></span>地科</button>
+    <button class="leg filt-btn" data-subj="geo" onclick="toggleSubjFilter('geo')"><span class="ldot" style="background:var(--geo)"></span>地理</button>
+    <button class="leg filt-btn" data-subj="hist" onclick="toggleSubjFilter('hist')"><span class="ldot" style="background:var(--hist)"></span>歷史</button>
+    <button class="leg filt-btn" data-subj="civic" onclick="toggleSubjFilter('civic')"><span class="ldot" style="background:var(--civic)"></span>公民</button>
+    <button class="leg filt-btn" data-subj="__course__" onclick="toggleSubjFilter('__course__')">🏫 課程</button>
+  </div>
+  <div class="months-wrap" id="months-wrap"></div>
+</div>
+
+<!-- ══ OFFICIAL ══ -->
+<div class="section" id="s-official">
+  <div class="exam-top">
+    <h2>🏫 正式模考成績</h2>
+    <button class="add-exam-btn official" onclick="openExamModal('official',null)">＋ 新增</button>
+  </div>
+  <div id="official-wrap"></div>
+</div>
+
+<!-- ══ PRACTICE ══ -->
+<div class="section" id="s-practice">
+  <div class="exam-top">
+    <h2>✏️ 練習模考成績</h2>
+    <button class="add-exam-btn practice" onclick="openExamModal('practice',null)">＋ 新增</button>
+  </div>
+  <div id="practice-wrap"></div>
+</div>
+
+<!-- Day modal -->
+<div class="overlay" id="day-overlay">
+  <div class="modal">
+    <h3 id="dm-title"></h3>
+    <div class="modal-sub" id="dm-sub"></div>
+    <div class="daytype-row">
+      <label class="daytype-opt"><input type="radio" name="daytype" value="self" id="dt-self" onchange="setDayType('self')"> 📖 自我學習</label>
+      <label class="daytype-opt"><input type="radio" name="daytype" value="course" id="dt-course" onchange="setDayType('course')"> 🏫 課程</label>
+    </div>
+    <div id="dm-slots"></div>
+    <button class="add-slot-btn" onclick="addSlot()" id="add-slot-btn">＋ 新增科目</button>
+    <div class="mbtns">
+      <button class="btn btn-c" onclick="closeDay()">取消</button>
+      <button class="btn btn-x" onclick="clearDay()">清除</button>
+      <button class="btn btn-s" onclick="saveDay()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Week goal modal -->
+<div class="overlay" id="wg-overlay">
+  <div class="modal">
+    <h3>🎯 設定週目標</h3>
+    <div class="modal-sub" id="wg-sub"></div>
+    <div class="wg-hint">例如：完成第1冊數學複習、英文第1-2冊單字背完</div>
+    <input type="text" class="wg-modal-input" id="wg-input" placeholder="輸入本週目標…" maxlength="60"/>
+    <div class="mbtns">
+      <button class="btn btn-c" onclick="closeWG()">取消</button>
+      <button class="btn btn-x" onclick="clearWG()">清除</button>
+      <button class="btn btn-s" onclick="saveWG()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Exam modal -->
+<div class="overlay" id="exam-overlay">
+  <div class="modal">
+    <h3 id="em-title"></h3>
+    <div id="em-badge"></div>
+    <div class="em-row2">
+      <div class="em-field" style="grid-column:1/-1;">
+        <label>考試名稱（卷名）</label>
+        <input type="text" id="em-name" placeholder="例：康軒模擬卷 第1回"/>
+      </div>
+      <div class="em-field">
+        <label>範圍（冊）</label>
+        <select id="em-range">
+          <option value="">── 選範圍 ──</option>
+          <optgroup label="單冊">
+            <option>第1冊</option><option>第2冊</option><option>第3冊</option>
+            <option>第4冊</option><option>第5冊</option><option>第6冊</option>
+          </optgroup>
+          <optgroup label="連續範圍">
+            <option>第1-2冊</option><option>第1-3冊</option><option>第1-4冊</option>
+            <option>第1-5冊</option><option>第1-6冊</option>
+            <option>第2-3冊</option><option>第2-4冊</option>
+            <option>第3-4冊</option><option>第3-6冊</option>
+            <option>第4-5冊</option><option>第4-6冊</option>
+            <option>第5-6冊</option>
+          </optgroup>
+          <optgroup label="其他">
+            <option>全冊綜合</option><option>歷屆試題</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="em-field">
+        <label>考試日期</label>
+        <input type="date" id="em-date"/>
+      </div>
+    </div>
+
+    <div class="total-bar">
+      <div class="tb-num" id="em-total">—</div>
+      <div class="tb-lbl">會考積分（滿分 36 分）</div>
+    </div>
+
+    <div class="subj-grid" id="subj-grid">
+      <!-- filled by JS -->
+    </div>
+
+    <div class="mbtns">
+      <button class="btn btn-c" onclick="closeExam()">取消</button>
+      <button class="btn btn-x" id="em-del" style="display:none" onclick="deleteExam()">刪除</button>
+      <button class="btn btn-s" onclick="saveExam()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Tabs ──
+function sw(t){
+  ['cal','official','practice'].forEach((id,i)=>{
+    document.querySelectorAll('.tab')[i].classList.toggle('active',id===t);
+    document.getElementById('s-'+id).classList.toggle('active',id===t);
+  });
+  if(t==='official'||t==='practice')renderExamTable(t);
+}
+
+// ── Data ──
+const today=new Date();today.setHours(0,0,0,0);
+
+const SUBJECTS={
+  math:{lbl:'數學',col:'var(--math)',bg:'var(--math-bg)'},
+  eng:{lbl:'英文',col:'var(--eng)',bg:'var(--eng-bg)'},
+  chinese:{lbl:'國文',col:'var(--chinese)',bg:'var(--chinese-bg)'},
+  bio:{lbl:'生物',col:'var(--bio)',bg:'var(--bio-bg)'},
+  chem:{lbl:'理化',col:'var(--chem)',bg:'var(--chem-bg)'},
+  earth:{lbl:'地科',col:'var(--earth)',bg:'var(--earth-bg)'},
+  geo:{lbl:'地理',col:'var(--geo)',bg:'var(--geo-bg)'},
+  hist:{lbl:'歷史',col:'var(--hist)',bg:'var(--hist-bg)'},
+  civic:{lbl:'公民',col:'var(--civic)',bg:'var(--civic-bg)'},
+};
+
+const BOOKS=[
+  '第1冊','第2冊','第3冊','第4冊','第5冊','第6冊',
+  '第1-2冊','第1-3冊','第1-4冊','第1-5冊','第1-6冊',
+  '第2-3冊','第2-4冊','第3-4冊','第4-5冊','第5-6冊',
+  '第1回','第2回','第3回','第4回','第5回',
+  '第6回','第7回','第8回','第9回','第10回',
+  '歷屆試題','全冊綜合',
+];
+const KINDS=['講課-預習','講課-複習','複習','預習','寫講義','寫模擬題','寫歷屆試題','題目練習','錯題訂正','整理筆記','閱讀測驗'];
+
+const ABROAD_START=new Date(2026,6,22),ABROAD_END=new Date(2026,7,31);
+function dk(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function wk(d){const t=new Date(d);t.setHours(0,0,0,0);t.setDate(t.getDate()+4-(t.getDay()||7));const y=t.getFullYear();const w=Math.ceil((((t-new Date(y,0,1))/86400000)+1)/7);return `${y}-W${String(w).padStart(2,'0')}`;}
+function isAbroad(d){return d>=ABROAD_START&&d<=ABROAD_END;}
+
+// ── Firebase Config ──
+const FB_URL='https://math-plan-default-rtdb.asia-southeast1.firebasedatabase.app/summer_v4_yuni';
+let fbSaveTimer=null;
+
+async function fbLoad(){
+  try{
+    const r=await fetch(FB_URL+'.json');
+    if(r.ok){const d=await r.json();if(d)return d;}
+  }catch(e){console.warn('Firebase load failed, using localStorage',e);}
+  // fallback to localStorage
+  try{const s=localStorage.getItem('summer_v4_yuni');if(s)return JSON.parse(s);}catch(e){}
+  return null;
+}
+
+async function fbSave(data){
+  try{
+    await fetch(FB_URL+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    localStorage.setItem('summer_v4_yuni',JSON.stringify(data)); // keep local backup
+  }catch(e){
+    console.warn('Firebase save failed, saved to localStorage only',e);
+    localStorage.setItem('summer_v4_yuni',JSON.stringify(data));
+  }
+}
+
+function loadData(){try{const s=localStorage.getItem('summer_v4_yuni');if(s)return JSON.parse(s);}catch(e){}return{days:{},weeks:{},official:[],practice:[]};}
+function saveData(){
+  clearTimeout(fbSaveTimer);
+  fbSaveTimer=setTimeout(()=>fbSave(DATA),600); // debounce 600ms
+  try{localStorage.setItem('summer_v4_yuni',JSON.stringify(DATA));}catch(e){}
+}
+
+const DEF_DAYS={};
+const DEF_WEEKS={};
+
+let DATA={days:{},weeks:{},official:[],practice:[]};
+
+// Show loading indicator
+document.body.insertAdjacentHTML('afterbegin',`<div id="fb-loading" style="position:fixed;inset:0;background:rgba(255,255,255,0.88);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-family:'Outfit',sans-serif;"><div style="font-size:1.6rem">☁️</div><div style="font-size:0.85rem;color:#4a3f8f;font-weight:700">從雲端載入資料中…</div><div style="font-size:0.65rem;color:#aaa">Firebase Realtime Database</div></div>`);
+
+(async function initData(){
+  const saved=await fbLoad();
+  if(saved)DATA=saved;
+  let ch=false;
+  Object.entries(DEF_DAYS).forEach(([k,v])=>{if(DATA.days[k]===undefined){DATA.days[k]=v;ch=true;}});
+  Object.entries(DEF_WEEKS).forEach(([k,v])=>{if(DATA.weeks[k]===undefined){DATA.weeks[k]=v;ch=true;}});
+  if(!DATA.official)DATA.official=[];if(!DATA.practice)DATA.practice=[];
+  if(ch)saveData();
+  document.getElementById('fb-loading').remove();
+  buildCalendar();
+  renderCountdown();
+})();
+
+// ── Grade helpers ──
+const GRADE_PTS={A2:7,A1:6,A0:5,B2:4,B1:3,B0:2,C:1};
+const GRADE_LBL={A2:'A++',A1:'A+',A0:'A',B2:'B++',B1:'B+',B0:'B',C:'C'};
+const ESSAY_PTS={'6':1.0,'5':0.8,'4':0.6,'3':0.4,'2':0.2,'1':0.1,'0':0.0};
+const SCORE_SUBJS=['chinese','math','eng','social','science'];
+const SCORE_LBL={chinese:'國文',math:'數學',eng:'英文',social:'社會',science:'自然',essay:'作文'};
+
+function gradeClass(g){
+  if(g==='A2')return 'gA2';if(g==='A1')return 'gA1';if(g==='A0')return 'gA0';
+  if(g==='B2')return 'gB2';if(g==='B1')return 'gB1';if(g==='B0')return 'gB0';
+  if(g==='C')return 'gC';return '';
+}
+function calcTotal(rec){
+  let pts=0;
+  SCORE_SUBJS.forEach(s=>{if(rec[s])pts+=(GRADE_PTS[rec[s]]||0);});
+  if(rec.essay!==undefined&&rec.essay!=='')pts+=(ESSAY_PTS[String(rec.essay)]||0);
+  return pts;
+}
+
+// ── Calendar ──
+let editKey=null,editSlots=[],editWGKey=null;
+
+let subjFilter='';
+function toggleSubjFilter(s){
+  subjFilter=(subjFilter===s)?'':s;
+  document.querySelectorAll('.filt-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.subj===subjFilter);
+  });
+  buildCalendar();
+}
+
+function buildCalendar(){
+  const wrap=document.getElementById('months-wrap');wrap.innerHTML='';
+  [{year:2026,month:6,label:'2026 年 7 月'},{year:2026,month:7,label:'2026 年 8 月'}].forEach(({year,month,label})=>{
+    const sec=document.createElement('div');
+    const lbl=document.createElement('div');lbl.className='cal-mlabel';lbl.textContent=label;sec.appendChild(lbl);
+    const wdR=document.createElement('div');wdR.className='cal-wd';
+    ['一','二','三','四','五','六','日'].forEach(w=>{const s=document.createElement('span');s.textContent=w;wdR.appendChild(s);});
+    sec.appendChild(wdR);
+    const dim=new Date(year,month+1,0).getDate();
+    const fd=(new Date(year,month,1).getDay()+6)%7;
+    let weeks=[],cur=[];
+    for(let i=0;i<fd;i++)cur.push(null);
+    for(let d=1;d<=dim;d++){cur.push(new Date(year,month,d));if(cur.length===7){weeks.push(cur);cur=[];}}
+    if(cur.length){while(cur.length<7)cur.push(null);weeks.push(cur);}
+    weeks.forEach(week=>{
+      const rd=week.find(d=>d!==null);if(!rd)return;
+      const wKey=wk(rd);
+      const blk=document.createElement('div');blk.className='week-block';
+      const gc=document.createElement('div');gc.className='week-goal-cell';
+      gc.innerHTML=`<span class="wg-label">🎯 週目標</span><span class="wg-text">${DATA.weeks[wKey]||'點擊設定…'}</span><span style="font-size:0.55rem;color:var(--accent2)">✏️</span>`;
+      gc.onclick=()=>openWG(wKey,rd);blk.appendChild(gc);
+      const grid=document.createElement('div');grid.className='cal-grid';
+      week.forEach(date=>{
+        const cell=document.createElement('div');
+        if(!date){cell.className='cal-cell empty';grid.appendChild(cell);return;}
+        cell.className='cal-cell';
+        if(date.getTime()===today.getTime())cell.classList.add('today');
+        const key=dk(date);
+        cell.dataset.key=key;
+        if((DATA.dayType&&DATA.dayType[key])==='course')cell.classList.add('is-course');
+        cell.innerHTML=renderCell(date,key);
+        if(subjFilter){
+          const has=subjFilter==='__course__'
+            ? ((DATA.dayType&&DATA.dayType[key])==='course')
+            : (DATA.days[key]||[]).some(sl=>sl.subj===subjFilter);
+          cell.classList.add(has?'highlight':'dim');
+        }
+        cell.onclick=(e)=>{ if(dragJustHappened)return; openDay(key,date); };
+        setupCellDnD(cell);
+        grid.appendChild(cell);
+      });
+      blk.appendChild(grid);sec.appendChild(blk);
+    });
+    wrap.appendChild(sec);
+  });
+}
+
+// ── Drag & Drop (mouse + touch) ──
+let dragSrc=null; // {date, idx}
+let dragJustHappened=false;
+let touchDragEl=null,touchGhost=null,touchStartPos=null,touchTimer=null,touchDragging=false;
+
+function setupCellDnD(cell){
+  // Cell as drop target (mouse)
+  cell.addEventListener('dragover',e=>{e.preventDefault();cell.style.boxShadow='0 0 0 2px var(--accent2)';});
+  cell.addEventListener('dragleave',()=>{cell.style.boxShadow='';});
+  cell.addEventListener('drop',e=>{
+    e.preventDefault();cell.style.boxShadow='';
+    if(!dragSrc)return;
+    if(dragSrc.date===cell.dataset.key){dragSrc=null;return;}
+    askDragChoice(dragSrc.date,dragSrc.idx,cell.dataset.key);
+    dragSrc=null;
+  });
+  // Pills inside: mouse dragstart
+  cell.querySelectorAll('.cell-pill').forEach(pill=>{
+    pill.addEventListener('dragstart',e=>{
+      dragSrc={date:pill.dataset.date,idx:parseInt(pill.dataset.idx)};
+      e.dataTransfer.effectAllowed='move';
+      setTimeout(()=>pill.style.opacity='0.3',0);
+    });
+    pill.addEventListener('dragend',()=>{pill.style.opacity='';dragSrc=null;});
+    // Touch (mobile) long-press drag
+    pill.addEventListener('touchstart',e=>{
+      const touch=e.touches[0];
+      touchStartPos={x:touch.clientX,y:touch.clientY};
+      touchDragEl=pill;touchDragging=false;
+      touchTimer=setTimeout(()=>{
+        touchDragging=true;
+        dragSrc={date:pill.dataset.date,idx:parseInt(pill.dataset.idx)};
+        pill.style.opacity='0.3';
+        touchGhost=pill.cloneNode(true);
+        touchGhost.style.cssText='position:fixed;pointer-events:none;z-index:999;opacity:0.85;width:'+pill.offsetWidth+'px;transform:scale(1.1);box-shadow:0 4px 16px rgba(0,0,0,0.25);';
+        touchGhost.style.left=(touch.clientX-pill.offsetWidth/2)+'px';
+        touchGhost.style.top=(touch.clientY-14)+'px';
+        document.body.appendChild(touchGhost);
+        if(navigator.vibrate)navigator.vibrate(12);
+      },350);
+    },{passive:true});
+    pill.addEventListener('touchmove',e=>{
+      if(touchTimer&&!touchDragging){
+        const touch=e.touches[0];
+        const dx=Math.abs(touch.clientX-touchStartPos.x),dy=Math.abs(touch.clientY-touchStartPos.y);
+        if(dx>10||dy>10){clearTimeout(touchTimer);touchTimer=null;}
+        return;
+      }
+      if(!touchDragging)return;
+      e.preventDefault();
+      const touch=e.touches[0];
+      if(touchGhost){touchGhost.style.left=(touch.clientX-touchGhost.offsetWidth/2)+'px';touchGhost.style.top=(touch.clientY-14)+'px';}
+      document.querySelectorAll('.cal-cell').forEach(c=>c.style.boxShadow='');
+      const target=document.elementFromPoint(touch.clientX,touch.clientY);
+      const targetCell=target?.closest('.cal-cell');
+      if(targetCell&&!targetCell.classList.contains('empty'))targetCell.style.boxShadow='0 0 0 2px var(--accent2)';
+    },{passive:false});
+    pill.addEventListener('touchend',e=>{
+      clearTimeout(touchTimer);touchTimer=null;
+      document.querySelectorAll('.cal-cell').forEach(c=>c.style.boxShadow='');
+      if(touchDragging&&dragSrc){
+        const touch=e.changedTouches[0];
+        const target=document.elementFromPoint(touch.clientX,touch.clientY);
+        const targetCell=target?.closest('.cal-cell');
+        if(targetCell&&targetCell.dataset.key&&targetCell.dataset.key!==dragSrc.date){
+          askDragChoice(dragSrc.date,dragSrc.idx,targetCell.dataset.key);
+          dragJustHappened=true;setTimeout(()=>dragJustHappened=false,300);
+        }
+      }
+      if(touchGhost){touchGhost.remove();touchGhost=null;}
+      if(touchDragEl)touchDragEl.style.opacity='';
+      touchDragging=false;dragSrc=null;touchDragEl=null;
+    });
+  });
+}
+
+let pendingDrag=null; // {fromKey, fromIdx, toKey}
+function askDragChoice(fromKey,fromIdx,toKey){
+  const item=(DATA.days[fromKey]||[])[fromIdx];
+  if(!item)return;
+  pendingDrag={fromKey,fromIdx,toKey};
+  const sm=SUBJECTS[item.subj];
+  const fromLbl=fromKey.slice(5).replace('-','/');
+  const toLbl=toKey.slice(5).replace('-','/');
+  document.getElementById('cm-sub').innerHTML=`<b style="color:${sm?.col||'inherit'}">${sm?.lbl||''}${item.book?' '+item.book:''}</b><br>從 ${fromLbl} → ${toLbl}`;
+  document.getElementById('cm-overlay').classList.add('show');
+}
+function resolveDragChoice(action){
+  document.getElementById('cm-overlay').classList.remove('show');
+  if(!pendingDrag||action==='cancel'){pendingDrag=null;return;}
+  const{fromKey,fromIdx,toKey}=pendingDrag;
+  if(action==='move')movePillToDate(fromKey,fromIdx,toKey);
+  else if(action==='copy')copyPillToDate(fromKey,fromIdx,toKey);
+  pendingDrag=null;
+}
+function copyPillToDate(fromKey,fromIdx,toKey){
+  const item=(DATA.days[fromKey]||[])[fromIdx];
+  if(!item)return;
+  if(!DATA.days[toKey])DATA.days[toKey]=[];
+  DATA.days[toKey].push({...item});
+  saveData();buildCalendar();
+}
+function movePillToDate(fromKey,fromIdx,toKey){
+  if(fromKey===toKey)return;
+  const fromSlots=DATA.days[fromKey]||[];
+  const item=fromSlots[fromIdx];
+  if(!item)return;
+  fromSlots.splice(fromIdx,1);
+  DATA.days[fromKey]=fromSlots;
+  if(!DATA.days[toKey])DATA.days[toKey]=[];
+  DATA.days[toKey].push(item);
+  saveData();buildCalendar();
+}
+
+function renderCell(date,key){
+  const slots=DATA.days[key]||[];
+  const isCourse=(DATA.dayType&&DATA.dayType[key])==='course';
+  let html=`<div class="cell-date">${date.getDate()}</div>${isCourse?`<div class="cell-course-tag">🏫課程</div>`:''}<div class="cell-items">`;
+  if(!slots.length){html+=`<div class="cell-empty-hint">＋ 點此填寫</div>`;}
+  else{slots.forEach((sl,idx)=>{
+    if(!sl.subj)return;const sm=SUBJECTS[sl.subj];if(!sm)return;
+    const k=(sl.kind||'').replace('講課-','講·');
+    const b=(sl.book||'');
+    const n=sl.note?` (${sl.note})`:'';
+    html+=`<div class="cell-pill" draggable="true" data-date="${key}" data-idx="${idx}" style="background:${sm.bg};color:${sm.col}">${sm.lbl}・${k||'—'} ${b}${n}</div>`;
+  });}
+  html+=`</div>`;return html;
+}
+
+function openDay(key,date){
+  editKey=key;editSlots=JSON.parse(JSON.stringify(DATA.days[key]||[]));
+  if(!editSlots.length)editSlots=[{subj:'',book:'',kind:'',note:''}];
+  const wd='日一二三四五六'[date.getDay()];
+  document.getElementById('dm-title').textContent=`${date.getMonth()+1}/${date.getDate()} 週${wd}`;
+  document.getElementById('dm-sub').textContent=key;
+  const dt=(DATA.dayType&&DATA.dayType[key])||'self';
+  document.getElementById('dt-self').checked=dt==='self';
+  document.getElementById('dt-course').checked=dt==='course';
+  renderSlots();document.getElementById('day-overlay').classList.add('show');
+}
+function setDayType(v){
+  if(!DATA.dayType)DATA.dayType={};
+  DATA.dayType[editKey]=v;
+}
+function renderSlots(){
+  const w=document.getElementById('dm-slots');w.innerHTML='';
+  editSlots.forEach((sl,i)=>{
+    const sec=document.createElement('div');sec.className='slot-section';
+    sec.innerHTML=`<div class="slot-num"><span>科目 ${i+1}</span><button class="remove-slot-btn" onclick="removeSlot(${i})">✕ 移除</button></div>
+      <div class="field-row"><label>科目</label><select onchange="slotChange(${i},'subj',this.value)"><option value="">── 選科目 ──</option>${Object.entries(SUBJECTS).map(([k,v])=>`<option value="${k}" ${sl.subj===k?'selected':''}>${v.lbl}</option>`).join('')}</select></div>
+      <div class="field-row"><label>冊數 / 回次</label><select onchange="slotChange(${i},'book',this.value)"><option value="">── 選冊數 ──</option>${BOOKS.map(b=>`<option value="${b}" ${sl.book===b?'selected':''}>${b}</option>`).join('')}</select></div>
+      <div class="field-row"><label>性質</label><select onchange="slotChange(${i},'kind',this.value)"><option value="">── 選性質 ──</option>${KINDS.map(k=>`<option value="${k}" ${sl.kind===k?'selected':''}>${k}</option>`).join('')}</select></div>
+      <div class="field-row"><label>備註（例：單元1-2、第3課）</label><input type="text" placeholder="輸入備註…" value="${(sl.note||'').replace(/"/g,'&quot;')}" oninput="slotChange(${i},'note',this.value)"/></div>
+      <div id="sl-prev-${i}"></div>`;
+    w.appendChild(sec);updatePreview(i);
+  });
+  document.getElementById('add-slot-btn').style.display='block';
+}
+function slotChange(i,f,v){editSlots[i][f]=v;updatePreview(i);}
+function updatePreview(i){const sl=editSlots[i];const p=document.getElementById(`sl-prev-${i}`);if(!p)return;if(!sl.subj){p.innerHTML='';return;}const sm=SUBJECTS[sl.subj];const noteTxt=sl.note?` (${sl.note})`:'';p.innerHTML=`<div class="preview-pill" style="background:${sm.bg};color:${sm.col}">${sm.lbl}${sl.kind?'・'+sl.kind:''}${sl.book?' '+sl.book:''}${noteTxt}</div>`;}
+function addSlot(){editSlots.push({subj:'',book:'',kind:'',note:''});renderSlots();}
+function removeSlot(i){editSlots.splice(i,1);if(!editSlots.length)editSlots=[{subj:'',book:'',kind:'',note:''}];renderSlots();}
+function saveDay(){DATA.days[editKey]=editSlots.filter(s=>s.subj);saveData();closeDay();buildCalendar();}
+function clearDay(){DATA.days[editKey]=[];saveData();closeDay();buildCalendar();}
+function closeDay(){document.getElementById('day-overlay').classList.remove('show');editKey=null;editSlots=[];}
+function openWG(key){editWGKey=key;document.getElementById('wg-sub').textContent=`週次：${key}`;document.getElementById('wg-input').value=DATA.weeks[key]||'';document.getElementById('wg-overlay').classList.add('show');setTimeout(()=>document.getElementById('wg-input').focus(),80);}
+function saveWG(){const v=document.getElementById('wg-input').value.trim();if(v)DATA.weeks[editWGKey]=v;else delete DATA.weeks[editWGKey];saveData();closeWG();buildCalendar();}
+function clearWG(){delete DATA.weeks[editWGKey];saveData();closeWG();buildCalendar();}
+function closeWG(){document.getElementById('wg-overlay').classList.remove('show');editWGKey=null;}
+
+// ── Exam table ──
+const SUBJ_COLS=[
+  {key:'chinese',lbl:'國文',col:'var(--chinese)'},
+  {key:'math',lbl:'數學',col:'var(--math)'},
+  {key:'eng',lbl:'英文',col:'var(--eng)'},
+  {key:'social',lbl:'社會',col:'var(--hist)'},
+  {key:'science',lbl:'自然',col:'var(--bio)'},
+  {key:'essay',lbl:'作文',col:'var(--essay)'},
+];
+
+function renderExamTable(type){
+  const wrap=document.getElementById(type+'-wrap');
+  const list=DATA[type]||[];
+  if(!list.length){wrap.innerHTML='<div class="ec-empty">還沒有紀錄，點右上角「＋ 新增」加入第一筆</div>';return;}
+
+  // Build table
+  let thead=`<thead><tr>
+    <th class="th-name" style="text-align:left;padding-left:10px;">考試名稱</th>
+    <th class="th-date">範圍</th>
+    <th class="th-date">日期</th>`;
+  SUBJ_COLS.forEach(s=>{thead+=`<th style="color:${s.col}">${s.lbl}</th>`;});
+  thead+=`<th style="color:var(--accent)">積分</th></tr></thead>`;
+
+  let tbody='<tbody>';
+  list.forEach(rec=>{
+    const total=calcTotal(rec);
+    let row=`<tr onclick="openExamModal('${type}','${rec.id}')">
+      <td class="td-name">${rec.name||'—'}</td>
+      <td class="td-date">${rec.range||''}</td>
+      <td class="td-date">${rec.date||''}</td>`;
+    SUBJ_COLS.forEach(s=>{
+      const v=rec[s.key];
+      if(!v&&v!==0){row+=`<td><span style="color:#ddd">—</span></td>`;}
+      else if(s.key==='essay'){row+=`<td><span class="grade-badge gEssay">${v}級</span></td>`;}
+      else{row+=`<td><span class="grade-badge ${gradeClass(v)}">${GRADE_LBL[v]||v}</span></td>`;}
+    });
+    row+=`<td class="td-total ${type}">${total>0?total.toFixed(1):'—'}</td></tr>`;
+    tbody+=row;
+  });
+  tbody+='</tbody>';
+
+  wrap.innerHTML=`<div class="exam-table-wrap"><table class="exam-tbl">${thead}${tbody}</table></div>`;
+}
+
+// ── Exam modal ──
+let examType=null,examEditId=null;
+
+function buildSubjGrid(rec){
+  const g=document.getElementById('subj-grid');g.innerHTML='';
+  SUBJ_COLS.forEach(s=>{
+    const div=document.createElement('div');div.className='em-field';
+    let opts='';
+    if(s.key==='essay'){
+      opts=['<option value="">—</option>',
+        '<option value="6">6級（1.0分）</option>','<option value="5">5級（0.8分）</option>',
+        '<option value="4">4級（0.6分）</option>','<option value="3">3級（0.4分）</option>',
+        '<option value="2">2級（0.2分）</option>','<option value="1">1級（0.1分）</option>',
+        '<option value="0">0級（0.0分）</option>'].join('');
+    } else {
+      opts=['<option value="">—</option>',
+        '<option value="A2">A++（7分）</option>','<option value="A1">A+（6分）</option>',
+        '<option value="A0">A（5分）</option>','<option value="B2">B++（4分）</option>',
+        '<option value="B1">B+（3分）</option>','<option value="B0">B（2分）</option>',
+        '<option value="C">C（1分）</option>'].join('');
+    }
+    const curVal=rec&&rec[s.key]!==undefined?String(rec[s.key]):'';
+    div.innerHTML=`<label style="color:${s.col}">${s.lbl}</label><select id="eg-${s.key}" onchange="calcTotalPreview()">${opts}</select>`;
+    g.appendChild(div);
+    if(curVal)document.getElementById('eg-'+s.key).value=curVal;
+  });
+}
+
+function calcTotalPreview(){
+  let pts=0;let any=false;
+  SCORE_SUBJS.forEach(s=>{const v=document.getElementById('eg-'+s)?.value;if(v){pts+=(GRADE_PTS[v]||0);any=true;}});
+  const ev=document.getElementById('eg-essay')?.value;
+  if(ev!==undefined&&ev!==''){pts+=(ESSAY_PTS[ev]||0);any=true;}
+  document.getElementById('em-total').textContent=any?pts.toFixed(1)+' / 36':'—';
+}
+
+function openExamModal(type,id){
+  examType=type;examEditId=id||null;
+  document.getElementById('em-title').textContent=id?'編輯成績':'新增成績';
+  document.getElementById('em-badge').innerHTML=type==='official'
+    ?'<div class="em-type-badge emb-official">🏫 正式模考</div>'
+    :'<div class="em-type-badge emb-practice">✏️ 練習模考</div>';
+  document.getElementById('em-del').style.display=id?'block':'none';
+  const rec=id?DATA[type].find(r=>r.id===id):null;
+  document.getElementById('em-name').value=rec?.name||'';
+  document.getElementById('em-range').value=rec?.range||'';
+  document.getElementById('em-date').value=rec?.date||'';
+  buildSubjGrid(rec);
+  calcTotalPreview();
+  document.getElementById('exam-overlay').classList.add('show');
+}
+
+function saveExam(){
+  const name=document.getElementById('em-name').value.trim();
+  if(!name){alert('請輸入考試名稱');return;}
+  const rec={id:examEditId||Date.now().toString(),name,
+    range:document.getElementById('em-range').value,
+    date:document.getElementById('em-date').value};
+  SUBJ_COLS.forEach(s=>{rec[s.key]=document.getElementById('eg-'+s.key)?.value||'';});
+  if(examEditId){const idx=DATA[examType].findIndex(r=>r.id===examEditId);if(idx>=0)DATA[examType][idx]=rec;}
+  else{DATA[examType].unshift(rec);}
+  saveData();closeExam();renderExamTable(examType);
+}
+function deleteExam(){
+  if(!examEditId)return;
+  DATA[examType]=DATA[examType].filter(r=>r.id!==examEditId);
+  saveData();closeExam();renderExamTable(examType);
+}
+function closeExam(){document.getElementById('exam-overlay').classList.remove('show');examType=null;examEditId=null;}
+
+// ── Countdown ──
+const GSAT_DATE=new Date(2027,4,15); // 2027/5/15 會考
+function daysUntil(d){const now=new Date();now.setHours(0,0,0,0);return Math.ceil((d-now)/86400000);}
+
+let cdEditId=null;
+
+function renderCountdown(){
+  const wrap=document.getElementById('countdown-wrap');
+  wrap.innerHTML='';
+  // Fixed: 會考
+  const gsatDays=daysUntil(GSAT_DATE);
+  wrap.innerHTML+=`<div class="cd-card gsat">
+    <div class="cd-left"><div class="cd-name">🌸 2027 國中會考</div><div class="cd-date">2027 年 5 月 15 日</div></div>
+    <div class="cd-days"><div class="cd-num">${gsatDays}</div><div class="cd-lbl">天後</div></div>
+  </div>`;
+  // Custom countdowns
+  (DATA.countdowns||[]).forEach(cd=>{
+    const d=new Date(cd.date);const days=daysUntil(d);
+    const dateStr=cd.date.replace(/-/g,'/');
+    wrap.innerHTML+=`<div class="cd-card custom">
+      <div class="cd-left"><div class="cd-name">🎯 ${cd.name}</div><div class="cd-date">${dateStr}</div></div>
+      <div class="cd-days"><div class="cd-num">${days>=0?days:0}</div><div class="cd-lbl">${days>=0?'天後':'已過'}</div></div>
+      <button class="cd-edit-btn" onclick="openCdModal('${cd.id}')">✏️</button>
+    </div>`;
+  });
+  wrap.innerHTML+=`<button class="cd-add-btn" onclick="openCdModal(null)">＋ 新增倒數</button>`;
+}
+
+function openCdModal(id){
+  cdEditId=id;
+  document.getElementById('cd-modal-title').textContent=id?'✏️ 編輯倒數':'➕ 新增倒數';
+  document.getElementById('cd-del-btn').style.display=id?'block':'none';
+  const rec=id?(DATA.countdowns||[]).find(c=>c.id===id):null;
+  document.getElementById('cd-input-name').value=rec?.name||'';
+  document.getElementById('cd-input-date').value=rec?.date||'';
+  document.getElementById('cd-overlay').classList.add('show');
+  setTimeout(()=>document.getElementById('cd-input-name').focus(),80);
+}
+function saveCd(){
+  const name=document.getElementById('cd-input-name').value.trim();
+  const date=document.getElementById('cd-input-date').value;
+  if(!name||!date){alert('請填寫名稱和日期');return;}
+  if(!DATA.countdowns)DATA.countdowns=[];
+  if(cdEditId){const i=DATA.countdowns.findIndex(c=>c.id===cdEditId);if(i>=0)DATA.countdowns[i]={id:cdEditId,name,date};}
+  else{DATA.countdowns.push({id:Date.now().toString(),name,date});}
+  saveData();closeCdModal();renderCountdown();
+}
+function deleteCd(){
+  if(!cdEditId)return;
+  DATA.countdowns=(DATA.countdowns||[]).filter(c=>c.id!==cdEditId);
+  saveData();closeCdModal();renderCountdown();
+}
+function closeCdModal(){document.getElementById('cd-overlay').classList.remove('show');cdEditId=null;}
+
+// ── Overlay close ──
+['day-overlay','wg-overlay','exam-overlay','cd-overlay','cm-overlay'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){if(e.target===this){closeDay();closeWG();closeExam();closeCdModal();resolveDragChoice('cancel');}});
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDay();closeWG();closeExam();closeCdModal();resolveDragChoice('cancel');}});
+</script>
+</body>
+</html>
