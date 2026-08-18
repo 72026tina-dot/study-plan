@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家教費用結算</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Klee+One&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #fffaf0;
+    --card: #fffdf7;
+    --border: #f5e2ae;
+    --accent: #d9971f;
+    --accent-light: #fff3d6;
+    --accent2: #f0b545;
+    --accent2-light: #fff0cf;
+    --text: #6b5324;
+    --muted: #b39865;
+    --gold-bg: #fff3d6;
+    --danger: #c0392b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+    padding: 28px 16px 64px;
+  }
+
+  .wrap { max-width: 480px; margin: 0 auto; }
+
+  .header { text-align: center; margin-bottom: 16px; }
+  .header h1 {
+    font-family: 'Klee One', cursive;
+    font-size: 1.6rem; font-weight: 700;
+    color: var(--accent); margin-bottom: 4px;
+  }
+  .header p { font-size: 0.72rem; color: var(--muted); }
+  .header-deco {
+    width: 40px; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px; margin: 8px auto 0;
+  }
+
+  .sync-note { text-align: center; font-size: 0.64rem; color: var(--muted); margin-bottom: 16px; }
+  .sync-note.err { color: var(--danger); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 6px; background: var(--card); border: 1.5px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 18px; }
+  .tab {
+    flex: 1; padding: 9px 4px; text-align: center; font-size: 0.8rem;
+    font-weight: 700; cursor: pointer; color: var(--muted);
+    background: transparent; border: none; border-radius: 8px;
+    transition: background 0.15s, color 0.15s;
+    font-family: 'Klee One', cursive;
+  }
+  .tab.active { background: var(--accent); color: #fff; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .total-bar {
+    background: linear-gradient(135deg, var(--accent-light), var(--accent2-light));
+    border: 1.5px solid var(--border); border-radius: 16px;
+    padding: 16px 18px; margin-bottom: 20px;
+    text-align: center;
+  }
+  .total-label { font-size: 0.7rem; color: var(--muted); margin-bottom: 4px; }
+  .total-num { font-family: 'DM Mono', monospace; font-size: 2rem; font-weight: 700; color: var(--accent); }
+  .total-sub { font-size: 0.66rem; color: var(--muted); margin-top: 4px; }
+
+  .student-card {
+    background: var(--card); border: 1.5px solid var(--border);
+    border-radius: 14px; padding: 14px 16px; margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .sc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 8px; }
+  .sc-name-row { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+  .sc-name {
+    font-family: 'Klee One', cursive; font-size: 1.05rem; font-weight: 700;
+    color: var(--text); border: none; background: transparent; flex: 1; min-width: 0;
+    padding: 2px 4px; border-radius: 6px;
+  }
+  .sc-name:focus { outline: none; background: var(--accent-light); }
+  .sc-tag {
+    font-size: 0.62rem; font-weight: 700; padding: 3px 9px; border-radius: 20px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--muted);
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  }
+  .sc-tag.elem { color: #2a7d5f; border-color: #a8d9c5; background: #eaf7f1; }
+  .sc-tag.mid { color: #7040aa; border-color: #d6c3ee; background: #f4edfc; }
+  .sc-del {
+    flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+    border: 1px solid var(--border); background: var(--bg); color: var(--danger);
+    cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center;
+  }
+  .sc-rate-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 0.72rem; color: var(--muted); }
+  .sc-rate-row input {
+    width: 70px; font-family: 'DM Mono', monospace; font-size: 0.8rem; font-weight: 700;
+    color: var(--text); border: 1.5px solid var(--border); border-radius: 8px;
+    padding: 4px 6px; text-align: center; background: var(--bg);
+  }
+  .sc-rate-row .ro {
+    font-family: 'DM Mono', monospace; font-size: 0.85rem; font-weight: 700; color: var(--accent);
+  }
+
+  .dur-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 10px 0; }
+  .dur-cell { text-align: center; }
+  .dur-label { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: var(--muted); margin-bottom: 3px; }
+  .dur-cell input {
+    width: 100%; text-align: center; font-family: 'DM Mono', monospace; font-size: 0.85rem;
+    font-weight: 700; color: var(--text); border: 1.5px solid var(--border); border-radius: 8px;
+    padding: 5px 2px; background: var(--bg);
+  }
+  .dur-cell input:focus { outline: none; border-color: var(--accent); }
+  .dur-unit { font-size: 0.56rem; color: var(--muted); margin-top: 2px; }
+
+  .sc-bottom {
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 1.5px solid var(--border); padding-top: 8px; margin-top: 2px;
+  }
+  .sc-hours { font-size: 0.7rem; color: var(--muted); }
+  .sc-hours strong { color: var(--text); }
+  .sc-fee { font-family: 'DM Mono', monospace; font-size: 1.05rem; font-weight: 700; color: var(--accent); }
+
+  .add-btn, .clear-btn {
+    width: 100%; padding: 12px; border-radius: 12px; border: 1.5px dashed var(--border);
+    background: var(--card); color: var(--muted); font-family: 'Noto Sans TC', sans-serif;
+    font-size: 0.8rem; font-weight: 700; cursor: pointer; margin-top: 6px;
+  }
+  .add-btn:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+  .clear-btn { border-style: solid; color: var(--danger); border-color: #eccfc9; margin-top: 16px; }
+  .clear-btn:hover { background: #fdf0ee; }
+
+  .empty { text-align: center; font-size: 0.78rem; color: var(--muted); padding: 24px 0; }
+
+  .picker-box {
+    background: var(--gold-bg); border: 1.5px solid var(--border); border-radius: 14px;
+    padding: 12px 14px; margin-bottom: 16px;
+  }
+  .picker-title { font-size: 0.72rem; font-weight: 700; color: var(--muted); margin-bottom: 8px; }
+  .picker-row { display: flex; gap: 8px; }
+  .picker-row select {
+    flex: 1; padding: 10px 8px; border-radius: 10px; border: 1.5px solid var(--border);
+    background: #fff; color: var(--text); font-family: 'Noto Sans TC', sans-serif;
+    font-size: 0.78rem; font-weight: 700;
+  }
+  .picker-row select:disabled { color: var(--muted); background: #f6f2e8; }
+  .picker-add-btn {
+    padding: 10px 16px; border-radius: 10px; border: none; background: var(--accent);
+    color: #fff; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+  }
+  .picker-add-btn:disabled { background: var(--border); cursor: default; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>📒 家教收費結算</h1>
+    <p>學生資料建一次，結算時直接選人帶入時薪</p>
+    <div class="header-deco"></div>
+  </div>
+  <div class="sync-note" id="sync-note">同步中…</div>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-btn-students" data-tab="students">👤 學生資料</button>
+    <button class="tab" id="tab-btn-settle" data-tab="settle">🧮 本月結算</button>
+  </div>
+
+  <!-- Page 1: student roster -->
+  <div class="page active" id="page-students">
+    <div id="roster-list"></div>
+    <button class="add-btn" id="add-student-btn">＋ 新增學生</button>
+  </div>
+
+  <!-- Page 2: monthly settlement -->
+  <div class="page" id="page-settle">
+    <div class="total-bar">
+      <div class="total-label">本月總額</div>
+      <div class="total-num" id="grand-total">0 元</div>
+      <div class="total-sub" id="grand-hours">共 0 小時</div>
+    </div>
+
+    <div class="picker-box">
+      <div class="picker-title">加入本月結算名單</div>
+      <div class="picker-row">
+        <select id="level-select">
+          <option value="">年級</option>
+          <option value="elem">國小</option>
+          <option value="mid">國中</option>
+        </select>
+        <select id="student-select" disabled>
+          <option value="">先選年級</option>
+        </select>
+        <button class="picker-add-btn" id="add-to-month-btn" disabled>加入</button>
+      </div>
+    </div>
+
+    <div id="settle-list"></div>
+    <button class="clear-btn" id="clear-btn">清空本月堂數</button>
+  </div>
+</div>
+
+<script>
+const DURATIONS = [3, 2.5, 2, 1, 0.5];
+const FB = 'https://math-plan-default-rtdb.asia-southeast1.firebasedatabase.app/tutor_fees.json';
+
+let data = { students: [], monthly: {} };
+let nextId = 1;
+
+async function load() {
+  const note = document.getElementById('sync-note');
+  try {
+    const r = await fetch(FB);
+    if (r.ok) {
+      const j = await r.json();
+      if (j && typeof j === 'object') data = j;
+    }
+    note.textContent = '已同步雲端';
+    setTimeout(() => { note.textContent = ''; }, 1500);
+  } catch (e) {
+    note.textContent = '雲端連線失敗，暫時只存在這台裝置的畫面上';
+    note.classList.add('err');
+  }
+  if (!Array.isArray(data.students)) data.students = [];
+  if (!data.monthly || typeof data.monthly !== 'object') data.monthly = {};
+  nextId = data.students.reduce((m, s) => Math.max(m, s.id), 0) + 1;
+  renderStudents();
+  renderSettle();
+}
+
+async function save() {
+  try { await fetch(FB, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); }
+  catch (e) { console.warn('雲端儲存失敗：', e); }
+}
+
+function newStudent() {
+  return { id: nextId++, name: '新學生', level: 'elem', rate: 600 };
+}
+
+// Counts are stored as an array aligned to DURATIONS by index (not keyed by the
+// duration value itself) because Firebase RTDB keys can't contain a "." and
+// 2.5 would break as an object key.
+function emptyCounts() { return [0, 0, 0, 0, 0]; }
+
+// Prefix monthly's keys with "s" (e.g. "s1") so Firebase RTDB never silently
+// auto-converts this object into a sparse array when the student ids happen
+// to look like sequential numeric keys.
+function mkey(id) { return 's' + id; }
+function mkeyToId(k) { return k.replace(/^s/, ''); }
+
+function calcTotals(counts, rate) {
+  let hours = 0, days = 0;
+  DURATIONS.forEach((d, i) => {
+    const c = parseFloat(counts[i]) || 0;
+    hours += d * c; days += c;
+  });
+  const fee = Math.round(hours * (parseFloat(rate) || 0));
+  return { days: Math.round(days * 10) / 10, hours: Math.round(hours * 10) / 10, fee };
+}
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('page-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ---------- Page 1: roster ---------- */
+function renderStudents() {
+  const list = document.getElementById('roster-list');
+  list.innerHTML = '';
+
+  if (data.students.length === 0) {
+    const e = document.createElement('div');
+    e.className = 'empty';
+    e.textContent = '還沒有學生，點下面「＋ 新增學生」開始';
+    list.appendChild(e);
+  }
+
+  data.students.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'student-card';
+    card.innerHTML = `
+      <div class="sc-top">
+        <div class="sc-name-row">
+          <input class="sc-name" value="${s.name}" data-id="${s.id}" data-field="name">
+          <button class="sc-tag ${s.level === 'elem' ? 'elem' : 'mid'}" data-id="${s.id}" data-action="toggle-level">${s.level === 'elem' ? '國小' : '國中'}</button>
+        </div>
+        <button class="sc-del" data-id="${s.id}" data-action="delete">✕</button>
+      </div>
+      <div class="sc-rate-row">
+        鐘點費
+        <input type="number" value="${s.rate}" data-id="${s.id}" data-field="rate">
+        元 / 小時
+      </div>
+    `;
+    list.appendChild(card);
+  });
+
+  list.querySelectorAll('input[data-field]').forEach(el => {
+    el.addEventListener('input', () => {
+      const s = data.students.find(x => x.id == el.dataset.id);
+      if (!s) return;
+      if (el.dataset.field === 'name') s.name = el.value;
+      if (el.dataset.field === 'rate') s.rate = el.value;
+      save();
+      renderSettle(); // rate/name changes should reflect in the settle tab too
+    });
+  });
+
+  list.querySelectorAll('[data-action="toggle-level"]').forEach(el => {
+    el.addEventListener('click', () => {
+      const s = data.students.find(x => x.id == el.dataset.id);
+      if (!s) return;
+      s.level = s.level === 'elem' ? 'mid' : 'elem';
+      save();
+      renderStudents();
+      renderSettle();
+    });
+  });
+
+  list.querySelectorAll('[data-action="delete"]').forEach(el => {
+    el.addEventListener('click', () => {
+      const s = data.students.find(x => x.id == el.dataset.id);
+      if (!s) return;
+      if (!confirm(`確定要刪除「${s.name}」的資料嗎？這個動作無法復原。`)) return;
+      data.students = data.students.filter(x => x.id != s.id);
+      delete data.monthly[mkey(s.id)];
+      save();
+      renderStudents();
+      renderSettle();
+    });
+  });
+}
+
+document.getElementById('add-student-btn').addEventListener('click', () => {
+  data.students.push(newStudent());
+  save();
+  renderStudents();
+  populateLevelCascade();
+});
+
+/* ---------- Page 2: settle ---------- */
+function populateLevelCascade() {
+  const levelSel = document.getElementById('level-select');
+  const studentSel = document.getElementById('student-select');
+  const addBtn = document.getElementById('add-to-month-btn');
+
+  const level = levelSel.value;
+  if (!level) {
+    studentSel.disabled = true;
+    studentSel.innerHTML = '<option value="">先選年級</option>';
+    addBtn.disabled = true;
+    return;
+  }
+  const candidates = data.students.filter(s => s.level === level && !(mkey(s.id) in data.monthly));
+  if (candidates.length === 0) {
+    studentSel.disabled = true;
+    studentSel.innerHTML = '<option value="">這個年級沒有可加入的學生</option>';
+    addBtn.disabled = true;
+    return;
+  }
+  studentSel.disabled = false;
+  studentSel.innerHTML = '<option value="">選擇學生</option>' +
+    candidates.map(s => `<option value="${s.id}">${s.name}（${s.rate} 元/hr）</option>`).join('');
+  addBtn.disabled = true;
+}
+
+document.getElementById('level-select').addEventListener('change', populateLevelCascade);
+document.getElementById('student-select').addEventListener('change', (ev) => {
+  document.getElementById('add-to-month-btn').disabled = !ev.target.value;
+});
+
+document.getElementById('add-to-month-btn').addEventListener('click', () => {
+  const id = document.getElementById('student-select').value;
+  if (!id) return;
+  data.monthly[mkey(id)] = emptyCounts();
+  save();
+  document.getElementById('level-select').value = '';
+  populateLevelCascade();
+  renderSettle();
+});
+
+function renderSettle() {
+  const list = document.getElementById('settle-list');
+  list.innerHTML = '';
+
+  const entries = Object.keys(data.monthly)
+    .map(k => data.students.find(s => s.id == mkeyToId(k)))
+    .filter(Boolean);
+
+  if (entries.length === 0) {
+    const e = document.createElement('div');
+    e.className = 'empty';
+    e.textContent = '還沒有加入本月結算名單，先在上面選年級跟學生';
+    list.appendChild(e);
+  }
+
+  let grandFee = 0, grandHours = 0, grandDays = 0;
+
+  entries.forEach(s => {
+    const counts = data.monthly[mkey(s.id)];
+    const { days, hours, fee } = calcTotals(counts, s.rate);
+    grandFee += fee; grandHours += hours; grandDays += days;
+
+    const card = document.createElement('div');
+    card.className = 'student-card';
+    card.innerHTML = `
+      <div class="sc-top">
+        <div class="sc-name-row">
+          <span class="sc-name" style="font-family:'Klee One',cursive;">${s.name}</span>
+          <span class="sc-tag ${s.level === 'elem' ? 'elem' : 'mid'}">${s.level === 'elem' ? '國小' : '國中'}</span>
+        </div>
+        <button class="sc-del" data-id="${s.id}" data-action="remove-month">✕</button>
+      </div>
+      <div class="sc-rate-row">鐘點費 <span class="ro">${s.rate}</span> 元 / 小時</div>
+      <div class="dur-grid">
+        ${DURATIONS.map((d, i) => `
+          <div class="dur-cell">
+            <div class="dur-label">${d}小時</div>
+            <input type="number" min="0" value="${counts[i]}" data-id="${s.id}" data-idx="${i}">
+            <div class="dur-unit">天數</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="sc-bottom">
+        <div class="sc-hours">本月共上 <strong class="sc-days-val">${days}</strong> 天・<strong class="sc-hours-val">${hours}</strong> 小時</div>
+        <div class="sc-fee">${fee.toLocaleString()} 元</div>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+
+  document.getElementById('grand-total').textContent = grandFee.toLocaleString() + ' 元';
+  document.getElementById('grand-hours').textContent = `共 ${Math.round(grandDays * 10) / 10} 天・${Math.round(grandHours * 10) / 10} 小時`;
+
+  list.querySelectorAll('input[data-idx]').forEach(el => {
+    el.addEventListener('input', () => {
+      const counts = data.monthly[mkey(el.dataset.id)];
+      if (!counts) return;
+      counts[el.dataset.idx] = el.value;
+      save();
+      renderTotalsOnly();
+    });
+  });
+
+  list.querySelectorAll('[data-action="remove-month"]').forEach(el => {
+    el.addEventListener('click', () => {
+      delete data.monthly[mkey(el.dataset.id)];
+      save();
+      renderSettle();
+      populateLevelCascade();
+    });
+  });
+
+  populateLevelCascade();
+}
+
+function renderTotalsOnly() {
+  const entries = Object.keys(data.monthly)
+    .map(k => data.students.find(s => s.id == mkeyToId(k)))
+    .filter(Boolean);
+
+  let grandFee = 0, grandHours = 0, grandDays = 0;
+  document.querySelectorAll('#settle-list .student-card').forEach((card, i) => {
+    const s = entries[i];
+    if (!s) return;
+    const counts = data.monthly[mkey(s.id)];
+    const { days, hours, fee } = calcTotals(counts, s.rate);
+    grandFee += fee; grandHours += hours; grandDays += days;
+    card.querySelector('.sc-days-val').textContent = days;
+    card.querySelector('.sc-hours-val').textContent = hours;
+    card.querySelector('.sc-fee').textContent = fee.toLocaleString() + ' 元';
+  });
+  document.getElementById('grand-total').textContent = grandFee.toLocaleString() + ' 元';
+  document.getElementById('grand-hours').textContent = `共 ${Math.round(grandDays * 10) / 10} 天・${Math.round(grandHours * 10) / 10} 小時`;
+}
+
+document.getElementById('clear-btn').addEventListener('click', () => {
+  if (!confirm('確定要清空本月所有堂數嗎？學生名單會保留，只清空堂數與金額。')) return;
+  Object.keys(data.monthly).forEach(k => { data.monthly[k] = emptyCounts(); });
+  save();
+  renderSettle();
+});
+
+load();
+</script>
+</body>
+</html>
