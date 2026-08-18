@@ -5,27 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>辰祐 - 數理學習成效表</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Playfair+Display:wght@700&family=DM+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Klee+One&family=DM+Mono:wght@400;500&display=swap');
 
   :root {
-    --bg: #fdf8f3;
-    --card: #ffffff;
-    --border: #ecddd0;
-    --accent: #d4521a;
-    --accent-light: #f5e8e0;
-    --accent2: #e8962a;
-    --accent2-light: #fdf3e0;
-    --green: #3a7d44;
-    --green-light: #eaf4ec;
-    --blue: #2a5caa;
-    --blue-light: #eaf0fb;
-    --text: #2a1a0e;
-    --muted: #9a8070;
-    --gold: #c8800a;
-    --gold-bg: #fdf3e0;
-    --done-bg: #fef0e8;
-    --done-border: #d4521a;
-    --streak-bg: #fff8f0;
+    --bg: #fffaf0;
+    --card: #fffdf7;
+    --border: #f5e2ae;
+    --accent: #d9971f;
+    --accent-light: #fff3d6;
+    --accent2: #f0b545;
+    --accent2-light: #fff0cf;
+    --green: #8fae6f;
+    --green-light: #f0f5e8;
+    --blue: #6f9bc7;
+    --blue-light: #eaf3fb;
+    --text: #6b5324;
+    --muted: #b39865;
+    --gold: #d9971f;
+    --gold-bg: #fff3d6;
+    --done-bg: #fff3d0;
+    --done-border: #e8a33d;
+    --streak-bg: #fffaee;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -41,7 +41,7 @@
   /* Header */
   .header { text-align: center; margin-bottom: 28px; position: relative; }
   .header h1 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Klee One', cursive;
     font-size: 1.8rem; font-weight: 700;
     color: var(--accent); margin-bottom: 4px;
     letter-spacing: 0.02em;
@@ -78,10 +78,11 @@
     background: var(--accent-light); border: 1.5px solid var(--border);
   }
   .tab {
-    flex: 1; padding: 9px 4px; text-align: center; font-size: 0.75rem;
+    flex: 1; padding: 9px 4px; text-align: center; font-size: 0.8rem;
     font-weight: 700; cursor: pointer; color: var(--muted);
     background: transparent; border: none; border-radius: 8px;
     transition: background 0.15s, color 0.15s;
+    font-family: 'Klee One', cursive;
   }
   .tab.active { background: var(--accent); color: white; box-shadow: 0 2px 6px rgba(212,82,26,0.25); }
   .section { display: none; } .section.active { display: block; }
@@ -102,6 +103,22 @@
   .ldot { width: 7px; height: 7px; border-radius: 50%; }
 
   /* Calendar */
+  .cal-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .cal-nav-btn {
+    width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--border);
+    background: var(--card); color: var(--accent); font-size: 1.2rem; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    line-height: 1; transition: background 0.15s, transform 0.1s;
+  }
+  .cal-nav-btn:hover:not(:disabled) { background: var(--accent-light); }
+  .cal-nav-btn:active:not(:disabled) { transform: scale(0.92); }
+  .cal-nav-btn:disabled { opacity: 0.3; cursor: default; }
+  .cal-nav-label {
+    font-family: 'Klee One', cursive; font-size: 1rem; font-weight: 700; color: var(--text);
+  }
   .cal-month { margin-bottom: 24px; }
   .cal-mlabel {
     font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted);
@@ -147,7 +164,7 @@
   }
   .exam-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.1); }
   .ec-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
-  .ec-name { font-size: 0.9rem; font-weight: 700; color: var(--accent); }
+  .ec-name { font-size: 1rem; font-weight: 700; color: var(--accent); font-family: 'Klee One', cursive; }
   .ec-pts { font-family: 'DM Mono', monospace; font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: var(--gold-bg); color: var(--gold); border: 1px solid var(--accent2); }
   .ec-info { font-size: 0.68rem; color: var(--muted); display: flex; align-items: center; justify-content: space-between; }
   .ec-score { font-family: 'DM Mono', monospace; font-size: 1rem; font-weight: 700; color: var(--text); }
@@ -162,7 +179,7 @@
     box-shadow: 0 1px 4px rgba(0,0,0,0.04);
   }
   .rule-block strong { color: var(--text); }
-  .rule-title { font-weight: 900; color: var(--text); font-size: 0.82rem; display: block; margin-bottom: 6px; }
+  .rule-title { font-weight: 700; color: var(--text); font-size: 0.92rem; display: block; margin-bottom: 6px; font-family: 'Klee One', cursive; }
   .rule-block.green { border-left-color: var(--green); }
   .rule-block.blue { border-left-color: var(--blue); }
   .rule-block.gold { border-left-color: var(--gold); }
@@ -195,7 +212,7 @@
   .overlay { display: none; position: fixed; inset: 0; background: rgba(42,26,14,0.3); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
   .overlay.show { display: flex; }
   .modal { background: white; border-radius: 18px; padding: 22px 18px 18px; width: 100%; max-width: 320px; box-shadow: 0 12px 40px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; }
-  .modal h3 { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; margin-bottom: 2px; color: var(--accent); }
+  .modal h3 { font-family: 'Klee One', cursive; font-size: 1rem; font-weight: 700; margin-bottom: 2px; color: var(--accent); }
   .msub { font-size: 0.68rem; color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 12px; }
   .mprev { background: var(--gold-bg); border: 1.5px solid var(--accent2); border-radius: 10px; padding: 8px 12px; text-align: center; font-size: 0.8rem; font-weight: 700; color: var(--gold); margin-bottom: 14px; }
   .mslabel { font-size: 0.62rem; font-weight: 700; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; margin-top: 12px; }
@@ -299,7 +316,7 @@
   #history-chart-wrap{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:0;margin-bottom:18px;box-shadow:0 2px 8px rgba(212,82,26,0.07);display:flex;overflow:hidden;}
   #chart-filter-panel{display:flex;flex-direction:column;gap:3px;padding:14px 10px;background:var(--accent-light);border-right:1.5px solid var(--border);min-width:72px;align-items:stretch;}
   #chart-right{flex:1;padding:14px 14px 10px;overflow:hidden;min-width:0;}
-  #history-chart-wrap h2{font-family:'Playfair Display',serif;font-size:0.9rem;font-weight:700;color:var(--accent);margin-bottom:8px;}
+  #history-chart-wrap h2{font-family:'Klee One',cursive;font-size:0.9rem;font-weight:700;color:var(--accent);margin-bottom:8px;}
   .cfp-label{font-size:0.58rem;font-weight:700;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;padding:2px 4px;font-family:'DM Mono',monospace;}
   .cfp-divider{height:1px;background:var(--border);margin:4px 0;}
   .cfb{font-size:0.68rem;font-weight:700;padding:5px 6px;border-radius:7px;border:1.5px solid transparent;background:transparent;color:var(--muted);cursor:pointer;text-align:left;font-family:'DM Mono',monospace;transition:all 0.15s;white-space:nowrap;}
@@ -319,7 +336,7 @@
   .chart-modal-overlay.show{display:flex;}
   .chart-modal{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:0 0 32px;}
   .chart-modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card);z-index:2;}
-  .chart-modal-header h3{font-family:'Outfit',sans-serif;font-size:1rem;font-weight:700;color:var(--accent);}
+  .chart-modal-header h3{font-family:'Klee One',cursive;font-size:1rem;font-weight:700;color:var(--accent);}
   .chart-modal-close{width:30px;height:30px;border-radius:50%;border:none;background:var(--bg);color:var(--muted);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .chart-modal-body{padding:14px 14px 8px;display:flex;flex-direction:column;gap:12px;}
   .cm-filter-panel{display:flex;flex-direction:column;gap:6px;}
@@ -331,7 +348,7 @@
 
 <div class="header">
   <h1>📐 辰祐 - 數理學習成效表</h1>
-  <p>每週三、五各小考一次（數學／理化）</p>
+  <p>每週六、日各小考一次（數學／理化）</p>
   <div class="header-deco"></div>
 </div>
 
@@ -342,6 +359,10 @@
   </div>
   <div class="prog-w"><div class="prog-f" id="prog-f" style="width:0%"></div></div>
   <div class="redeem" style="margin-top:7px;">段考後可換現金或選商品，<strong>每點 10 元</strong></div>
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px; gap:8px;">
+    <span class="redeem" id="settle-info" style="margin-top:0; text-align:left;"></span>
+    <button id="settle-btn" style="flex-shrink:0; font-size:0.7rem; font-weight:700; color:var(--accent); background:var(--card); border:1.5px solid var(--accent); border-radius:20px; padding:4px 12px; cursor:pointer; font-family:'Klee One',cursive;">✓ 本期已結算</button>
+  </div>
 </div>
 
 <div class="tabs">
@@ -362,6 +383,11 @@
     <div class="leg">～ 錯1題 +0.5點</div>
     <div class="leg">✗ 未達標 0點</div>
     <div class="leg">📌 任務加點</div>
+  </div>
+  <div class="cal-nav">
+    <button id="cal-prev" class="cal-nav-btn" aria-label="上個月">‹</button>
+    <div class="cal-nav-label" id="cal-nav-label"></div>
+    <button id="cal-next" class="cal-nav-btn" aria-label="下個月">›</button>
   </div>
   <div id="calendar"></div>
 </div>
@@ -426,7 +452,7 @@
 <div class="section" id="s-rules">
   <div class="rule-block">
     <span class="rule-title">📖 每週小考規則</span>
-    上課日：<strong>每週三、五</strong>，每次小考<strong>數學或理化各 5 題</strong>。<br><br>
+    上課日：<strong>每週六、日</strong>，每次小考<strong>數學或理化各 5 題</strong>。<br><br>
     <strong>5 題全對</strong> → +<strong>1 點</strong><br>
     <strong>錯 1 題（對 4 題）</strong> → +<strong>0.5 點</strong><br>
     <strong>錯 2 題以上</strong> → 0 點<br><br>
@@ -559,8 +585,10 @@ const schoolStart = new Date(2026, 7, 31); // 開學：8/31
 const examDay = schoolStart;
 const guanKaoDay = new Date(2028, 4, 20); // 2028/5/20 predicted
 
-const planStart = new Date(2026, 6, 1);
-const planEnd = new Date(2026, 8, 1);
+const planStart = new Date(2026, 8, 1);
+// Rolling window: always extends to 1 year ahead of today, so the calendar
+// never hits a wall as real time passes — no need to manually bump the end date.
+const planEnd = new Date(today.getFullYear() + 1, today.getMonth() + 1, 1);
 
 const SUBJECTS = [
   {key:'ch',   lbl:'國文', target:60, base:10, step:5, bonus:5},
@@ -593,7 +621,7 @@ function ePts(score, cfg) {
 function dk(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function fmt(d) { return `${d.getMonth()+1}/${d.getDate()} （${'日一二三四五六'[d.getDay()]}）`; }
 function dowMon(d) { return (d.getDay() + 6) % 7; }
-function isQuizDay(d) { const w = dowMon(d); return w === 2 || w === 4; } // Wed & Fri
+function isQuizDay(d) { const w = dowMon(d); return w === 5 || w === 6; } // Sat & Sun
 function quizPtsFor(correct) {
   const c = parseInt(correct);
   if (c === 5) return 1;
@@ -617,6 +645,8 @@ async function load() {
   } catch(e) { console.warn('Firebase load failed:', e); }
   if (!data.daily) data.daily = {};
   if (!data.exam) data.exam = {};
+  if (!data.settlements) data.settlements = [];
+  if (data.settleBaseline === undefined) data.settleBaseline = null;
   buildCal(); buildExam(); updSum(); buildHistory();
 }
 
@@ -625,9 +655,13 @@ async function save() {
 }
 
 // Calculate quiz points from confirmed twice-weekly quizzes
+// Only counts entries dated on/after the current settlement baseline (if any),
+// so a "settle" doesn't delete history — it just moves the starting line forward.
 function calcQuizPts() {
   let pts = 0;
-  Object.values(data.daily).forEach(e => {
+  const baseline = data.settleBaseline || null;
+  Object.entries(data.daily).forEach(([key, e]) => {
+    if (baseline && key < baseline) return;
     if (e && e.status === 'confirmed' && e.correct !== undefined && e.correct !== null && e.correct !== '') {
       pts += quizPtsFor(e.correct);
     }
@@ -637,14 +671,25 @@ function calcQuizPts() {
 
 function calcFreePts() {
   let pts = 0;
-  Object.values(data.daily).forEach(e => { pts += Math.min(3, parseInt(e.free?.pt || 0)); });
+  const baseline = data.settleBaseline || null;
+  Object.entries(data.daily).forEach(([key, e]) => {
+    if (baseline && key < baseline) return;
+    pts += Math.min(3, parseInt(e.free?.pt || 0));
+  });
   return pts;
 }
 
 function quizCounts() {
   let total = 0, done = 0;
-  const cur = new Date(planStart);
-  while (cur < planEnd) {
+  // Count from the current settlement baseline (or planStart if none yet)
+  // up through today — not all the way to the rolling planEnd — so the
+  // ratio stays a meaningful "so far" progress count instead of ballooning
+  // toward a far-future total as the window keeps auto-extending.
+  const startBound = data.settleBaseline ? new Date(data.settleBaseline) : new Date(planStart);
+  const endBound = new Date(today);
+  endBound.setDate(endBound.getDate() + 1);
+  const cur = new Date(startBound);
+  while (cur < endBound) {
     if (isQuizDay(cur)) {
       total++;
       const e = data.daily[dk(cur)];
@@ -663,39 +708,52 @@ function sw(t) {
   });
 }
 
+let calView = null; // { year, month } (month is 0-indexed)
+
+function clampCalView(y, m) {
+  const d = new Date(y, m, 1);
+  const minD = new Date(planStart.getFullYear(), planStart.getMonth(), 1);
+  const maxD = new Date(planEnd.getFullYear(), planEnd.getMonth() - 1, 1);
+  if (d < minD) return { year: minD.getFullYear(), month: minD.getMonth() };
+  if (d > maxD) return { year: maxD.getFullYear(), month: maxD.getMonth() };
+  return { year: d.getFullYear(), month: d.getMonth() };
+}
+
+function calShift(delta) {
+  calView = clampCalView(calView.year, calView.month + delta);
+  buildCal();
+}
+
 function buildCal() {
+  if (!calView) calView = clampCalView(today.getFullYear(), today.getMonth());
+
   const cal = document.getElementById('calendar');
   cal.innerHTML = '';
 
-  const weekStart = new Date(planStart);
-  weekStart.setDate(weekStart.getDate() - dowMon(weekStart));
+  const monthStart = new Date(calView.year, calView.month, 1);
+  const monthEnd = new Date(calView.year, calView.month + 1, 1);
 
-  const cur = new Date(weekStart);
-  let currentMonth = -1, currentSec = null, currentGrid = null;
+  document.getElementById('cal-nav-label').textContent = `${calView.year} 年 ${MN[calView.month]}`;
+  const minD = new Date(planStart.getFullYear(), planStart.getMonth(), 1);
+  const maxD = new Date(planEnd.getFullYear(), planEnd.getMonth() - 1, 1);
+  document.getElementById('cal-prev').disabled = monthStart <= minD;
+  document.getElementById('cal-next').disabled = monthStart >= maxD;
 
-  while (cur < planEnd) {
+  const wd = document.createElement('div'); wd.className = 'cal-wd';
+  WN.forEach(w => { const s = document.createElement('span'); s.textContent = w; wd.appendChild(s); });
+  cal.appendChild(wd);
+
+  const grid = document.createElement('div'); grid.className = 'cal-grid';
+  const offset = dowMon(monthStart);
+  for (let i = 0; i < offset; i++) {
+    const filler = document.createElement('div');
+    filler.className = 'cal-cell empty';
+    grid.appendChild(filler);
+  }
+
+  const cur = new Date(monthStart);
+  while (cur < monthEnd) {
     const d = new Date(cur);
-    const mo = d.getFullYear() * 100 + d.getMonth();
-
-    if (mo !== currentMonth) {
-      if (currentSec && currentGrid) { currentSec.appendChild(currentGrid); cal.appendChild(currentSec); }
-      currentMonth = mo;
-      currentSec = document.createElement('div'); currentSec.className = 'cal-month';
-      const lbl = document.createElement('div'); lbl.className = 'cal-mlabel';
-      lbl.textContent = `${d.getFullYear()} 年 ${MN[d.getMonth()]}`; currentSec.appendChild(lbl);
-      const wd = document.createElement('div'); wd.className = 'cal-wd';
-      WN.forEach(w => { const s = document.createElement('span'); s.textContent = w; wd.appendChild(s); });
-      currentSec.appendChild(wd);
-      currentGrid = document.createElement('div'); currentGrid.className = 'cal-grid';
-      // pad the start of this month's grid so the first day lands in its correct weekday column
-      const offset = dowMon(d);
-      for (let i = 0; i < offset; i++) {
-        const filler = document.createElement('div');
-        filler.className = 'cal-cell empty';
-        currentGrid.appendChild(filler);
-      }
-    }
-
     const inRange = d >= planStart && d < planEnd && isQuizDay(d);
     const isToday = d.getTime() === today.getTime();
     const key = dk(d);
@@ -720,17 +778,15 @@ function buildCal() {
     }
     cell.innerHTML = html;
     if (inRange) cell.addEventListener('click', () => openDM(key));
-    currentGrid.appendChild(cell);
+    grid.appendChild(cell);
 
     cur.setDate(cur.getDate() + 1);
-    const nextMo = cur.getFullYear() * 100 + cur.getMonth();
-    if (nextMo !== currentMonth && cur < planEnd && dowMon(cur) !== 0) {
-      if (currentSec && currentGrid) { currentSec.appendChild(currentGrid); cal.appendChild(currentSec); }
-      currentMonth = -1; currentSec = null; currentGrid = null;
-    }
   }
-  if (currentSec && currentGrid) { currentSec.appendChild(currentGrid); cal.appendChild(currentSec); }
+  cal.appendChild(grid);
 }
+
+document.getElementById('cal-prev').onclick = () => calShift(-1);
+document.getElementById('cal-next').onclick = () => calShift(1);
 
 // Populate semester selector
 function initSemSel() {
@@ -906,6 +962,16 @@ function updSum() {
   document.getElementById('quiz-done-count').textContent = qc.done;
   document.getElementById('quiz-total-count').textContent = qc.total;
   document.getElementById('quiz-pts-disp').textContent = `小考點數：${quizTotal} 點`;
+
+  const settleInfo = document.getElementById('settle-info');
+  if (settleInfo) {
+    if (data.settlements && data.settlements.length) {
+      const last = data.settlements[data.settlements.length - 1];
+      settleInfo.textContent = `上次結算：${last.date}（${last.points} 點 / ${last.money} 元）`;
+    } else {
+      settleInfo.textContent = '尚未結算過';
+    }
+  }
 
   const diff = Math.ceil((examDay - today) / 86400000);
   document.getElementById('cd-n').innerHTML = `${diff} <span>天</span>`;
@@ -1153,6 +1219,20 @@ function setCustomSelect(optsId, labelId, val) {
 
 initCustomSelect('dm-subject-btn', 'dm-subject-opts', 'dm-subject-label', (val) => { tSubject = val; updDMPreview(); });
 initCustomSelect('dm-correct-btn', 'dm-correct-opts', 'dm-correct-label', (val) => { tCorrect = val; updDMPreview(); });
+
+document.getElementById('settle-btn').onclick = async () => {
+  const quizTotal = calcQuizPts();
+  const freePts = calcFreePts();
+  const pts = quizTotal + freePts;
+  const money = pts * 10;
+  const ok = confirm(`確定要結算本期嗎？\n\n目前點數：${pts} 點（${money} 元）\n\n結算後，這段期間的小考／自由練習紀錄仍會保留，但不會再計入下一期的點數，會從今天重新開始累計。`);
+  if (!ok) return;
+  data.settlements.push({ date: dk(today), points: pts, money: money });
+  data.settleBaseline = dk(today);
+  await save();
+  updSum();
+};
+
 load();
 
 document.querySelectorAll('#chart-filter-panel > .cfb').forEach(b => {
