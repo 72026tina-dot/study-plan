@@ -181,7 +181,6 @@
     <div class="total-bar">
       <div class="total-label">本月總額</div>
       <div class="total-num" id="grand-total">0 元</div>
-      <div class="total-sub" id="grand-hours">共 0 小時</div>
     </div>
 
     <div class="picker-box">
@@ -415,12 +414,12 @@ function renderSettle() {
     list.appendChild(e);
   }
 
-  let grandFee = 0, grandHours = 0, grandDays = 0;
+  let grandFee = 0;
 
   entries.forEach(s => {
     const counts = data.monthly[mkey(s.id)];
     const { days, hours, fee } = calcTotals(counts, s.rate);
-    grandFee += fee; grandHours += hours; grandDays += days;
+    grandFee += fee;
 
     const card = document.createElement('div');
     card.className = 'student-card';
@@ -451,7 +450,6 @@ function renderSettle() {
   });
 
   document.getElementById('grand-total').textContent = grandFee.toLocaleString() + ' 元';
-  document.getElementById('grand-hours').textContent = `共 ${Math.round(grandDays * 10) / 10} 天・${Math.round(grandHours * 10) / 10} 小時`;
 
   list.querySelectorAll('input[data-idx]').forEach(el => {
     el.addEventListener('input', () => {
@@ -480,19 +478,18 @@ function renderTotalsOnly() {
     .map(k => data.students.find(s => s.id == mkeyToId(k)))
     .filter(Boolean);
 
-  let grandFee = 0, grandHours = 0, grandDays = 0;
+  let grandFee = 0;
   document.querySelectorAll('#settle-list .student-card').forEach((card, i) => {
     const s = entries[i];
     if (!s) return;
     const counts = data.monthly[mkey(s.id)];
     const { days, hours, fee } = calcTotals(counts, s.rate);
-    grandFee += fee; grandHours += hours; grandDays += days;
+    grandFee += fee;
     card.querySelector('.sc-days-val').textContent = days;
     card.querySelector('.sc-hours-val').textContent = hours;
     card.querySelector('.sc-fee').textContent = fee.toLocaleString() + ' 元';
   });
   document.getElementById('grand-total').textContent = grandFee.toLocaleString() + ' 元';
-  document.getElementById('grand-hours').textContent = `共 ${Math.round(grandDays * 10) / 10} 天・${Math.round(grandHours * 10) / 10} 小時`;
 }
 
 document.getElementById('clear-btn').addEventListener('click', () => {
