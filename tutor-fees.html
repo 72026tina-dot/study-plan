@@ -107,16 +107,16 @@
     font-family: 'DM Mono', monospace; font-size: 0.85rem; font-weight: 700; color: var(--accent);
   }
 
-  .dur-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 10px 0; }
+  .dur-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 10px 0; }
   .dur-cell { text-align: center; }
-  .dur-label { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: var(--muted); margin-bottom: 3px; }
+  .dur-label { font-family: 'DM Mono', monospace; font-size: 0.54rem; color: var(--muted); margin-bottom: 3px; }
   .dur-cell input {
-    width: 100%; text-align: center; font-family: 'DM Mono', monospace; font-size: 0.85rem;
+    width: 100%; text-align: center; font-family: 'DM Mono', monospace; font-size: 0.78rem;
     font-weight: 700; color: var(--text); border: 1.5px solid var(--border); border-radius: 8px;
-    padding: 5px 2px; background: var(--bg);
+    padding: 5px 1px; background: var(--bg);
   }
   .dur-cell input:focus { outline: none; border-color: var(--accent); }
-  .dur-unit { font-size: 0.56rem; color: var(--muted); margin-top: 2px; }
+  .dur-unit { font-size: 0.52rem; color: var(--muted); margin-top: 2px; }
 
   .sc-bottom {
     display: flex; align-items: center; justify-content: space-between;
@@ -205,7 +205,7 @@
 </div>
 
 <script>
-const DURATIONS = [3, 2.5, 2, 1, 0.5];
+const DURATIONS = [3, 2.5, 2, 1.5, 1, 0.5];
 const FB = 'https://math-plan-default-rtdb.asia-southeast1.firebasedatabase.app/tutor_fees.json';
 
 let data = { students: [], monthly: {} };
@@ -227,6 +227,18 @@ async function load() {
   }
   if (!Array.isArray(data.students)) data.students = [];
   if (!data.monthly || typeof data.monthly !== 'object') data.monthly = {};
+  // Migrate old data saved before the 1.5hr column existed: old arrays were
+  // [3, 2.5, 2, 1, 0.5] (5 slots). Insert a 0 at index 3 so the 1hr/0.5hr
+  // counts shift into their new positions under [3, 2.5, 2, 1.5, 1, 0.5].
+  let migrated = false;
+  Object.keys(data.monthly).forEach(k => {
+    const c = data.monthly[k];
+    if (Array.isArray(c) && c.length === 5) {
+      data.monthly[k] = [c[0], c[1], c[2], 0, c[3], c[4]];
+      migrated = true;
+    }
+  });
+  if (migrated) save();
   nextId = data.students.reduce((m, s) => Math.max(m, s.id), 0) + 1;
   renderStudents();
   renderSettle();
@@ -244,7 +256,7 @@ function newStudent() {
 // Counts are stored as an array aligned to DURATIONS by index (not keyed by the
 // duration value itself) because Firebase RTDB keys can't contain a "." and
 // 2.5 would break as an object key.
-function emptyCounts() { return [0, 0, 0, 0, 0]; }
+function emptyCounts() { return [0, 0, 0, 0, 0, 0]; }
 
 // Prefix monthly's keys with "s" (e.g. "s1") so Firebase RTDB never silently
 // auto-converts this object into a sparse array when the student ids happen
