@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>賢祐 - 英文學習成效表</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Klee+One&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #f5faf8;
+    --card: #ffffff;
+    --border: #cdeae2;
+    --accent: #2f8f7e;
+    --accent-light: #e3f6f1;
+    --accent2: #4fb89f;
+    --accent2-light: #eafaf5;
+    --green: #6fae7a;
+    --green-light: #eef7ec;
+    --blue: #6f9bc7;
+    --blue-light: #eaf3fb;
+    --text: #2c4a44;
+    --muted: #7fa89e;
+    --gold: #d9971f;
+    --gold-bg: #fff3d6;
+    --done-bg: #e3f6f1;
+    --done-border: #2f8f7e;
+    --streak-bg: #f5faf8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+    padding: 28px 16px 64px;
+  }
+
+  /* Header */
+  .header { text-align: center; margin-bottom: 28px; position: relative; }
+  .header h1 {
+    font-family: 'Klee One', cursive;
+    font-size: 1.8rem; font-weight: 700;
+    color: var(--accent); margin-bottom: 4px;
+    letter-spacing: 0.02em;
+  }
+  .header p { font-size: 0.75rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .header-deco {
+    width: 40px; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px; margin: 8px auto 0;
+  }
+
+  /* Countdown */
+  .countdown-wrap { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 18px; }
+  .cd-card {
+    background: var(--card); border: 1.5px solid var(--border); border-left: 3px solid var(--gold);
+    border-radius: 12px; padding: 9px 12px; display: flex; align-items: center; gap: 10px;
+    min-width: 148px; flex-shrink: 0; box-shadow: 0 1px 4px rgba(0,0,0,0.05); position: relative;
+  }
+  .cd-left { flex: 1; min-width: 0; }
+  .cd-name { font-size: 0.72rem; font-weight: 700; color: var(--text); font-family: 'Klee One', cursive; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cd-date { font-size: 0.6rem; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 1px; }
+  .cd-days { text-align: center; }
+  .cd-num { font-family: 'DM Mono', monospace; font-size: 1.3rem; font-weight: 700; color: var(--gold); line-height: 1; }
+  .cd-lbl { font-size: 0.55rem; color: var(--muted); }
+  .cd-edit-btn { position: absolute; top: 3px; right: 4px; background: none; border: none; font-size: 0.62rem; color: var(--muted); cursor: pointer; padding: 2px; }
+  .cd-add-btn {
+    border: 1.5px dashed var(--accent2); background: var(--accent-light); color: var(--accent);
+    border-radius: 12px; padding: 9px 16px; font-size: 0.75rem; font-weight: 700; cursor: pointer;
+    flex-shrink: 0; white-space: nowrap; font-family: 'Klee One', cursive;
+  }
+  .cd-add-btn:hover { opacity: 0.85; }
+  .field-row { display: flex; flex-direction: column; gap: 3px; margin-bottom: 9px; }
+  .field-row label { font-size: 0.68rem; font-weight: 700; color: var(--muted); }
+  .field-row input { padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 0.8rem; background: var(--bg); color: var(--text); }
+  .field-row input:focus { outline: none; border-color: var(--accent); }
+
+  /* Points bar */
+  .pts-bar {
+    background: linear-gradient(135deg, var(--accent-light), var(--accent2-light));
+    border: 1.5px solid var(--border); border-radius: 16px;
+    padding: 16px 18px; margin-bottom: 22px;
+    box-shadow: 0 2px 8px rgba(47,143,126,0.08);
+  }
+  .pts-top { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 10px; }
+  .pts-num { font-family: 'DM Mono', monospace; font-size: 2.2rem; font-weight: 700; color: var(--accent); line-height: 1; }
+  .pts-sub { font-size: 0.62rem; color: var(--muted); margin-top: 2px; }
+  .pts-right { text-align: right; }
+  .stat-n { font-family: 'DM Mono', monospace; font-size: 0.95rem; font-weight: 700; color: var(--text); }
+  .stat-l { font-size: 0.58rem; color: var(--muted); display: block; }
+  .prog-w { background: rgba(0,0,0,0.08); border-radius: 99px; height: 7px; overflow: hidden; }
+  .prog-f { height: 100%; background: linear-gradient(90deg, var(--accent), var(--gold)); border-radius: 99px; transition: width 0.5s; }
+  .redeem { font-size: 0.68rem; color: var(--muted); text-align: center; margin-top: 8px; }
+  .redeem strong { color: var(--accent); }
+  .goto-gift-btn {
+    display: block; width: 100%; margin-top: 10px; padding: 9px;
+    background: var(--gold); color: white; border: none; border-radius: 10px;
+    font-family: 'Klee One', cursive; font-size: 0.85rem; font-weight: 700;
+    cursor: pointer; box-shadow: 0 2px 8px rgba(217,151,31,0.3);
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .goto-gift-btn:hover { opacity: 0.9; }
+  .goto-gift-btn:active { transform: scale(0.98); }
+
+  /* Tabs */
+  .tabs {
+    display: flex; border-radius: 12px; overflow: hidden;
+    margin-bottom: 22px; gap: 6px; padding: 4px;
+    background: var(--accent-light); border: 1.5px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .tab {
+    flex: 1; min-width: 62px; padding: 9px 4px; text-align: center; font-size: 0.75rem;
+    font-weight: 700; cursor: pointer; color: var(--muted);
+    background: transparent; border: none; border-radius: 8px;
+    transition: background 0.15s, color 0.15s;
+    font-family: 'Klee One', cursive;
+  }
+  .tab.active { background: var(--accent); color: white; box-shadow: 0 2px 6px rgba(47,143,126,0.25); }
+  .section { display: none; } .section.active { display: block; }
+
+  /* Week streak badge */
+  .week-streak-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--streak-bg); border: 1.5px solid var(--border);
+    border-radius: 10px; padding: 10px 14px; margin-bottom: 16px;
+  }
+  .streak-label { font-size: 0.75rem; color: var(--muted); }
+  .streak-label strong { color: var(--text); }
+  .streak-pts { font-family: 'DM Mono', monospace; font-size: 0.78rem; font-weight: 700; color: var(--gold); }
+
+  /* Legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-bottom: 16px; }
+  .leg { display: flex; align-items: center; gap: 5px; font-size: 0.64rem; color: var(--muted); padding: 3px 9px; border-radius: 20px; border: 1px solid var(--border); background: var(--card); }
+  .ldot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .ldot.ok { background: #4d9a6a; }
+  .ldot.mid { background: #e0a83a; }
+  .ldot.bad { background: #d9645a; }
+
+  /* Calendar */
+  .cal-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .cal-nav-btn {
+    width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--border);
+    background: var(--card); color: var(--accent); font-size: 1.2rem; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    line-height: 1; transition: background 0.15s, transform 0.1s;
+  }
+  .cal-nav-btn:hover:not(:disabled) { background: var(--accent-light); }
+  .cal-nav-btn:active:not(:disabled) { transform: scale(0.92); }
+  .cal-nav-btn:disabled { opacity: 0.3; cursor: default; }
+  .cal-nav-label {
+    font-family: 'Klee One', cursive; font-size: 1rem; font-weight: 700; color: var(--text);
+  }
+  .cal-month { margin-bottom: 24px; }
+  .cal-wd { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-bottom: 4px; }
+  .cal-wd span { text-align: center; font-size: 0.58rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
+
+  .cal-cell {
+    aspect-ratio: 1; border-radius: 10px; border: 1.5px solid var(--border);
+    background: var(--card); display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 3px 2px; cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.15s;
+    position: relative; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .cal-cell:hover:not(.empty):not(.outrange) { transform: scale(1.07); box-shadow: 0 4px 12px rgba(47,143,126,0.15); }
+  .cal-cell.empty { border-color: transparent; background: transparent; cursor: default; box-shadow: none; }
+  .cal-cell.outrange { background: rgba(0,0,0,0.03); opacity: 0.3; cursor: default; box-shadow: none; }
+  .cal-cell.today { box-shadow: 0 0 0 2.5px var(--accent); }
+  .cal-cell.confirmed { background: var(--done-bg); border-color: var(--done-border); }
+
+  .cell-date { font-family: 'DM Mono', monospace; font-size: 0.58rem; color: var(--muted); line-height: 1; margin-bottom: 2px; }
+  .cell-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); margin-top: 2px; }
+  .cell-badge { width: 15px; height: 15px; border-radius: 50%; margin-top: 2px; box-shadow: 0 0 0 2px rgba(255,255,255,0.6); }
+  .cell-badge.ok { background: #4d9a6a; }
+  .cell-badge.mid { background: #e0a83a; }
+  .cell-badge.bad { background: #d9645a; }
+  .cell-pin { font-size: 0.55rem; line-height: 1; margin-top: 1px; }
+
+  /* Exam cards */
+  .exam-card {
+    background: var(--card); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+    cursor: pointer; transition: box-shadow 0.15s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .exam-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.1); }
+  .ec-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+  .ec-name { font-size: 1rem; font-weight: 700; color: var(--accent); font-family: 'Klee One', cursive; }
+  .ec-pts { font-family: 'DM Mono', monospace; font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: var(--gold-bg); color: var(--gold); border: 1px solid var(--gold); }
+  .ec-info { font-size: 0.68rem; color: var(--muted); display: flex; align-items: center; justify-content: space-between; }
+  .ec-score { font-family: 'DM Mono', monospace; font-size: 1rem; font-weight: 700; color: var(--text); }
+  .ec-prog { background: var(--border); border-radius: 99px; height: 5px; margin-top: 7px; overflow: hidden; }
+  .ec-pf { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; transition: width 0.4s; }
+
+  /* Gift shop */
+  .gift-note {
+    background: var(--card); border: 1.5px solid var(--border); border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 14px; font-size: 0.75rem; color: var(--muted); line-height: 1.7;
+  }
+  .gift-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+  .gift-card {
+    background: var(--card); border: 1.5px solid var(--border); border-radius: 14px;
+    padding: 12px 12px 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    display: flex; flex-direction: column; gap: 6px; position: relative;
+  }
+  .gift-thumb { width: 34px; height: 34px; border-radius: 8px; object-fit: cover; background: var(--accent-light); flex-shrink: 0; }
+  .gift-thumb-ph { width: 34px; height: 34px; border-radius: 8px; background: var(--accent-light); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+  .gift-top-row { display: flex; align-items: center; gap: 8px; padding-right: 68px; }
+  .gift-name { font-size: 0.85rem; font-weight: 700; color: var(--text); font-family: 'Klee One', cursive; line-height: 1.3; }
+  .gift-cost { font-family: 'DM Mono', monospace; font-size: 0.72rem; font-weight: 700; color: var(--gold); background: var(--gold-bg); border: 1px solid var(--gold); border-radius: 20px; padding: 2px 9px; align-self: flex-start; }
+  .gift-redeem-btn {
+    margin-top: 2px; padding: 7px; border: none; border-radius: 8px;
+    background: var(--accent); color: white; font-weight: 700; font-size: 0.75rem;
+    cursor: pointer; font-family: 'Noto Sans TC', sans-serif; transition: opacity 0.15s;
+  }
+  .gift-redeem-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+  .gift-admin-row { display: flex; gap: 6px; position: absolute; top: 8px; right: 8px; }
+  .gift-admin-btn { width: 20px; height: 20px; border-radius: 6px; border: none; background: rgba(0,0,0,0.05); color: var(--muted); font-size: 0.6rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .gift-admin-btn:hover { background: rgba(0,0,0,0.1); }
+  .gift-add-form {
+    background: var(--accent-light); border: 1.5px dashed var(--accent2); border-radius: 12px;
+    padding: 12px; display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap;
+  }
+  .gift-add-form input {
+    padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px;
+    font-family: 'Noto Sans TC', sans-serif; font-size: 0.8rem; background: var(--card); color: var(--text);
+  }
+  .gift-add-form input[name=gname] { flex: 1 1 120px; }
+  .gift-add-form input[name=gcost] { width: 70px; }
+  .gift-add-form button {
+    padding: 8px 14px; border: none; border-radius: 8px; background: var(--accent);
+    color: white; font-weight: 700; font-size: 0.8rem; cursor: pointer; font-family: 'Klee One', cursive;
+  }
+  .redeem-log-title { font-size: 0.8rem; font-weight: 700; color: var(--text); margin: 6px 0 8px; font-family: 'Klee One', cursive; }
+  .redeem-item {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--card); border: 1.5px solid var(--border); border-radius: 10px;
+    padding: 9px 12px; margin-bottom: 6px; font-size: 0.78rem;
+  }
+  .redeem-item .ri-l { color: var(--text); }
+  .redeem-item .ri-date { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.65rem; display: block; }
+  .redeem-item .ri-cost { color: var(--gold); font-weight: 700; font-family: 'DM Mono', monospace; margin-right: 8px; }
+  .ri-undo { border: none; background: none; color: var(--muted); font-size: 0.8rem; cursor: pointer; }
+  .empty-note { text-align: center; color: var(--muted); font-size: 0.78rem; padding: 18px 0; }
+
+  /* Rules */
+  .rule-block {
+    background: var(--card); border-left: 3px solid var(--accent);
+    border-radius: 0 10px 10px 0; padding: 14px 16px; margin-bottom: 12px;
+    font-size: 0.76rem; color: var(--muted); line-height: 1.85;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .rule-block strong { color: var(--text); }
+  .rule-title { font-weight: 700; color: var(--text); font-size: 0.92rem; display: block; margin-bottom: 6px; font-family: 'Klee One', cursive; }
+  .rule-block.green { border-left-color: var(--green); }
+  .rule-block.blue { border-left-color: var(--blue); }
+  .rule-block.gold { border-left-color: var(--gold); }
+  .rule-block.red { border-left-color: #c0392b; }
+  .drive-link-btn {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 9px;
+    padding: 9px 16px; border-radius: 10px; background: var(--blue); color: white;
+    font-weight: 700; font-size: 0.78rem; text-decoration: none; font-family: 'Klee One', cursive;
+    box-shadow: 0 2px 8px rgba(111,155,199,0.35); transition: opacity 0.15s;
+  }
+  .drive-link-btn:hover { opacity: 0.88; }
+
+  /* Modal */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(20,40,36,0.3); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+  .overlay.show { display: flex; }
+  .modal { background: white; border-radius: 18px; padding: 22px 18px 18px; width: 100%; max-width: 320px; box-shadow: 0 12px 40px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-family: 'Klee One', cursive; font-size: 1rem; font-weight: 700; margin-bottom: 2px; color: var(--accent); }
+  .msub { font-size: 0.68rem; color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 12px; }
+  .mprev { background: var(--gold-bg); border: 1.5px solid var(--gold); border-radius: 10px; padding: 8px 12px; text-align: center; font-size: 0.8rem; font-weight: 700; color: var(--gold); margin-bottom: 14px; }
+  .mslabel { font-size: 0.62rem; font-weight: 700; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; margin-top: 12px; }
+  .check-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; border-radius: 9px; border: 1.5px solid var(--border);
+    margin-bottom: 6px; cursor: pointer; transition: background 0.12s, border-color 0.12s;
+    font-size: 0.85rem; font-weight: 700;
+  }
+  .check-row.checked { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+  .check-icon { font-size: 0.9rem; }
+  .mrow { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+  .mrow input[type=text] { flex: 1; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 0.8rem; background: var(--bg); color: var(--text); }
+  .mrow input:focus, .mrow select:focus { outline: none; border-color: var(--accent); }
+  .mbtns { display: flex; gap: 8px; margin-top: 16px; }
+  .btn { flex: 1; padding: 11px; border: none; border-radius: 9px; font-family: 'Noto Sans TC', sans-serif; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: opacity 0.15s, transform 0.1s; }
+  .btn:hover { opacity: 0.85; }
+  .btn:active { transform: scale(0.98); }
+  .btn-s { background: var(--accent); color: white; box-shadow: 0 2px 8px rgba(47,143,126,0.3); }
+  .btn-c { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+  .btn-x { background: #fdecea; color: #b83030; border: 1px solid #f0a0a0; }
+  .em-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .em-row label { font-size: 0.8rem; color: var(--muted); min-width: 55px; }
+  .em-row input { width: 70px; padding: 9px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 1rem; text-align: center; background: var(--bg); color: var(--text); }
+  .em-row input:focus { outline: none; border-color: var(--accent); }
+  .em-pts { font-size: 0.82rem; color: var(--gold); font-weight: 700; }
+
+  .status-note {
+    text-align: center; font-size: 0.75rem; padding: 7px;
+    border-radius: 8px; margin-bottom: 8px; font-weight: 700;
+  }
+  .status-note.confirmed { background: #eef7ec; color: #3a7d44; border: 1px solid #3a7d44; }
+
+  /* Custom dropdown (Android LINE compatible) */
+  .custom-select-wrap { position: relative; margin-bottom: 8px; }
+  .custom-select-btn {
+    width: 100%; padding: 8px 36px 8px 10px;
+    border: 1.5px solid var(--border); border-radius: 8px;
+    font-family: 'Noto Sans TC', sans-serif; font-size: 0.85rem;
+    color: var(--text); background: var(--bg);
+    cursor: pointer; text-align: left; position: relative;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .custom-select-btn::after {
+    content: '';
+    width: 12px; height: 8px; flex-shrink: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237fa89e' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: center;
+    transition: transform 0.2s;
+  }
+  .custom-select-btn.open::after { transform: rotate(180deg); }
+  .custom-select-btn.open { border-color: var(--accent); }
+  .custom-select-opts {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: white; border: 1.5px solid var(--accent);
+    border-radius: 10px; z-index: 9999; overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  }
+  .custom-select-opts.show { display: block; }
+  .custom-select-opt {
+    padding: 11px 14px; font-size: 0.85rem; font-family: 'Noto Sans TC', sans-serif;
+    color: var(--text); cursor: pointer; border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  .custom-select-opt:last-child { border-bottom: none; }
+  .custom-select-opt:hover, .custom-select-opt:active { background: var(--accent-light); color: var(--accent); }
+  .custom-select-opt.selected { color: var(--accent); font-weight: 700; background: var(--accent-light); }
+
+  /* Teacher confirm modal */
+  .teacher-modal { background: white; border-radius: 18px; padding: 22px 18px 18px; width: 100%; max-width: 300px; box-shadow: 0 12px 40px rgba(0,0,0,0.2); }
+  .teacher-modal h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; color: #3a7d44; }
+  .pw-input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 9px; font-family: 'DM Mono', monospace; font-size: 1.2rem; text-align: center; letter-spacing: 0.2em; margin-bottom: 10px; background: var(--bg); }
+  .pw-input:focus { outline: none; border-color: #3a7d44; }
+  .pw-error { font-size: 0.75rem; color: #b83030; text-align: center; margin-bottom: 8px; min-height: 18px; }
+
+  #history-chart-wrap{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:0;margin-bottom:18px;box-shadow:0 2px 8px rgba(47,143,126,0.07);display:flex;overflow:hidden;}
+  #chart-filter-panel{display:flex;flex-direction:column;gap:3px;padding:14px 10px;background:var(--accent-light);border-right:1.5px solid var(--border);min-width:72px;align-items:stretch;}
+  #chart-right{flex:1;padding:14px 14px 10px;overflow:hidden;min-width:0;}
+  #history-chart-wrap h2{font-family:'Klee One',cursive;font-size:0.9rem;font-weight:700;color:var(--accent);margin-bottom:8px;}
+  .cfp-label{font-size:0.58rem;font-weight:700;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;padding:2px 4px;font-family:'DM Mono',monospace;}
+  .cfp-divider{height:1px;background:var(--border);margin:4px 0;}
+  .cfb{font-size:0.68rem;font-weight:700;padding:5px 6px;border-radius:7px;border:1.5px solid transparent;background:transparent;color:var(--muted);cursor:pointer;text-align:left;font-family:'DM Mono',monospace;transition:all 0.15s;white-space:nowrap;}
+  .cfb:hover{background:var(--card);color:var(--accent);}
+  .cfb.active{background:var(--accent);color:white;border-color:var(--accent);}
+  #chart-subj-btns{display:flex;flex-direction:column;gap:2px;}
+  .chart-sem-btns{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;}
+  .csb{font-size:0.68rem;font-weight:700;padding:3px 9px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;font-family:'DM Mono',monospace;transition:all 0.15s;}
+  .csb.active{background:var(--accent);color:white;border-color:var(--accent);}
+  #history-table th, #history-table td { border: 1px solid var(--border); white-space: nowrap; }
+  #history-table thead th { font-weight: 700; font-size: 0.75rem; color: var(--accent); }
+  #history-table tbody td:first-child { font-size: 0.73rem; color: var(--text); white-space: nowrap; }
+  #history-table tbody td { font-family: 'DM Mono', monospace; font-size: 0.78rem; color: var(--text); }
+  #chart-expand-btn{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:10px;background:var(--accent);color:white;border:none;font-size:1.2rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(47,143,126,0.35);z-index:20;transition:transform 0.15s,box-shadow 0.15s;}
+  #chart-expand-btn:hover{transform:scale(1.12);box-shadow:0 4px 14px rgba(47,143,126,0.45);}
+  .chart-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;align-items:flex-end;justify-content:center;padding:0;}
+  .chart-modal-overlay.show{display:flex;}
+  .chart-modal{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:0 0 32px;}
+  .chart-modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card);z-index:2;}
+  .chart-modal-header h3{font-family:'Klee One',cursive;font-size:1rem;font-weight:700;color:var(--accent);}
+  .chart-modal-close{width:30px;height:30px;border-radius:50%;border:none;background:var(--bg);color:var(--muted);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .chart-modal-body{padding:14px 14px 8px;display:flex;flex-direction:column;gap:12px;}
+  .cm-filter-panel{display:flex;flex-direction:column;gap:6px;}
+  .cm-filter-row{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
+  .cm-right{overflow:hidden;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🔤 賢祐 - 英文學習成效表</h1>
+  <p>每週三、五考單字（各5題）</p>
+  <div class="header-deco"></div>
+</div>
+
+<!-- Countdown -->
+<div class="countdown-wrap" id="countdown-wrap"></div>
+
+<div class="pts-bar">
+  <div class="pts-top">
+    <div><div class="pts-num" id="tot-pts">0</div><div class="pts-sub">可兌換點數</div></div>
+    <div class="pts-right">
+      <span class="stat-l">累積 <span class="stat-n" id="earned-total">0</span>・已兌換 <span class="stat-n" id="redeemed-total">0</span></span>
+    </div>
+  </div>
+  <div class="prog-w"><div class="prog-f" id="prog-f" style="width:0%"></div></div>
+  <div class="redeem" id="prog-note" style="margin-top:7px;">再集 <strong id="next-gift-need">—</strong> 點就能兌換下一個禮物</div>
+  <button class="goto-gift-btn" onclick="sw('gift')">🎁 前往兌換禮物</button>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="sw('daily')">📖 單字小考</button>
+  <button class="tab" onclick="sw('history')">📊 歷史成績</button>
+  <button class="tab" onclick="sw('gift')">🎁 禮物兌換</button>
+  <button class="tab" onclick="sw('rules')">📋 規則</button>
+</div>
+
+<!-- Daily -->
+<div class="section active" id="s-daily">
+  <div class="week-streak-row">
+    <span class="streak-label">小考完成 <strong id="quiz-done-count">0</strong> / <span id="quiz-total-count">0</span> 次</span>
+    <span class="streak-pts" id="quiz-pts-disp">單字點數：0 點</span>
+  </div>
+  <div class="week-streak-row" style="margin-top:-8px;">
+    <span class="streak-label" id="streak-disp">🔥 連續全對 0 次</span>
+  </div>
+  <div class="legend">
+    <div class="leg"><span class="ldot ok"></span>全對 +1點</div>
+    <div class="leg"><span class="ldot mid"></span>錯1題 +0.5點</div>
+    <div class="leg"><span class="ldot bad"></span>錯2題以上 -1點</div>
+    <div class="leg">📌 考卷／作業加點</div>
+    <div class="leg">🔥 連續4次全對 +1點</div>
+  </div>
+  <div class="cal-nav">
+    <button id="cal-prev" class="cal-nav-btn" aria-label="上個月">‹</button>
+    <div class="cal-nav-label" id="cal-nav-label"></div>
+    <button id="cal-next" class="cal-nav-btn" aria-label="下個月">›</button>
+  </div>
+  <div id="calendar"></div>
+</div>
+
+<!-- History -->
+<div class="section" id="s-history">
+  <div class="gift-note">國小只有<strong>期中、期末</strong>兩次考試。點擊分數即可輸入／修改：<strong>英文（⭐）90分以上開始加點，90分1點、之後每多1分+1點</strong>；<strong>其他科目95分以上 +2點</strong>。</div>
+  <div style="position:relative;">
+  <div id="history-chart-wrap">
+    <div id="chart-filter-panel">
+      <div class="cfp-label">顯示</div>
+      <button class="cfb active" data-filter="total">📊 總分</button>
+      <div class="cfp-divider"></div>
+      <div class="cfp-label">單科</div>
+      <div id="chart-subj-btns"></div>
+      <div class="cfp-divider"></div>
+      <button class="cfb" data-filter="all">🔀 綜合</button>
+    </div>
+    <div id="chart-right">
+      <h2>📈 成績趨勢</h2>
+      <div class="chart-sem-btns" id="chart-sem-btns"></div>
+      <canvas id="history-chart" style="width:100%;max-height:260px;"></canvas>
+    </div>
+    <button id="chart-expand-btn" title="放大檢視">＋</button>
+  </div>
+<!-- Chart Modal -->
+<div class="chart-modal-overlay" id="chart-modal-overlay">
+  <div class="chart-modal">
+    <div class="chart-modal-header">
+      <h3>📈 成績趨勢</h3>
+      <button class="chart-modal-close" id="chart-modal-close">✕</button>
+    </div>
+    <div class="chart-modal-body">
+      <div class="cm-filter-panel">
+        <div class="cm-filter-row" id="cm-type-btns">
+          <button class="cfb" data-cmfilter="total">📊 總分</button>
+          <div id="cm-subj-btns" style="display:contents;"></div>
+          <button class="cfb" data-cmfilter="all">🔀 綜合</button>
+        </div>
+        <div class="chart-sem-btns" id="cm-sem-btns"></div>
+      </div>
+      <div class="cm-right">
+        <canvas id="cm-history-chart" style="width:100%;max-height:340px;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+  </div>
+
+  <div style="overflow-x:auto;">
+    <table id="history-table" style="width:100%;border-collapse:collapse;font-size:0.78rem;"></table>
+  </div>
+</div>
+
+<!-- Gift shop -->
+<div class="section" id="s-gift">
+  <div class="gift-note">點數<strong>沒有到期日</strong>，可以隨時兌換禮物；換掉之後剩下的點數會繼續累積，不會歸零。</div>
+  <div class="gift-note">可以幫禮物加一張小圖片（例如你找到現貨、拍張照）；沒有照片也沒關係，會先顯示 🎁。</div>
+  <div class="gift-grid" id="gift-grid"></div>
+  <div class="gift-add-form">
+    <input type="text" name="gname" id="gift-new-name" placeholder="新禮物名稱" />
+    <input type="number" name="gcost" id="gift-new-cost" placeholder="點數" min="1" />
+    <button type="button" onclick="document.getElementById('gift-new-img').click()" style="background:var(--card);color:var(--accent);border:1.5px solid var(--accent);">📷 選照片</button>
+    <input type="file" id="gift-new-img" accept="image/*" style="display:none" />
+    <span id="gift-new-img-name" style="font-size:0.68rem;color:var(--muted);align-self:center;"></span>
+    <button onclick="addGift()">＋ 新增</button>
+  </div>
+  <input type="file" id="gift-photo-input" accept="image/*" style="display:none" />
+  <div class="redeem-log-title">🧾 兌換紀錄</div>
+  <div id="redeem-log"></div>
+</div>
+
+<!-- Rules -->
+<div class="section" id="s-rules">
+  <div class="rule-block">
+    <span class="rule-title">📖 每週單字考規則</span>
+    上課日：<strong>每週三、五</strong>，單字考題數<strong>可自行調整</strong>（例如複習週對上次+這次一起考，題目變10題也沒問題）。<br><br>
+    <strong>全對</strong> → +<strong>1 點</strong><br>
+    <strong>錯 1 題（對 4 題）</strong> → +<strong>0.5 點</strong><br>
+    <strong>錯 2 題以上</strong> → <strong>-1 點</strong><br><br>
+    輸入後直接儲存即可；若要<strong>修改</strong>已存的紀錄，需輸入密碼確認。
+  </div>
+
+  <div class="rule-block">
+    <span class="rule-title">🔥 連續全對加碼</span>
+    連續<strong>4次</strong>單字考全對（中間只要有一次錯就重新計算），額外加碼 <strong>+1 點</strong>；之後每再連續4次繼續加碼。
+  </div>
+
+  <div class="rule-block gold">
+    <span class="rule-title">🏫 考卷加點</span>
+    安親班或學校的小考／考卷拿到<strong>滿分</strong>，可以在當次上課記錄加點，一次 <strong>+2 點</strong>。
+  </div>
+
+  <div class="rule-block gold">
+    <span class="rule-title">📝 作業加點</span>
+    當次上課前<strong>作業有完成</strong>（安親班作業／學校作業），可以記錄加點，一次 <strong>+1 點</strong>。
+  </div>
+
+  <div class="rule-block green">
+    <span class="rule-title">📚 期中／期末考加點</span>
+    國小只有<strong>期中、期末</strong>兩次段考，在「歷史成績」頁登錄分數：<br><br>
+    <strong>英文</strong>：90分以上開始加點，<strong>90分 = 1點</strong>，之後每多1分 +1點（100分 = 11點）<br>
+    <strong>國語／數學／自然／社會</strong>：<strong>95分以上 → +2點</strong>
+  </div>
+
+  <div class="rule-block red">
+    <span class="rule-title">🎁 兌換方式</span>
+    點數<strong>不會結算歸零</strong>，累積多少就能換多少。<br>
+    到「禮物兌換」頁挑禮物，兌換時會直接扣掉該禮物的點數，剩下的點數繼續留著集。
+  </div>
+
+  <div class="rule-block blue">
+    <span class="rule-title">📁 教材雲端資料夾</span>
+    上課用的補充教材（單字本／文法本／故事本）都放在這個資料夾裡，方便查看。
+    <a href="https://drive.google.com/drive/folders/1ycRBXLOioY-nVZCJIZkZf3vQjRKj2J0s" target="_blank" rel="noopener" class="drive-link-btn">📂 打開教材資料夾</a>
+  </div>
+</div>
+
+<!-- Daily modal -->
+<div class="overlay" id="od">
+  <div class="modal">
+    <h3 id="dm-t"></h3>
+    <div class="msub">英文單字小考（題數可自行調整，例如複習週會加倍）</div>
+
+    <div id="dm-status-note" style="display:none"></div>
+
+    <div class="mslabel">本次題數 ／ 對題數</div>
+    <div class="em-row">
+      <label style="min-width:auto;">共</label>
+      <input type="number" id="dm-total" min="1" max="30" value="5" style="width:56px;" />
+      <label style="min-width:auto;">題，對</label>
+      <input type="number" id="dm-correct-num" min="0" max="30" style="width:56px;" />
+      <label style="min-width:auto;">題</label>
+    </div>
+
+    <div class="mprev" id="dm-preview">輸入題數與對題數後顯示點數</div>
+
+    <div class="mslabel">📖 單字範圍</div>
+    <div class="mrow">
+      <input type="text" id="dm-wordrange" placeholder="例：第20頁到第25頁 / Unit 4" />
+    </div>
+
+    <div class="mslabel">🏫 考卷加點</div>
+    <div class="check-row" id="dm-bonus-row">
+      <span>安親班／學校考卷滿分 +2點</span>
+      <span class="check-icon" id="dm-bonus-icon">☐</span>
+    </div>
+    <div class="mrow">
+      <input type="text" id="dm-fd" placeholder="說明（例：安親班單字小考）" />
+    </div>
+
+    <div class="mslabel">📝 作業加點</div>
+    <div class="check-row" id="dm-hw-row">
+      <span>作業有完成 +1點</span>
+      <span class="check-icon" id="dm-hw-icon">☐</span>
+    </div>
+    <div class="mrow">
+      <input type="text" id="dm-hwd" placeholder="作業內容（例：安親班習作 p.10-12）" />
+    </div>
+
+    <div class="mbtns" id="dm-btns"></div>
+  </div>
+</div>
+
+<!-- Countdown modal -->
+<div class="overlay" id="cd-overlay">
+  <div class="modal">
+    <h3 id="cd-modal-title">➕ 新增倒數</h3>
+    <div class="msub">自訂倒數目標日期（例：期中考、期末考）</div>
+    <div class="field-row"><label>名稱</label><input type="text" id="cd-input-name" placeholder="例：期中考" maxlength="20" /></div>
+    <div class="field-row"><label>日期</label><input type="date" id="cd-input-date" /></div>
+    <div class="mbtns">
+      <button class="btn btn-c" onclick="closeCdModal()">取消</button>
+      <button class="btn btn-x" id="cd-del-btn" style="display:none" onclick="deleteCd()">刪除</button>
+      <button class="btn btn-s" onclick="saveCd()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Teacher confirm modal -->
+<div class="overlay" id="o-teacher">
+  <div class="teacher-modal">
+    <h3>✅ 老師確認</h3>
+    <input type="password" class="pw-input" id="pw-input" placeholder="••••" maxlength="10" />
+    <div class="pw-error" id="pw-error"></div>
+    <div class="mbtns">
+      <button class="btn btn-c" id="pw-cancel">取消</button>
+      <button class="btn btn-s" style="background:#3a7d44" id="pw-confirm">確認 ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- Exam modal -->
+<div class="overlay" id="oe">
+  <div class="modal">
+    <h3 id="em-t"></h3>
+    <div class="msub" id="em-s"></div>
+    <div class="mprev" id="em-p">輸入分數後顯示點數</div>
+    <div class="mslabel">實際成績</div>
+    <div class="em-row">
+      <label>分數</label>
+      <input type="number" id="em-sc" min="0" max="100" step="0.5" placeholder="分" />
+      <span class="em-pts" id="em-pts"></span>
+    </div>
+    <div class="mbtns" id="em-btns"></div>
+  </div>
+</div>
+
+<script>
+const FB = 'https://math-plan-default-rtdb.asia-southeast1.firebasedatabase.app/s2_hsienyu_eng.json';
+const today = new Date(); today.setHours(0,0,0,0);
+
+const planStart = new Date(2026, 8, 1);
+// Rolling window: always extends to 1 year ahead of today, so the calendar
+// never hits a wall as real time passes — no need to manually bump the end date.
+const planEnd = new Date(today.getFullYear() + 1, today.getMonth() + 1, 1);
+
+// Subjects shown on the 歷史成績 page (elementary school subjects, 期中/期末 only).
+// 'eng' earns a formula-based bonus; the other four earn a flat +2 at 95+.
+const SUBJECTS = [
+  {key:'ch',   lbl:'國語'},
+  {key:'math', lbl:'數學'},
+  {key:'eng',  lbl:'英文'},
+  {key:'natl', lbl:'自然'},
+  {key:'soc',  lbl:'社會'},
+];
+const SEMESTERS = [
+  {key:'3a',lbl:'三上'},{key:'3b',lbl:'三下'},
+  {key:'4a',lbl:'四上'},{key:'4b',lbl:'四下'},
+  {key:'5a',lbl:'五上'},{key:'5b',lbl:'五下'},
+  {key:'6a',lbl:'六上'},{key:'6b',lbl:'六下'},
+];
+// Elementary school only has two exams per semester.
+const EXAM_TIMES = [{key:'mid',lbl:'期中'},{key:'final',lbl:'期末'}];
+
+// English: 90 分開始加點，90分=1點，之後每多1分+1點（100分=11點）。
+function engExamPts(score) {
+  if (score === null || score === undefined || score === '') return 0;
+  const s = parseInt(score); if (isNaN(s) || s < 90) return 0;
+  return (s - 90) + 1;
+}
+// Other subjects: flat +2 at 95 分以上.
+function otherExamPts(score) {
+  if (score === null || score === undefined || score === '') return 0;
+  const s = parseInt(score); if (isNaN(s) || s < 95) return 0;
+  return 2;
+}
+function examPtsFor(subKey, score) {
+  return subKey === 'eng' ? engExamPts(score) : otherExamPts(score);
+}
+
+function dk(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function fmt(d) { return `${d.getMonth()+1}/${d.getDate()} （${'日一二三四五六'[d.getDay()]}）`; }
+function dowMon(d) { return (d.getDay() + 6) % 7; }
+function isQuizDay(d) { const w = dowMon(d); return w === 2 || w === 4; } // Wed & Fri
+function quizPtsFor(correct, total) {
+  const t = parseInt(total); const c = parseInt(correct);
+  if (isNaN(c) || isNaN(t) || t <= 0) return -1;
+  const wrong = t - c;
+  if (wrong <= 0) return 1;
+  if (wrong === 1) return 0.5;
+  return -1;
+}
+const WN = ['一','二','三','四','五','六','日'];
+const MN = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+const DEFAULT_GIFTS = [
+  { id: 'g1', name: '造型貼紙組', cost: 15 },
+  { id: 'g2', name: '動物造型橡皮擦', cost: 15 },
+  { id: 'g3', name: '香氛擦擦筆', cost: 20 },
+  { id: 'g4', name: '書包／鉛筆盒吊飾', cost: 25 },
+  { id: 'g5', name: 'Pop it 療癒玩具', cost: 30 },
+  { id: 'g6', name: '磁鐵書籤組', cost: 35 },
+  { id: 'g7', name: '迷你積木組', cost: 55 },
+  { id: 'g8', name: '絨毛玩偶', cost: 80 },
+];
+
+// data.daily[key] = { correct: 0-5, free: {desc, pt}, status: 'confirmed' }
+// data.exam = { eng: score, hist_<subj>_<sem>_<time>: score }
+// data.gifts = [{id,name,cost}], data.redemptions = [{id,name,cost,date}]
+let data = { daily: {}, exam: {} };
+
+async function load() {
+  try {
+    const r = await fetch(FB);
+    if (r.ok) {
+      const j = await r.json();
+      if (j && typeof j === 'object') data = j;
+    }
+  } catch(e) { console.warn('Firebase load failed:', e); }
+  if (!data.daily) data.daily = {};
+  if (!data.exam) data.exam = {};
+  if (!data.gifts) data.gifts = JSON.parse(JSON.stringify(DEFAULT_GIFTS));
+  if (!data.redemptions) data.redemptions = [];
+  if (!data.countdowns) data.countdowns = [];
+  buildCal(); buildGifts(); buildRedeemLog(); updSum(); buildHistory(); renderCountdown();
+}
+
+async function save() {
+  try { await fetch(FB, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) }); } catch(e) {}
+}
+
+function calcQuizPts() {
+  let pts = 0;
+  Object.values(data.daily).forEach(e => {
+    if (e && e.status === 'confirmed' && e.correct !== undefined && e.correct !== null && e.correct !== '') {
+      pts += quizPtsFor(e.correct, e.total || 5);
+    }
+  });
+  return pts;
+}
+
+// Every 4 CONSECUTIVE fully-correct quizzes (in date order) earns +1 bonus point.
+// A quiz that isn't fully correct (any wrong answers) resets the streak to 0.
+function computeStreakInfo() {
+  const keys = Object.keys(data.daily).filter(k => data.daily[k]?.status === 'confirmed').sort();
+  let streak = 0, bonus = 0;
+  const milestones = new Set();
+  keys.forEach(k => {
+    const e = data.daily[k];
+    const total = parseInt(e.total || 5), correct = parseInt(e.correct);
+    const full = !isNaN(correct) && !isNaN(total) && correct >= total;
+    if (full) {
+      streak++;
+      if (streak % 4 === 0) { bonus += 1; milestones.add(k); }
+    } else {
+      streak = 0;
+    }
+  });
+  return { bonus, currentStreak: streak, milestones };
+}
+
+function calcFreePts() {
+  let pts = 0;
+  Object.values(data.daily).forEach(e => {
+    if (e?.paperBonus) pts += 2;
+    if (e?.hwBonus) pts += 1;
+  });
+  return pts;
+}
+
+function calcExamBonusPts() {
+  let pts = 0;
+  SEMESTERS.forEach(sem => {
+    EXAM_TIMES.forEach(t => {
+      SUBJECTS.forEach(sub => {
+        const score = data.exam[`hist_${sub.key}_${sem.key}_${t.key}`];
+        pts += examPtsFor(sub.key, score);
+      });
+    });
+  });
+  return pts;
+}
+
+function calcRedeemedPts() {
+  return (data.redemptions || []).reduce((sum, r) => sum + (parseFloat(r.cost) || 0), 0);
+}
+
+function quizCounts() {
+  let total = 0, done = 0;
+  const endBound = new Date(today);
+  endBound.setDate(endBound.getDate() + 1);
+  const cur = new Date(planStart);
+  while (cur < endBound) {
+    if (isQuizDay(cur)) {
+      total++;
+      const e = data.daily[dk(cur)];
+      if (e && e.status === 'confirmed') done++;
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return { done, total };
+}
+
+function sw(t) {
+  if (t === 'history') buildHistory();
+  if (t === 'gift') { buildGifts(); buildRedeemLog(); }
+  ['daily','history','gift','rules'].forEach((id,i) => {
+    document.querySelectorAll('.tab')[i].classList.toggle('active', id===t);
+    document.getElementById('s-'+id).classList.toggle('active', id===t);
+  });
+}
+
+let calView = null; // { year, month } (month is 0-indexed)
+
+function clampCalView(y, m) {
+  const d = new Date(y, m, 1);
+  const minD = new Date(planStart.getFullYear(), planStart.getMonth(), 1);
+  const maxD = new Date(planEnd.getFullYear(), planEnd.getMonth() - 1, 1);
+  if (d < minD) return { year: minD.getFullYear(), month: minD.getMonth() };
+  if (d > maxD) return { year: maxD.getFullYear(), month: maxD.getMonth() };
+  return { year: d.getFullYear(), month: d.getMonth() };
+}
+
+function calShift(delta) {
+  calView = clampCalView(calView.year, calView.month + delta);
+  buildCal();
+}
+
+function buildCal() {
+  if (!calView) calView = clampCalView(today.getFullYear(), today.getMonth());
+
+  const cal = document.getElementById('calendar');
+  cal.innerHTML = '';
+  const streakInfo = computeStreakInfo();
+
+  const monthStart = new Date(calView.year, calView.month, 1);
+  const monthEnd = new Date(calView.year, calView.month + 1, 1);
+
+  document.getElementById('cal-nav-label').textContent = `${calView.year} 年 ${MN[calView.month]}`;
+  const minD = new Date(planStart.getFullYear(), planStart.getMonth(), 1);
+  const maxD = new Date(planEnd.getFullYear(), planEnd.getMonth() - 1, 1);
+  document.getElementById('cal-prev').disabled = monthStart <= minD;
+  document.getElementById('cal-next').disabled = monthStart >= maxD;
+
+  const wd = document.createElement('div'); wd.className = 'cal-wd';
+  WN.forEach(w => { const s = document.createElement('span'); s.textContent = w; wd.appendChild(s); });
+  cal.appendChild(wd);
+
+  const grid = document.createElement('div'); grid.className = 'cal-grid';
+  const offset = dowMon(monthStart);
+  for (let i = 0; i < offset; i++) {
+    const filler = document.createElement('div');
+    filler.className = 'cal-cell empty';
+    grid.appendChild(filler);
+  }
+
+  const cur = new Date(monthStart);
+  while (cur < monthEnd) {
+    const d = new Date(cur);
+    const inRange = d >= planStart && d < planEnd && isQuizDay(d);
+    const isToday = d.getTime() === today.getTime();
+    const key = dk(d);
+    const entry = data.daily[key];
+    const confirmed = entry?.status === 'confirmed';
+
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell';
+    if (!inRange) cell.classList.add('outrange');
+    if (isToday) cell.classList.add('today');
+    if (confirmed) cell.classList.add('confirmed');
+
+    let html = `<div class="cell-date">${d.getDate()}</div>`;
+    if (inRange) {
+      if (confirmed) {
+        const pts = quizPtsFor(entry.correct, entry.total || 5);
+        const cls = pts >= 1 ? 'ok' : (pts > 0 ? 'mid' : 'bad');
+        html += `<div class="cell-badge ${cls}"></div>`;
+        const pinBits = [];
+        if (entry.paperBonus || entry.hwBonus) pinBits.push('📌');
+        if (streakInfo.milestones.has(key)) pinBits.push('🔥');
+        if (pinBits.length) html += `<div class="cell-pin">${pinBits.join('')}</div>`;
+      } else {
+        html += `<div class="cell-dot"></div>`;
+      }
+    }
+    cell.innerHTML = html;
+    if (inRange) cell.addEventListener('click', () => openDM(key));
+    grid.appendChild(cell);
+
+    cur.setDate(cur.getDate() + 1);
+  }
+  cal.appendChild(grid);
+}
+
+document.getElementById('cal-prev').onclick = () => calShift(-1);
+document.getElementById('cal-next').onclick = () => calShift(1);
+
+function buildHistory() {
+  const tbl = document.getElementById('history-table');
+  tbl.innerHTML = '';
+  const allKeys = [];
+  SEMESTERS.forEach(s => EXAM_TIMES.forEach(t => allKeys.push({sem: s.key, t: t.key})));
+
+  let thead = `<thead><tr>
+    <th style="text-align:left;padding:8px 10px;background:#eaf6f2;position:sticky;left:0;z-index:2;min-width:56px;font-size:0.75rem;color:var(--muted);">學期</th>
+    <th style="padding:8px 6px;background:#eaf6f2;text-align:center;min-width:48px;font-size:0.75rem;color:var(--muted);">次</th>`;
+  SUBJECTS.forEach(s => {
+    const isEng = s.key === 'eng';
+    thead += `<th style="padding:8px 6px;background:#eaf6f2;text-align:center;min-width:58px;font-weight:700;${isEng ? 'color:var(--accent);' : 'color:var(--text);'}">${s.lbl}${isEng ? ' ⭐' : ''}</th>`;
+  });
+  thead += '<th style="padding:8px 6px;background:#e2f2ec;text-align:center;min-width:52px;font-weight:700;color:var(--text);">總分</th>';
+  thead += '</tr></thead>';
+  tbl.innerHTML = thead;
+  const tbody = document.createElement('tbody');
+
+  SEMESTERS.forEach((sem, si) => {
+    EXAM_TIMES.forEach((t, ti) => {
+      const tr = document.createElement('tr');
+      if (ti === 0) {
+        const semTd = document.createElement('td');
+        semTd.rowSpan = EXAM_TIMES.length;
+        semTd.style.cssText = 'padding:8px 10px;background:#fbfdfc;position:sticky;left:0;z-index:1;font-weight:700;font-size:0.8rem;border-top:2px solid var(--border);vertical-align:middle;text-align:center;white-space:nowrap;';
+        semTd.textContent = sem.lbl;
+        tr.appendChild(semTd);
+      }
+      const timeTd = document.createElement('td');
+      timeTd.style.cssText = `padding:8px 6px;background:#fafafa;text-align:center;font-size:0.75rem;color:var(--muted);border-top:${ti===0?'2px solid var(--border)':'1px solid #eaf0ee'};white-space:nowrap;`;
+      timeTd.textContent = t.lbl;
+      tr.appendChild(timeTd);
+
+      SUBJECTS.forEach(sub => {
+        const k = `hist_${sub.key}_${sem.key}_${t.key}`;
+        const score = data.exam[k];
+        const has = score !== null && score !== undefined && score !== '';
+        const curIdx = allKeys.findIndex(x => x.sem === sem.key && x.t === t.key);
+        let prevScore = null;
+        for (let i = curIdx - 1; i >= 0; i--) {
+          const pk = `hist_${sub.key}_${allKeys[i].sem}_${allKeys[i].t}`;
+          if (data.exam[pk] !== null && data.exam[pk] !== undefined && data.exam[pk] !== '') {
+            prevScore = parseInt(data.exam[pk]); break;
+          }
+        }
+        let arrowHtml = '';
+        if (has && prevScore !== null) {
+          const diff = parseInt(score) - prevScore;
+          arrowHtml = diff > 0
+            ? `&nbsp;&nbsp;<span style="color:#3a7d44;font-size:0.68rem;">▲${diff}</span>`
+            : diff < 0
+              ? `&nbsp;&nbsp;<span style="color:#c0392b;font-size:0.68rem;">▼${Math.abs(diff)}</span>`
+              : '';
+        }
+        const isEng = sub.key === 'eng';
+        const td = document.createElement('td');
+        td.style.cssText = `text-align:center;padding:6px 4px;border-top:${ti===0?'2px solid var(--border)':'1px solid #eaf0ee'};cursor:pointer;transition:background 0.12s;${isEng?'background:#f2fbf8;':''}`;
+        td.onmouseover = () => { td.style.background = '#e4f5ef'; };
+        td.onmouseout = () => { td.style.background = isEng ? '#f2fbf8' : ''; };
+        const cellPts = has ? examPtsFor(sub.key, score) : 0;
+        const ptsHtml = cellPts > 0 ? `<div style="font-size:0.6rem;color:var(--gold);font-weight:700;">+${cellPts}點</div>` : '';
+        td.innerHTML = has
+          ? `<span style="font-weight:700;font-size:0.82rem;">${score}</span>${arrowHtml}${ptsHtml}`
+          : `<span style="color:#ddd;font-size:0.75rem;">—</span>`;
+        td.title = `點擊輸入 ${sub.lbl} ${sem.lbl}${t.lbl}`;
+        td.addEventListener('click', () => openHistoryEM(sub, sem.key, t.key));
+        tr.appendChild(td);
+      });
+      let total = 0, hasAny = false;
+      SUBJECTS.forEach(sub => {
+        const k = `hist_${sub.key}_${sem.key}_${t.key}`;
+        const sc = data.exam[k];
+        if (sc !== null && sc !== undefined && sc !== '') { total += parseInt(sc); hasAny = true; }
+      });
+      const totalTd = document.createElement('td');
+      totalTd.style.cssText = `text-align:center;padding:6px 4px;border-top:${ti===0?'2px solid var(--border)':'1px solid #eaf0ee'};background:#f3faf7;font-weight:700;font-size:0.82rem;`;
+      totalTd.textContent = hasAny ? total : '—';
+      tr.appendChild(totalTd);
+      tbody.appendChild(tr);
+    });
+  });
+  tbl.appendChild(tbody);
+  if (typeof buildHistoryChart === 'function') buildHistoryChart();
+}
+
+function updHistoryEMPreview(subKey) {
+  const v = document.getElementById('em-sc').value;
+  const p = document.getElementById('em-p');
+  if (v === '') { p.textContent = '輸入分數後顯示點數'; p.style.display = ''; return; }
+  const pts = examPtsFor(subKey, v);
+  p.style.display = '';
+  p.textContent = pts > 0 ? `可得 +${pts} 點 ⭐` : '未達加點門檻，0 點';
+}
+
+function openHistoryEM(sub, semKey, timeKey) {
+  const semLbl = SEMESTERS.find(s => s.key === semKey)?.lbl || semKey;
+  const timeLbl = EXAM_TIMES.find(t => t.key === timeKey)?.lbl || timeKey;
+  const k = `hist_${sub.key}_${semKey}_${timeKey}`;
+  document.getElementById('em-t').textContent = `${sub.lbl} — ${semLbl}${timeLbl}`;
+  document.getElementById('em-s').textContent = sub.key === 'eng'
+    ? '90分以上開始加點，90分1點，每多1分+1點'
+    : '95分以上 → +2點';
+  const cur = data.exam[k] ?? '';
+  document.getElementById('em-sc').value = cur;
+  updHistoryEMPreview(sub.key);
+  document.getElementById('em-sc').oninput = () => updHistoryEMPreview(sub.key);
+  const hasD = cur !== '';
+  const btns = document.getElementById('em-btns');
+  btns.innerHTML = hasD
+    ? `<button class="btn btn-x" id="em-x">清除</button><button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`
+    : `<button class="btn btn-c" id="em-c">取消</button><button class="btn btn-s" id="em-sv">儲存</button>`;
+  if (hasD) document.getElementById('em-x').onclick = async () => {
+    delete data.exam[k]; await save(); buildHistory(); updSum(); closeEM();
+  };
+  document.getElementById('em-c').onclick = closeEM;
+  document.getElementById('em-sv').onclick = async () => {
+    const v = document.getElementById('em-sc').value;
+    if (v !== '') data.exam[k] = parseFloat(v);
+    await save(); buildHistory(); updSum(); closeEM();
+  };
+  document.getElementById('em-pts').textContent = '';
+  document.getElementById('oe').classList.add('show');
+}
+
+function cheapestUnaffordable(balance) {
+  const gifts = (data.gifts || []).slice().sort((a,b) => a.cost - b.cost);
+  return gifts.find(g => g.cost > balance) || null;
+}
+
+function updSum() {
+  const quizTotal = calcQuizPts();
+  const freePts = calcFreePts();
+  const examPts = calcExamBonusPts();
+  const streakInfo = computeStreakInfo();
+  const earned = quizTotal + freePts + examPts + streakInfo.bonus;
+  const redeemed = calcRedeemedPts();
+  const balance = Math.max(0, earned - redeemed);
+
+  document.getElementById('tot-pts').textContent = balance;
+  document.getElementById('earned-total').textContent = earned;
+  document.getElementById('redeemed-total').textContent = redeemed;
+
+  const nextGift = cheapestUnaffordable(balance);
+  const progNote = document.getElementById('prog-note');
+  const progFill = document.getElementById('prog-f');
+  if (nextGift) {
+    document.getElementById('next-gift-need').textContent = (nextGift.cost - balance);
+    progNote.innerHTML = `再集 <strong>${nextGift.cost - balance}</strong> 點就能兌換「${nextGift.name}」`;
+    progFill.style.width = Math.min(100, balance / nextGift.cost * 100) + '%';
+  } else if ((data.gifts||[]).length) {
+    progNote.textContent = '🎉 現在所有禮物都換得起囉！';
+    progFill.style.width = '100%';
+  } else {
+    progNote.textContent = '';
+    progFill.style.width = '0%';
+  }
+
+  const qc = quizCounts();
+  document.getElementById('quiz-done-count').textContent = qc.done;
+  document.getElementById('quiz-total-count').textContent = qc.total;
+  document.getElementById('quiz-pts-disp').textContent = `單字點數：${quizTotal + streakInfo.bonus} 點`;
+  document.getElementById('streak-disp').textContent = streakInfo.currentStreak > 0
+    ? `🔥 連續全對 ${streakInfo.currentStreak} 次${streakInfo.currentStreak % 4 === 0 ? '（已加碼！）' : `（再 ${4 - (streakInfo.currentStreak % 4)} 次加碼+1）`}`
+    : '🔥 連續全對 0 次';
+}
+
+// Daily modal (twice-weekly vocab quiz entry)
+let dk_cur = null;
+let tCorrect = '', tTotal = '5', tWordRange = '', tFd = '', tBonus = false, tHwd = '', tHwBonus = false;
+
+function openDM(key) {
+  dk_cur = key;
+  const e = data.daily[key] || {};
+  const [ky,km,kd]=key.split('-').map(Number); const dObj = new Date(ky,km-1,kd);
+
+  document.getElementById('dm-t').textContent = fmt(dObj);
+
+  tTotal = (e.total !== undefined && e.total !== null) ? String(e.total) : '5';
+  tCorrect = (e.correct !== undefined && e.correct !== null) ? String(e.correct) : '';
+  tWordRange = e.wordRange || '';
+  tFd = e.paperDesc || '';
+  tBonus = !!e.paperBonus;
+  tHwd = e.hwDesc || '';
+  tHwBonus = !!e.hwBonus;
+
+  document.getElementById('dm-total').value = tTotal;
+  document.getElementById('dm-correct-num').value = tCorrect;
+  document.getElementById('dm-wordrange').value = tWordRange;
+  document.getElementById('dm-fd').value = tFd;
+  document.getElementById('dm-hwd').value = tHwd;
+  setBonusUI();
+  setHwUI();
+  updDMPreview();
+  updStatusNote(e.status);
+
+  const locked = e.status === 'confirmed';
+  document.getElementById('dm-total').disabled = locked;
+  document.getElementById('dm-correct-num').disabled = locked;
+  document.getElementById('dm-wordrange').disabled = locked;
+  document.getElementById('dm-fd').disabled = locked;
+  document.getElementById('dm-hwd').disabled = locked;
+  document.getElementById('dm-bonus-row').style.pointerEvents = locked ? 'none' : 'auto';
+  document.getElementById('dm-bonus-row').style.opacity = locked ? '0.6' : '1';
+  document.getElementById('dm-hw-row').style.pointerEvents = locked ? 'none' : 'auto';
+  document.getElementById('dm-hw-row').style.opacity = locked ? '0.6' : '1';
+
+  document.getElementById('dm-total').oninput = ev => { tTotal = ev.target.value; updDMPreview(); };
+  document.getElementById('dm-correct-num').oninput = ev => { tCorrect = ev.target.value; updDMPreview(); };
+  document.getElementById('dm-wordrange').oninput = ev => { tWordRange = ev.target.value; };
+  document.getElementById('dm-fd').oninput = ev => { tFd = ev.target.value; };
+  document.getElementById('dm-hwd').oninput = ev => { tHwd = ev.target.value; };
+
+  const isConfirmed = e.status === 'confirmed';
+  const btns = document.getElementById('dm-btns');
+
+  if (isConfirmed) {
+    btns.innerHTML = `<button class="btn btn-c" id="dm-c">關閉</button><button class="btn" id="dm-edit" style="background:#2a5caa;color:white;border:none;border-radius:9px;padding:10px;font-weight:700;font-size:0.82rem;cursor:pointer;flex:1;">老師修改 ✏️</button>`;
+  } else {
+    btns.innerHTML = `<button class="btn btn-c" id="dm-c">取消</button><button class="btn btn-s" id="dm-sv">儲存</button>`;
+  }
+
+  document.getElementById('dm-c').onclick = closeDM;
+  if (isConfirmed) {
+    document.getElementById('dm-edit').onclick = () => openTeacherModal('edit', key);
+  } else {
+    const sv = document.getElementById('dm-sv');
+    if (sv) sv.onclick = saveDM;
+  }
+  document.getElementById('od').classList.add('show');
+}
+
+function setBonusUI() {
+  const row = document.getElementById('dm-bonus-row');
+  const icon = document.getElementById('dm-bonus-icon');
+  row.classList.toggle('checked', tBonus);
+  icon.textContent = tBonus ? '✅' : '☐';
+}
+document.getElementById('dm-bonus-row').onclick = () => {
+  if (document.getElementById('dm-bonus-row').style.pointerEvents === 'none') return;
+  tBonus = !tBonus; setBonusUI();
+};
+
+function setHwUI() {
+  const row = document.getElementById('dm-hw-row');
+  const icon = document.getElementById('dm-hw-icon');
+  row.classList.toggle('checked', tHwBonus);
+  icon.textContent = tHwBonus ? '✅' : '☐';
+}
+document.getElementById('dm-hw-row').onclick = () => {
+  if (document.getElementById('dm-hw-row').style.pointerEvents === 'none') return;
+  tHwBonus = !tHwBonus; setHwUI();
+};
+
+function buildDailyEntry() {
+  return {
+    total: parseInt(tTotal) || 5,
+    correct: parseInt(tCorrect),
+    wordRange: tWordRange,
+    paperBonus: tBonus, paperDesc: tFd,
+    hwBonus: tHwBonus, hwDesc: tHwd,
+    status: 'confirmed'
+  };
+}
+
+function validDM() {
+  const t = parseInt(tTotal), c = parseInt(tCorrect);
+  if (isNaN(t) || t <= 0) { alert('請輸入本次題數'); return false; }
+  if (tCorrect === '' || isNaN(c) || c < 0) { alert('請輸入對題數'); return false; }
+  if (c > t) { alert('對題數不能比總題數多喔'); return false; }
+  return true;
+}
+
+async function saveDM() {
+  if (!validDM()) return;
+  data.daily[dk_cur] = buildDailyEntry();
+  await save(); buildCal(); updSum(); closeDM();
+}
+
+function updDMPreview() {
+  const prev = document.getElementById('dm-preview');
+  const t = parseInt(tTotal), c = parseInt(tCorrect);
+  if (tCorrect === '' || isNaN(t) || isNaN(c)) { prev.textContent = '輸入題數與對題數後顯示點數'; return; }
+  if (c > t) { prev.textContent = '對題數不能比總題數多喔'; return; }
+  const pts = quizPtsFor(c, t);
+  prev.textContent = pts > 0
+    ? `${c}/${t} → 可得 ${pts} 點 ⭐`
+    : (pts < 0 ? `${c}/${t} → 扣 ${Math.abs(pts)} 點` : `${c}/${t} → 0 點`);
+}
+
+function updStatusNote(status) {
+  const note = document.getElementById('dm-status-note');
+  if (status === 'confirmed') {
+    note.style.display = 'block';
+    note.className = 'status-note confirmed';
+    note.textContent = '✅ 已儲存（如需修改請按「老師修改」）';
+  } else {
+    note.style.display = 'none';
+  }
+}
+
+function closeDM() {
+  document.getElementById('od').classList.remove('show');
+  const extra = document.getElementById('od').querySelector('.btn[style]');
+  if (extra) extra.remove();
+}
+document.getElementById('od').addEventListener('click', e => { if (e.target.id === 'od') closeDM(); });
+
+// Teacher modal — unified confirm + edit
+let _teacherKey = null, _teacherMode = null;
+
+function openTeacherModal(mode, key) {
+  _teacherMode = mode; _teacherKey = key;
+  document.getElementById('pw-input').value = '';
+  document.getElementById('pw-error').textContent = '';
+  document.querySelector('#o-teacher h3').textContent = mode === 'edit' ? '✏️ 老師修改' : '✅ 老師確認';
+  document.getElementById('o-teacher').classList.add('show');
+  setTimeout(() => document.getElementById('pw-input').focus(), 100);
+}
+document.getElementById('pw-cancel').onclick = () => { document.getElementById('o-teacher').classList.remove('show'); };
+document.getElementById('pw-confirm').onclick = async () => {
+  const pw = document.getElementById('pw-input').value;
+  if (pw !== '777') {
+    document.getElementById('pw-error').textContent = '密碼錯誤，請再試一次';
+    document.getElementById('pw-input').value = ''; return;
+  }
+  document.getElementById('o-teacher').classList.remove('show');
+
+  if (_teacherMode === 'edit') {
+    const btns = document.getElementById('dm-btns');
+    btns.innerHTML = `<button class="btn btn-x" id="dm-x">清除</button><button class="btn btn-c" id="dm-c">取消</button><button class="btn btn-s" id="dm-sv">儲存</button>`;
+    document.getElementById('dm-x').onclick = async () => {
+      delete data.daily[dk_cur]; await save(); buildCal(); updSum(); closeDM();
+    };
+    document.getElementById('dm-c').onclick = closeDM;
+    document.getElementById('dm-sv').onclick = async () => {
+      if (!validDM()) return;
+      data.daily[dk_cur] = buildDailyEntry();
+      await save(); buildCal(); updSum(); closeDM();
+    };
+    document.getElementById('dm-total').disabled = false;
+    document.getElementById('dm-correct-num').disabled = false;
+    document.getElementById('dm-wordrange').disabled = false;
+    document.getElementById('dm-fd').disabled = false;
+    document.getElementById('dm-hwd').disabled = false;
+    document.getElementById('dm-bonus-row').style.pointerEvents = 'auto';
+    document.getElementById('dm-bonus-row').style.opacity = '1';
+    document.getElementById('dm-hw-row').style.pointerEvents = 'auto';
+    document.getElementById('dm-hw-row').style.opacity = '1';
+  }
+};
+document.getElementById('pw-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('pw-confirm').click();
+});
+document.getElementById('o-teacher').addEventListener('click', e => {
+  if (e.target.id === 'o-teacher') document.getElementById('o-teacher').classList.remove('show');
+});
+
+function closeEM() { document.getElementById('oe').classList.remove('show'); }
+document.getElementById('oe').addEventListener('click', e => { if (e.target.id === 'oe') closeEM(); });
+
+// Custom select for Android LINE compatibility
+function initCustomSelect(btnId, optsId, labelId, onSelect) {
+  const btn = document.getElementById(btnId);
+  const opts = document.getElementById(optsId);
+  if (!btn || !opts) return;
+
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    const isOpen = opts.classList.contains('show');
+    document.querySelectorAll('.custom-select-opts.show').forEach(o => {
+      if (o !== opts) { o.classList.remove('show'); }
+    });
+    document.querySelectorAll('.custom-select-btn.open').forEach(b => {
+      if (b !== btn) { b.classList.remove('open'); }
+    });
+    opts.classList.toggle('show', !isOpen);
+    btn.classList.toggle('open', !isOpen);
+  };
+
+  opts.querySelectorAll('.custom-select-opt').forEach(opt => {
+    opt.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const val = opt.dataset.value;
+      onSelect(val, opt.textContent);
+      document.getElementById(labelId).textContent = opt.textContent;
+      opts.querySelectorAll('.custom-select-opt').forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+      opts.classList.remove('show');
+      btn.classList.remove('open');
+    });
+  });
+
+  document.addEventListener('click', () => {
+    opts.classList.remove('show');
+    btn.classList.remove('open');
+  });
+}
+
+function setCustomSelect(optsId, labelId, val) {
+  const opts = document.getElementById(optsId);
+  if (!opts) return;
+  let label = '── 請選擇 ──';
+  opts.querySelectorAll('.custom-select-opt').forEach(opt => {
+    const isMatch = opt.dataset.value === val;
+    opt.classList.toggle('selected', isMatch);
+    if (isMatch) label = opt.textContent;
+  });
+  document.getElementById(labelId).textContent = label;
+}
+
+
+// ---- Gift shop ----
+function resizeImageFile(file, maxDim = 240, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > h && w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
+        else if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function buildGifts() {
+  const balance = Math.max(0, calcQuizPts() + calcFreePts() + calcExamBonusPts() - calcRedeemedPts());
+  const grid = document.getElementById('gift-grid');
+  grid.innerHTML = '';
+  const gifts = (data.gifts || []).slice().sort((a,b) => a.cost - b.cost);
+  if (!gifts.length) { grid.innerHTML = '<div class="empty-note">還沒有禮物，先在下面新增一個吧！</div>'; return; }
+  gifts.forEach(g => {
+    const afford = balance >= g.cost;
+    const card = document.createElement('div');
+    card.className = 'gift-card';
+    const thumb = g.img
+      ? `<img class="gift-thumb" src="${g.img}" alt="${g.name}">`
+      : `<div class="gift-thumb-ph">🎁</div>`;
+    card.innerHTML = `
+      <div class="gift-admin-row">
+        <button class="gift-admin-btn" title="換照片" onclick="pickGiftPhoto('${g.id}')">📷</button>
+        <button class="gift-admin-btn" title="編輯" onclick="editGift('${g.id}')">✏️</button>
+        <button class="gift-admin-btn" title="刪除" onclick="deleteGift('${g.id}')">🗑️</button>
+      </div>
+      <div class="gift-top-row">${thumb}<div class="gift-name">${g.name}</div></div>
+      <div class="gift-cost">${g.cost} 點</div>
+      <button class="gift-redeem-btn" ${afford ? '' : 'disabled'} onclick="redeemGift('${g.id}')">${afford ? '兌換 🎁' : '點數不夠'}</button>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+let _pendingGiftPhotoId = null;
+function pickGiftPhoto(id) {
+  _pendingGiftPhotoId = id;
+  document.getElementById('gift-photo-input').click();
+}
+document.getElementById('gift-photo-input').onchange = async (ev) => {
+  const file = ev.target.files[0];
+  ev.target.value = '';
+  if (!file || !_pendingGiftPhotoId) return;
+  try {
+    const dataUrl = await resizeImageFile(file);
+    const g = (data.gifts || []).find(x => x.id === _pendingGiftPhotoId);
+    if (g) { g.img = dataUrl; await save(); buildGifts(); }
+  } catch(e) { alert('照片讀取失敗，請換一張試試'); }
+  _pendingGiftPhotoId = null;
+};
+
+async function addGift() {
+  const nameEl = document.getElementById('gift-new-name');
+  const costEl = document.getElementById('gift-new-cost');
+  const imgEl = document.getElementById('gift-new-img');
+  const name = nameEl.value.trim();
+  const cost = parseFloat(costEl.value);
+  if (!name || !cost || cost <= 0) { alert('請輸入禮物名稱與點數'); return; }
+  const gift = { id: 'g' + Date.now(), name, cost };
+  if (imgEl.files && imgEl.files[0]) {
+    try { gift.img = await resizeImageFile(imgEl.files[0]); } catch(e) {}
+  }
+  data.gifts.push(gift);
+  nameEl.value = ''; costEl.value = ''; imgEl.value = '';
+  document.getElementById('gift-new-img-name').textContent = '';
+  await save(); buildGifts(); updSum();
+}
+document.getElementById('gift-new-img').onchange = (ev) => {
+  const f = ev.target.files[0];
+  document.getElementById('gift-new-img-name').textContent = f ? f.name : '';
+};
+
+async function editGift(id) {
+  const g = (data.gifts || []).find(x => x.id === id);
+  if (!g) return;
+  const newName = prompt('禮物名稱', g.name);
+  if (newName === null) return;
+  const newCost = prompt('點數', g.cost);
+  if (newCost === null) return;
+  const c = parseFloat(newCost);
+  if (!newName.trim() || !c || c <= 0) { alert('名稱或點數不正確'); return; }
+  g.name = newName.trim(); g.cost = c;
+  await save(); buildGifts(); updSum();
+}
+
+async function deleteGift(id) {
+  if (!confirm('確定要刪除這個禮物嗎？')) return;
+  data.gifts = (data.gifts || []).filter(x => x.id !== id);
+  await save(); buildGifts(); updSum();
+}
+
+async function redeemGift(id) {
+  const g = (data.gifts || []).find(x => x.id === id);
+  if (!g) return;
+  const balance = Math.max(0, calcQuizPts() + calcFreePts() + calcExamBonusPts() - calcRedeemedPts());
+  if (balance < g.cost) { alert('點數不夠喔！'); return; }
+  if (!confirm(`確定要用 ${g.cost} 點兌換「${g.name}」嗎？`)) return;
+  data.redemptions.push({ id: 'r' + Date.now(), name: g.name, cost: g.cost, date: dk(today) });
+  await save(); buildGifts(); buildRedeemLog(); updSum();
+}
+
+function buildRedeemLog() {
+  const wrap = document.getElementById('redeem-log');
+  wrap.innerHTML = '';
+  const list = (data.redemptions || []).slice().reverse();
+  if (!list.length) { wrap.innerHTML = '<div class="empty-note">還沒有兌換紀錄</div>'; return; }
+  list.forEach(r => {
+    const item = document.createElement('div');
+    item.className = 'redeem-item';
+    item.innerHTML = `
+      <div class="ri-l">${r.name}<span class="ri-date">${r.date}</span></div>
+      <div style="display:flex;align-items:center;">
+        <span class="ri-cost">-${r.cost}點</span>
+        <button class="ri-undo" title="撤銷" onclick="undoRedemption('${r.id}')">↺</button>
+      </div>
+    `;
+    wrap.appendChild(item);
+  });
+}
+
+async function undoRedemption(id) {
+  if (!confirm('確定要撤銷這筆兌換紀錄嗎？點數會加回來。')) return;
+  data.redemptions = (data.redemptions || []).filter(r => r.id !== id);
+  await save(); buildGifts(); buildRedeemLog(); updSum();
+}
+
+// ── Countdown (fully custom — parent sets their own 段考 dates) ──
+function daysUntil(dateStr) {
+  const d = new Date(dateStr); d.setHours(0,0,0,0);
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.ceil((d - now) / 86400000);
+}
+
+let cdEditId = null;
+
+function renderCountdown() {
+  const wrap = document.getElementById('countdown-wrap');
+  wrap.innerHTML = '';
+  (data.countdowns || []).slice().sort((a,b) => a.date.localeCompare(b.date)).forEach(cd => {
+    const days = daysUntil(cd.date);
+    const dateStr = cd.date.replace(/-/g, '/');
+    const card = document.createElement('div');
+    card.className = 'cd-card';
+    card.innerHTML = `
+      <div class="cd-left"><div class="cd-name">🎯 ${cd.name}</div><div class="cd-date">${dateStr}</div></div>
+      <div class="cd-days"><div class="cd-num">${days >= 0 ? days : 0}</div><div class="cd-lbl">${days >= 0 ? '天後' : '已過'}</div></div>
+      <button class="cd-edit-btn" onclick="openCdModal('${cd.id}')">✏️</button>
+    `;
+    wrap.appendChild(card);
+  });
+  const addBtn = document.createElement('button');
+  addBtn.className = 'cd-add-btn';
+  addBtn.textContent = '＋ 新增倒數';
+  addBtn.onclick = () => openCdModal(null);
+  wrap.appendChild(addBtn);
+}
+
+function openCdModal(id) {
+  cdEditId = id;
+  document.getElementById('cd-modal-title').textContent = id ? '✏️ 編輯倒數' : '➕ 新增倒數';
+  document.getElementById('cd-del-btn').style.display = id ? 'block' : 'none';
+  const rec = id ? (data.countdowns || []).find(c => c.id === id) : null;
+  document.getElementById('cd-input-name').value = rec?.name || '';
+  document.getElementById('cd-input-date').value = rec?.date || '';
+  document.getElementById('cd-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('cd-input-name').focus(), 80);
+}
+async function saveCd() {
+  const name = document.getElementById('cd-input-name').value.trim();
+  const date = document.getElementById('cd-input-date').value;
+  if (!name || !date) { alert('請填寫名稱和日期'); return; }
+  if (!data.countdowns) data.countdowns = [];
+  if (cdEditId) {
+    const i = data.countdowns.findIndex(c => c.id === cdEditId);
+    if (i >= 0) data.countdowns[i] = { id: cdEditId, name, date };
+  } else {
+    data.countdowns.push({ id: Date.now().toString(), name, date });
+  }
+  await save(); closeCdModal(); renderCountdown();
+}
+async function deleteCd() {
+  if (!cdEditId) return;
+  data.countdowns = (data.countdowns || []).filter(c => c.id !== cdEditId);
+  await save(); closeCdModal(); renderCountdown();
+}
+function closeCdModal() { document.getElementById('cd-overlay').classList.remove('show'); cdEditId = null; }
+document.getElementById('cd-overlay').addEventListener('click', e => { if (e.target.id === 'cd-overlay') closeCdModal(); });
+
+load();
+
+document.querySelectorAll('#chart-filter-panel > .cfb').forEach(b => {
+  b.onclick = () => { _chartActiveFilter = b.dataset.filter; buildHistoryChart(); };
+});
+document.getElementById('chart-expand-btn').onclick = () => {
+  _cmFilter = _chartActiveFilter;
+  _cmSem = _chartActiveSem;
+  document.getElementById('chart-modal-overlay').classList.add('show');
+  setTimeout(buildCMChart, 50);
+};
+document.getElementById('chart-modal-close').onclick = () => {
+  document.getElementById('chart-modal-overlay').classList.remove('show');
+  if (_cmChart) { _cmChart.destroy(); _cmChart = null; }
+};
+document.getElementById('chart-modal-overlay').addEventListener('click', e => {
+  if (e.target.id === 'chart-modal-overlay') {
+    document.getElementById('chart-modal-overlay').classList.remove('show');
+    if (_cmChart) { _cmChart.destroy(); _cmChart = null; }
+  }
+});
+document.querySelectorAll('#cm-type-btns > .cfb').forEach(b => {
+  b.onclick = () => { _cmFilter = b.dataset.cmfilter; buildCMChart(); };
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+let _histChart = null;
+let _chartActiveSem = 'all';
+let _chartActiveFilter = 'total';
+let _cmChart = null;
+let _cmFilter = 'total';
+let _cmSem = 'all';
+
+const CHART_COLORS_EP = {
+  ch:   '#8a6d3b',
+  math: '#2d6fb5',
+  eng:  '#2f8f7e',
+  natl: '#5a7a00',
+  soc:  '#7040aa',
+};
+const TOTAL_COLOR_EP = '#2f8f7e';
+
+function buildHistoryChart() {
+  const subjBtns = document.getElementById('chart-subj-btns');
+  if (!subjBtns) return;
+  subjBtns.innerHTML = '';
+  SUBJECTS.forEach(sub => {
+    const col = CHART_COLORS_EP[sub.key] || '#888';
+    const b = document.createElement('button');
+    b.className = 'cfb' + (_chartActiveFilter === sub.key ? ' active' : '');
+    b.dataset.filter = sub.key;
+    b.textContent = sub.lbl;
+    if (_chartActiveFilter === sub.key) { b.style.background = col; b.style.borderColor = col; }
+    else { b.style.borderLeftWidth = '3px'; b.style.borderLeftColor = col + '88'; }
+    b.onclick = () => { _chartActiveFilter = sub.key; buildHistoryChart(); };
+    subjBtns.appendChild(b);
+  });
+  document.querySelectorAll('#chart-filter-panel > .cfb').forEach(b => {
+    b.classList.toggle('active', b.dataset.filter === _chartActiveFilter);
+  });
+
+  const semBtns = document.getElementById('chart-sem-btns');
+  semBtns.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'csb' + (_chartActiveSem === 'all' ? ' active' : '');
+  allBtn.textContent = '全部';
+  allBtn.onclick = () => { _chartActiveSem = 'all'; buildHistoryChart(); };
+  semBtns.appendChild(allBtn);
+  SEMESTERS.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'csb' + (_chartActiveSem === s.key ? ' active' : '');
+    b.textContent = s.lbl;
+    b.onclick = () => { _chartActiveSem = s.key; buildHistoryChart(); };
+    semBtns.appendChild(b);
+  });
+
+  const filteredSems = _chartActiveSem === 'all' ? SEMESTERS : SEMESTERS.filter(s => s.key === _chartActiveSem);
+  const labels = [];
+  filteredSems.forEach(s => { EXAM_TIMES.forEach(t => { labels.push(s.lbl + ' ' + t.lbl); }); });
+
+  let datasets = [];
+  if (_chartActiveFilter === 'total') {
+    const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => {
+      let total = 0, ok = true;
+      SUBJECTS.forEach(sub => {
+        const v = data.exam[`hist_${sub.key}_${s.key}_${t.key}`];
+        if (v !== null && v !== undefined && v !== '') total += parseFloat(v);
+        else ok = false;
+      });
+      return ok ? Math.round(total * 10) / 10 : null;
+    }));
+    datasets = [{ label: '總分', data: d, borderColor: TOTAL_COLOR_EP, backgroundColor: TOTAL_COLOR_EP+'22', pointBackgroundColor: TOTAL_COLOR_EP, pointRadius: 5, pointHoverRadius: 7, tension: 0, spanGaps: true, borderWidth: 2.5 }];
+  } else if (_chartActiveFilter === 'all') {
+    datasets = SUBJECTS.map(sub => {
+      const col = CHART_COLORS_EP[sub.key] || '#888';
+      const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => {
+        const v = data.exam[`hist_${sub.key}_${s.key}_${t.key}`];
+        return (v !== null && v !== undefined && v !== '') ? parseFloat(v) : null;
+      }));
+      return { label: sub.lbl, data: d, borderColor: col, backgroundColor: col+'22', pointBackgroundColor: col, pointRadius: 4, pointHoverRadius: 6, tension: 0, spanGaps: true };
+    });
+  } else {
+    const sub = SUBJECTS.find(s => s.key === _chartActiveFilter);
+    if (sub) {
+      const col = CHART_COLORS_EP[sub.key] || '#888';
+      const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => {
+        const v = data.exam[`hist_${sub.key}_${s.key}_${t.key}`];
+        return (v !== null && v !== undefined && v !== '') ? parseFloat(v) : null;
+      }));
+      datasets = [{ label: sub.lbl, data: d, borderColor: col, backgroundColor: col+'22', pointBackgroundColor: col, pointRadius: 5, pointHoverRadius: 7, tension: 0, spanGaps: true, borderWidth: 2.5 }];
+    }
+  }
+
+  if (_histChart) { _histChart.destroy(); _histChart = null; }
+  const ctx = document.getElementById('history-chart');
+  if (!ctx) return;
+  const isTotal = _chartActiveFilter === 'total';
+  _histChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 8 } }, tooltip: { mode: 'index', intersect: false } },
+      scales: {
+        y: { min: 0, max: isTotal ? 500 : 100, ticks: { stepSize: isTotal ? 100 : 20, font: { size: 10 } }, grid: { color: '#e2ddd644' } },
+        x: { ticks: { font: { size: 9 }, maxRotation: 45 }, grid: { display: false } },
+      },
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    }
+  });
+}
+
+function buildCMChart() {
+  const subjBtns = document.getElementById('cm-subj-btns');
+  if (subjBtns) {
+    subjBtns.innerHTML = '';
+    SUBJECTS.forEach(sub => {
+      const col = CHART_COLORS_EP[sub.key] || '#888';
+      const b = document.createElement('button');
+      b.className = 'cfb' + (_cmFilter === sub.key ? ' active' : '');
+      b.dataset.cmfilter = sub.key;
+      b.textContent = sub.lbl;
+      if (_cmFilter === sub.key) { b.style.background = col; b.style.borderColor = col; }
+      b.onclick = () => { _cmFilter = sub.key; buildCMChart(); };
+      subjBtns.appendChild(b);
+    });
+  }
+  document.querySelectorAll('#cm-type-btns > .cfb').forEach(b => {
+    b.classList.toggle('active', b.dataset.cmfilter === _cmFilter);
+  });
+
+  const semBtns = document.getElementById('cm-sem-btns');
+  semBtns.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'csb' + (_cmSem === 'all' ? ' active' : '');
+  allBtn.textContent = '全部';
+  allBtn.onclick = () => { _cmSem = 'all'; buildCMChart(); };
+  semBtns.appendChild(allBtn);
+  SEMESTERS.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'csb' + (_cmSem === s.key ? ' active' : '');
+    b.textContent = s.lbl;
+    b.onclick = () => { _cmSem = s.key; buildCMChart(); };
+    semBtns.appendChild(b);
+  });
+
+  const filteredSems = _cmSem === 'all' ? SEMESTERS : SEMESTERS.filter(s => s.key === _cmSem);
+  const labels = [];
+  filteredSems.forEach(s => { EXAM_TIMES.forEach(t => { labels.push(s.lbl + ' ' + t.lbl); }); });
+
+  let datasets = [];
+  let chartSubjs = SUBJECTS;
+  function getVal(sub, s, t) {
+    const v = data.exam[`hist_${sub.key}_${s.key}_${t.key}`];
+    return (v !== null && v !== undefined && v !== '') ? parseFloat(v) : null;
+  }
+  if (_cmFilter === 'total') {
+    const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => {
+      let total = 0, ok = true;
+      SUBJECTS.forEach(sub => {
+        const v = data.exam[`hist_${sub.key}_${s.key}_${t.key}`];
+        if (v !== null && v !== undefined && v !== '') total += parseFloat(v); else ok = false;
+      });
+      return ok ? Math.round(total * 10) / 10 : null;
+    }));
+    datasets = [{ label: '總分', data: d, borderColor: TOTAL_COLOR_EP, backgroundColor: TOTAL_COLOR_EP+'22', pointBackgroundColor: TOTAL_COLOR_EP, pointRadius: 5, pointHoverRadius: 7, tension: 0, spanGaps: true, borderWidth: 2.5 }];
+  } else if (_cmFilter === 'all') {
+    datasets = chartSubjs.map(sub => {
+      const col = CHART_COLORS_EP[sub.key] || '#888';
+      const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => getVal(sub, s, t)));
+      return { label: sub.lbl, data: d, borderColor: col, backgroundColor: col+'22', pointBackgroundColor: col, pointRadius: 4, pointHoverRadius: 6, tension: 0, spanGaps: true };
+    });
+  } else {
+    const sub = SUBJECTS.find(s => s.key === _cmFilter);
+    if (sub) {
+      const col = CHART_COLORS_EP[sub.key] || '#888';
+      const d = filteredSems.flatMap(s => EXAM_TIMES.map(t => getVal(sub, s, t)));
+      datasets = [{ label: sub.lbl, data: d, borderColor: col, backgroundColor: col+'22', pointBackgroundColor: col, pointRadius: 5, pointHoverRadius: 7, tension: 0, spanGaps: true, borderWidth: 2.5 }];
+    }
+  }
+
+  if (_cmChart) { _cmChart.destroy(); _cmChart = null; }
+  const ctx = document.getElementById('cm-history-chart');
+  if (!ctx) return;
+  const isTotal = _cmFilter === 'total';
+  _cmChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 8 } }, tooltip: { mode: 'index', intersect: false } },
+      scales: {
+        y: { min: 0, max: isTotal ? 500 : 100, ticks: { stepSize: isTotal ? 100 : 20, font: { size: 10 } }, grid: { color: '#dddaf022' } },
+        x: { ticks: { font: { size: 9 }, maxRotation: 45 }, grid: { display: false } },
+      },
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    }
+  });
+}
+</script>
+</body>
+</html>
