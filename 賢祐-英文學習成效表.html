@@ -418,8 +418,7 @@
     </div>
   </div>
   <div class="prog-w"><div class="prog-f" id="prog-f" style="width:0%"></div></div>
-  <div class="redeem" id="prog-note-wrap" style="margin-top:7px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;">
-    <span id="prog-note">再集 <strong id="next-gift-need">—</strong> 點就能兌換下一個禮物</span>
+  <div class="redeem" id="prog-note-wrap" style="margin-top:7px;display:flex;align-items:center;justify-content:center;">
     <button class="goto-gift-btn" onclick="sw('gift')">🎁 前往兌換禮物</button>
   </div>
 </div>
@@ -1070,17 +1069,12 @@ function updSum() {
   document.getElementById('redeemed-total').textContent = redeemed;
 
   const nextGift = cheapestUnaffordable(balance);
-  const progNote = document.getElementById('prog-note');
   const progFill = document.getElementById('prog-f');
   if (nextGift) {
-    document.getElementById('next-gift-need').textContent = (nextGift.cost - balance);
-    progNote.innerHTML = `再集 <strong>${nextGift.cost - balance}</strong> 點就能兌換「${nextGift.name}」`;
     progFill.style.width = Math.min(100, balance / nextGift.cost * 100) + '%';
   } else if ((data.gifts||[]).length) {
-    progNote.textContent = '🎉 現在所有禮物都換得起囉！';
     progFill.style.width = '100%';
   } else {
-    progNote.textContent = '';
     progFill.style.width = '0%';
   }
 
