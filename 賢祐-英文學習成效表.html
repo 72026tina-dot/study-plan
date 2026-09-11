@@ -96,14 +96,12 @@
   .redeem { font-size: 0.68rem; color: var(--muted); text-align: center; margin-top: 8px; }
   .redeem strong { color: var(--accent); }
   .goto-gift-btn {
-    display: block; width: 100%; margin-top: 10px; padding: 9px;
-    background: var(--gold); color: white; border: none; border-radius: 10px;
-    font-family: 'Klee One', cursive; font-size: 0.85rem; font-weight: 700;
-    cursor: pointer; box-shadow: 0 2px 8px rgba(217,151,31,0.3);
-    transition: opacity 0.15s, transform 0.1s;
+    display: inline-block; margin-top: 8px;
+    background: none; color: var(--muted); border: none;
+    font-family: 'Noto Sans TC', sans-serif; font-size: 0.68rem; font-weight: 400;
+    cursor: pointer; text-decoration: underline; padding: 2px 0;
   }
-  .goto-gift-btn:hover { opacity: 0.9; }
-  .goto-gift-btn:active { transform: scale(0.98); }
+  .goto-gift-btn:hover { color: var(--accent); }
 
   /* Tabs */
   .tabs {
@@ -252,6 +250,24 @@
   .ri-undo { border: none; background: none; color: var(--muted); font-size: 0.8rem; cursor: pointer; }
   .empty-note { text-align: center; color: var(--muted); font-size: 0.78rem; padding: 18px 0; }
 
+  /* Gift page lock overlay */
+  #s-gift { position: relative; }
+  .gift-lock-overlay {
+    position: absolute; inset: 0; z-index: 50; border-radius: 16px;
+    backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+    background: rgba(245,250,248,0.78);
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    padding: 20px;
+  }
+  .gift-lock-overlay.unlocked { display: none; }
+  .gift-lock-icon { font-size: 2rem; margin-bottom: 8px; }
+  .gift-lock-title { font-family: 'Klee One', cursive; font-weight: 700; font-size: 1rem; color: var(--text); margin-bottom: 5px; }
+  .gift-lock-sub { font-size: 0.72rem; color: var(--muted); margin-bottom: 12px; line-height: 1.6; }
+  .gift-lock-btn {
+    padding: 9px 18px; border: none; border-radius: 10px; background: var(--accent);
+    color: white; font-weight: 700; font-size: 0.78rem; cursor: pointer; font-family: 'Klee One', cursive;
+  }
+
   /* Rules */
   .rule-block {
     background: var(--card); border-left: 3px solid var(--accent);
@@ -388,7 +404,6 @@
 
 <div class="header">
   <h1>🔤 賢祐 - 英文學習成效表</h1>
-  <p>每週三、五考單字（各5題）</p>
   <div class="header-deco"></div>
 </div>
 
@@ -403,8 +418,10 @@
     </div>
   </div>
   <div class="prog-w"><div class="prog-f" id="prog-f" style="width:0%"></div></div>
-  <div class="redeem" id="prog-note" style="margin-top:7px;">再集 <strong id="next-gift-need">—</strong> 點就能兌換下一個禮物</div>
-  <button class="goto-gift-btn" onclick="sw('gift')">🎁 前往兌換禮物</button>
+  <div class="redeem" id="prog-note-wrap" style="margin-top:7px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;">
+    <span id="prog-note">再集 <strong id="next-gift-need">—</strong> 點就能兌換下一個禮物</span>
+    <button class="goto-gift-btn" onclick="sw('gift')">🎁 前往兌換禮物</button>
+  </div>
 </div>
 
 <div class="tabs">
@@ -440,7 +457,7 @@
 
 <!-- History -->
 <div class="section" id="s-history">
-  <div class="gift-note">國小只有<strong>期中、期末</strong>兩次考試。點擊分數即可輸入／修改：<strong>英文（⭐）90分以上開始加點，90分1點、之後每多1分+1點</strong>；<strong>其他科目95分以上 +2點</strong>。</div>
+  <div class="gift-note">國小只有<strong>期中、期末</strong>兩次考試。點擊分數即可輸入／修改：<strong>英文（⭐）90分以上開始加點，90分1點、之後每多1分+1點</strong>；<strong>其他科目95分以上開始加點，95分1點、之後每多1分+1點</strong>。</div>
   <div style="position:relative;">
   <div id="history-chart-wrap">
     <div id="chart-filter-panel">
@@ -490,6 +507,14 @@
 
 <!-- Gift shop -->
 <div class="section" id="s-gift">
+  <div class="gift-lock-overlay" id="gift-lock-overlay">
+    <div>
+      <div class="gift-lock-icon">🚧</div>
+      <div class="gift-lock-title">頁面仍在設計中</div>
+      <div class="gift-lock-sub">禮物兌換功能還在調整<br>請輸入密碼查看</div>
+      <button class="gift-lock-btn" onclick="unlockGiftPage()">🔒 輸入密碼</button>
+    </div>
+  </div>
   <div class="gift-note">點數<strong>沒有到期日</strong>，可以隨時兌換禮物；換掉之後剩下的點數會繼續累積，不會歸零。</div>
   <div class="gift-note">可以幫禮物加一張小圖片（例如你找到現貨、拍張照）；沒有照片也沒關係，會先顯示 🎁。</div>
   <div class="gift-grid" id="gift-grid"></div>
@@ -529,14 +554,14 @@
 
   <div class="rule-block gold">
     <span class="rule-title">📝 作業加點</span>
-    當次上課前<strong>作業有完成</strong>（安親班作業／學校作業），可以記錄加點，一次 <strong>+1 點</strong>。
+    當次上課前<strong>老師指定的作業</strong>有完成，可以記錄加點，一次 <strong>+1 點</strong>。（僅限老師自己出的作業，<strong>不包含</strong>安親班或學校的作業）
   </div>
 
   <div class="rule-block green">
     <span class="rule-title">📚 期中／期末考加點</span>
     國小只有<strong>期中、期末</strong>兩次段考，在「歷史成績」頁登錄分數：<br><br>
     <strong>英文</strong>：90分以上開始加點，<strong>90分 = 1點</strong>，之後每多1分 +1點（100分 = 11點）<br>
-    <strong>國語／數學／自然／社會</strong>：<strong>95分以上 → +2點</strong>
+    <strong>國語／數學／自然／社會</strong>：95分以上開始加點，<strong>95分 = 1點</strong>，之後每多1分 +1點（100分 = 6點）
   </div>
 
   <div class="rule-block red">
@@ -587,11 +612,11 @@
 
     <div class="mslabel">📝 作業加點</div>
     <div class="check-row" id="dm-hw-row">
-      <span>作業有完成 +1點</span>
+      <span>作業有完成 +1點（限老師指定作業）</span>
       <span class="check-icon" id="dm-hw-icon">☐</span>
     </div>
     <div class="mrow">
-      <input type="text" id="dm-hwd" placeholder="作業內容（例：安親班習作 p.10-12）" />
+      <input type="text" id="dm-hwd" placeholder="作業內容（例：這次指定練習 p.10-12）" />
     </div>
 
     <div class="mbtns" id="dm-btns"></div>
@@ -675,11 +700,11 @@ function engExamPts(score) {
   const s = parseInt(score); if (isNaN(s) || s < 90) return 0;
   return (s - 90) + 1;
 }
-// Other subjects: flat +2 at 95 分以上.
+// Other subjects: 95 分起算，95分=1點，之後每多1分+1點。
 function otherExamPts(score) {
   if (score === null || score === undefined || score === '') return 0;
   const s = parseInt(score); if (isNaN(s) || s < 95) return 0;
-  return 2;
+  return (s - 95) + 1;
 }
 function examPtsFor(subKey, score) {
   return subKey === 'eng' ? engExamPts(score) : otherExamPts(score);
@@ -1003,7 +1028,7 @@ function openHistoryEM(sub, semKey, timeKey) {
   document.getElementById('em-t').textContent = `${sub.lbl} — ${semLbl}${timeLbl}`;
   document.getElementById('em-s').textContent = sub.key === 'eng'
     ? '90分以上開始加點，90分1點，每多1分+1點'
-    : '95分以上 → +2點';
+    : '95分以上開始加點，95分1點，每多1分+1點';
   const cur = data.exam[k] ?? '';
   document.getElementById('em-sc').value = cur;
   updHistoryEMPreview(sub.key);
@@ -1216,7 +1241,7 @@ function openTeacherModal(mode, key) {
   _teacherMode = mode; _teacherKey = key;
   document.getElementById('pw-input').value = '';
   document.getElementById('pw-error').textContent = '';
-  document.querySelector('#o-teacher h3').textContent = mode === 'edit' ? '✏️ 老師修改' : '✅ 老師確認';
+  document.querySelector('#o-teacher h3').textContent = mode === 'edit' ? '✏️ 老師修改' : (mode === 'giftpage' ? '🔒 禮物頁面設計中' : '✅ 老師確認');
   document.getElementById('o-teacher').classList.add('show');
   setTimeout(() => document.getElementById('pw-input').focus(), 100);
 }
@@ -1228,6 +1253,10 @@ document.getElementById('pw-confirm').onclick = async () => {
     document.getElementById('pw-input').value = ''; return;
   }
   document.getElementById('o-teacher').classList.remove('show');
+
+  if (_teacherMode === 'giftpage') {
+    document.getElementById('gift-lock-overlay').classList.add('unlocked');
+  }
 
   if (_teacherMode === 'edit') {
     const btns = document.getElementById('dm-btns');
@@ -1252,6 +1281,8 @@ document.getElementById('pw-confirm').onclick = async () => {
     document.getElementById('dm-hw-row').style.opacity = '1';
   }
 };
+function unlockGiftPage() { openTeacherModal('giftpage', null); }
+
 document.getElementById('pw-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('pw-confirm').click();
 });
