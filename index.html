@@ -17,99 +17,58 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 32px 20px;
+    padding: 40px 20px 32px;
   }
 
-  .header {
-    text-align: center;
-    margin-bottom: 40px;
-  }
+  .header { text-align: center; margin-bottom: 30px; }
+  .header h1 { font-family: 'Playfair Display', serif; font-size: 2rem; color: #d4521a; margin-bottom: 6px; }
+  .header p { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: #9a8070; letter-spacing: 0.05em; }
+  .deco { width: 40px; height: 3px; background: linear-gradient(90deg, #d4521a, #e8962a); border-radius: 2px; margin: 12px auto 0; }
 
-  .header h1 {
-    font-family: 'Playfair Display', serif;
-    font-size: 2rem;
-    color: #d4521a;
-    margin-bottom: 6px;
-  }
+  .wrap { width: 100%; max-width: 380px; }
 
-  .header p {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.72rem;
-    color: #9a8070;
-    letter-spacing: 0.05em;
+  .sec-title {
+    font-family: 'DM Mono', monospace; font-size: 0.66rem; font-weight: 700;
+    color: #b89478; letter-spacing: 0.12em; text-transform: uppercase;
+    margin: 26px 2px 10px; display: flex; align-items: center; gap: 8px;
   }
+  .sec-title:first-child { margin-top: 0; }
+  .sec-title::after { content: ''; flex: 1; height: 1px; background: #ecddd0; }
 
-  .deco {
-    width: 40px;
-    height: 3px;
-    background: linear-gradient(90deg, #d4521a, #e8962a);
-    border-radius: 2px;
-    margin: 12px auto 0;
-  }
-
-  .cards {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    width: 100%;
-    max-width: 340px;
-  }
+  .cards { display: flex; flex-direction: column; gap: 12px; }
 
   .card {
     background: white;
     border: 1.5px solid #ecddd0;
-    border-radius: 16px;
-    padding: 20px 22px;
+    border-left-width: 4px;
+    border-radius: 14px;
+    padding: 16px 18px;
     text-decoration: none;
     color: inherit;
     display: flex;
     align-items: center;
-    gap: 16px;
-    box-shadow: 0 2px 12px rgba(212,82,26,0.07);
-    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    gap: 14px;
+    box-shadow: 0 2px 12px rgba(212,82,26,0.06);
+    transition: transform 0.15s, box-shadow 0.15s;
   }
-
-  .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(212,82,26,0.13);
-    border-color: #d4521a;
-  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(212,82,26,0.13); }
 
   .card-icon {
-    font-size: 1.8rem;
-    line-height: 1;
-    flex-shrink: 0;
+    font-size: 1.5rem; line-height: 1; flex-shrink: 0;
+    width: 42px; height: 42px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .card-body { flex: 1; min-width: 0; }
+  .card-title { font-weight: 700; font-size: 0.92rem; color: #2a1a0e; margin-bottom: 2px; }
+  .card-sub { font-size: 0.68rem; color: #9a8070; font-family: 'DM Mono', monospace; }
+  .card-arrow { font-size: 1rem; color: #d4521a; opacity: 0.5; flex-shrink: 0; }
+
+  .note {
+    margin-top: 22px; font-size: 0.66rem; color: #b89478; line-height: 1.7;
+    background: #fbf1e6; border: 1px solid #ecddd0; border-radius: 10px; padding: 10px 14px;
   }
 
-  .card-body { flex: 1; }
-
-  .card-title {
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: #2a1a0e;
-    margin-bottom: 3px;
-  }
-
-  .card-sub {
-    font-size: 0.72rem;
-    color: #9a8070;
-    font-family: 'DM Mono', monospace;
-  }
-
-  .card-arrow {
-    font-size: 1rem;
-    color: #d4521a;
-    opacity: 0.6;
-  }
-
-  .footer {
-    margin-top: 36px;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    color: #c5b0a0;
-    letter-spacing: 0.08em;
-  }
+  .footer { margin-top: 32px; font-family: 'DM Mono', monospace; font-size: 0.65rem; color: #c5b0a0; letter-spacing: 0.08em; }
 </style>
 </head>
 <body>
@@ -120,33 +79,81 @@
   <div class="deco"></div>
 </div>
 
-<div class="cards">
-  <a class="card" href="math-plan.html">
-    <div class="card-icon">📐</div>
-    <div class="card-body">
-      <div class="card-title">數學計畫</div>
-      <div class="card-sub">每日練習・段考成績・歷史記錄</div>
-    </div>
-    <div class="card-arrow">→</div>
-  </a>
+<div class="wrap">
 
-  <a class="card" href="study-plan-s2.html">
-    <div class="card-icon">📚</div>
-    <div class="card-body">
-      <div class="card-title">全科計畫 S2</div>
-      <div class="card-sub">上課記錄・段考成績・歷史記錄</div>
-    </div>
-    <div class="card-arrow">→</div>
-  </a>
+  <div class="sec-title">👦 學生課程</div>
+  <div class="cards">
+    <a class="card" href="賢祐-英文學習成效表.html" style="border-left-color:#2f8f7e;">
+      <div class="card-icon" style="background:#e3f6f1;">🔤</div>
+      <div class="card-body">
+        <div class="card-title">賢祐 - 英文學習成效表</div>
+        <div class="card-sub">單字小考・段考加點・禮物兌換</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
 
-  <a class="card" href="study-plan-s3.html">
-    <div class="card-icon">✏️</div>
-    <div class="card-body">
-      <div class="card-title">全科計畫 S3</div>
-      <div class="card-sub">每日記錄・段考成績・歷史記錄</div>
-    </div>
-    <div class="card-arrow">→</div>
-  </a>
+    <a class="card" href="math-plan.html" style="border-left-color:#d9971f;">
+      <div class="card-icon" style="background:#fbeed4;">📐</div>
+      <div class="card-body">
+        <div class="card-title">辰祐 - 數理學習成效表</div>
+        <div class="card-sub">每日練習・段考成績・歷史記錄</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+
+    <a class="card" href="study-plan-s2.html" style="border-left-color:#4a3f8f;">
+      <div class="card-icon" style="background:#ece9fb;">⭐</div>
+      <div class="card-body">
+        <div class="card-title">士傑 - 學習成效表</div>
+        <div class="card-sub">上課記錄・段考成績・歷史記錄</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+
+    <a class="card" href="study-plan-s3.html" style="border-left-color:#c4536a;">
+      <div class="card-icon" style="background:#fdf3f5;">📝</div>
+      <div class="card-body">
+        <div class="card-title">詠琳 - 學習成效表</div>
+        <div class="card-sub">每日記錄・段考成績・歷史記錄</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+
+    <a class="card" href="summer-plan-2026-yuni.html" style="border-left-color:#3d6f9e;">
+      <div class="card-icon" style="background:#e6f0f8;">🌸</div>
+      <div class="card-body">
+        <div class="card-title">暑假計畫 2026（yuni）</div>
+        <div class="card-sub">暑期行事曆・模考成績</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+
+    <a class="card" href="summer-plan-2026.html" style="border-left-color:#8b6f5e;">
+      <div class="card-icon" style="background:#f5ede8;">🌼</div>
+      <div class="card-body">
+        <div class="card-title">暑假計畫 2026</div>
+        <div class="card-sub">暑期行事曆・模考成績</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+  </div>
+
+  <div class="sec-title">🧾 管理工具</div>
+  <div class="cards">
+    <a class="card" href="tutor-fees.html" style="border-left-color:#d9971f;">
+      <div class="card-icon" style="background:#fbeed4;">📒</div>
+      <div class="card-body">
+        <div class="card-title">家教收費結算</div>
+        <div class="card-sub">上課紀錄・費用計算</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+  </div>
+
+  <div class="note">
+    💡 「暑假計畫 2026」跟「暑假計畫 2026（yuni）」看起來是同一份模板、但資料是分開存的兩份紀錄——如果其中一份其實是同一個學生或已經不需要了，跟我說一聲，我可以幫你合併或改名，讓卡片標題更清楚。
+  </div>
+
 </div>
 
 <div class="footer">72026tina · study plan</div>
