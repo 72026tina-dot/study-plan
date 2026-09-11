@@ -271,6 +271,34 @@
     padding: 9px 18px; border: none; border-radius: 10px; background: var(--accent);
     color: white; font-weight: 700; font-size: 0.78rem; cursor: pointer; font-family: 'Klee One', cursive;
   }
+  .gift-wish-box { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border); width: 210px; max-width: 80vw; }
+  .gift-wish-label { font-size: 0.68rem; color: var(--muted); margin-bottom: 6px; font-weight: 700; line-height: 1.5; }
+  .gift-wish-box textarea {
+    width: 100%; padding: 7px 9px; border: 1.5px solid var(--border); border-radius: 8px;
+    font-family: 'Noto Sans TC', sans-serif; font-size: 0.78rem; background: var(--card); color: var(--text);
+    resize: none;
+  }
+  .gift-wish-box textarea:focus { outline: none; border-color: var(--accent); }
+  .gift-wish-save-btn {
+    margin-top: 6px; padding: 6px 14px; border: none; border-radius: 8px;
+    background: var(--gold); color: white; font-weight: 700; font-size: 0.72rem; cursor: pointer;
+  }
+  .gift-wish-saved-note { font-size: 0.65rem; color: var(--accent); margin-top: 5px; font-weight: 700; display: none; }
+
+  .wish-pool-title { font-size: 0.8rem; font-weight: 700; color: var(--text); margin: 4px 0 8px; font-family: 'Klee One', cursive; }
+  .wish-item {
+    background: var(--gold-bg); border: 1.5px dashed var(--gold); border-radius: 12px;
+    padding: 10px 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .wish-item-text { flex: 1; min-width: 100px; font-size: 0.82rem; color: var(--text); font-weight: 700; }
+  .wish-item-date { display: block; font-size: 0.6rem; color: var(--muted); font-weight: 400; font-family: 'DM Mono', monospace; margin-top: 1px; }
+  .wish-item input[type=number] {
+    width: 56px; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 7px;
+    font-family: 'DM Mono', monospace; font-size: 0.8rem; background: var(--card); color: var(--text); text-align: center;
+  }
+  .wish-item input[type=number]:focus { outline: none; border-color: var(--accent); }
+  .wish-add-btn { padding: 6px 12px; border: none; border-radius: 7px; background: var(--accent); color: white; font-weight: 700; font-size: 0.72rem; cursor: pointer; }
+  .wish-del-btn { padding: 6px 8px; border: none; border-radius: 7px; background: none; color: var(--muted); font-size: 0.8rem; cursor: pointer; }
 
   /* Rules */
   .rule-block {
@@ -516,10 +544,21 @@
       <div class="gift-lock-title">頁面仍在設計中</div>
       <div class="gift-lock-sub">禮物兌換功能還在調整<br>請輸入密碼查看</div>
       <button class="gift-lock-btn" onclick="unlockGiftPage()">🔒 輸入密碼</button>
+
+      <div class="gift-wish-box">
+        <div class="gift-wish-label">🎁 想跟老師許願想要什麼禮物嗎？<br>寫下來給老師看看～</div>
+        <textarea id="gift-wish-input" rows="2" maxlength="60" placeholder="我想要..."></textarea>
+        <button class="gift-wish-save-btn" onclick="saveGiftWish()">送出</button>
+        <div class="gift-wish-saved-note" id="gift-wish-saved-note">💌 已經送給老師了！</div>
+      </div>
     </div>
   </div>
   <div class="gift-note">點數<strong>沒有到期日</strong>，可以隨時兌換禮物；換掉之後剩下的點數會繼續累積，不會歸零。</div>
   <div class="gift-note">可以幫禮物加一張小圖片（例如你找到現貨、拍張照）；沒有照片也沒關係，會先顯示 🎁。</div>
+
+  <div class="wish-pool-title">🌟 許願池（賢祐許的願望，評估點數後加入禮物清單）</div>
+  <div id="wish-pool-list"></div>
+
   <div class="gift-grid" id="gift-grid"></div>
   <div class="gift-add-form">
     <input type="text" name="gname" id="gift-new-name" placeholder="新禮物名稱" />
@@ -765,6 +804,8 @@ async function load() {
   if (!data.gifts) data.gifts = JSON.parse(JSON.stringify(DEFAULT_GIFTS));
   if (!data.redemptions) data.redemptions = [];
   if (!data.countdowns) data.countdowns = [];
+  if (!data.wishes) data.wishes = [];
+  buildWishPool();
   buildCal(); buildGifts(); buildRedeemLog(); updSum(); buildHistory(); renderCountdown();
 }
 
@@ -1401,6 +1442,60 @@ function buildGifts() {
 }
 
 let _pendingGiftPhotoId = null;
+async function saveGiftWish() {
+  const input = document.getElementById('gift-wish-input');
+  const val = input.value.trim();
+  if (!val) return;
+  if (!data.wishes) data.wishes = [];
+  data.wishes.push({ id: 'w' + Date.now(), text: val, date: dk(today) });
+  await save();
+  input.value = '';
+  buildWishPool();
+  const note = document.getElementById('gift-wish-saved-note');
+  note.style.display = 'block';
+  setTimeout(() => { note.style.display = 'none'; }, 2500);
+}
+
+function buildWishPool() {
+  const wrap = document.getElementById('wish-pool-list');
+  const wishes = data.wishes || [];
+  if (!wishes.length) {
+    wrap.innerHTML = '<div class="empty-note">目前沒有新的許願，賢祐填寫後會顯示在這裡</div>';
+    return;
+  }
+  wrap.innerHTML = '';
+  wishes.slice().reverse().forEach(w => {
+    const item = document.createElement('div');
+    item.className = 'wish-item';
+    item.innerHTML = `
+      <div class="wish-item-text">💭 ${w.text}<span class="wish-item-date">${w.date}</span></div>
+      <input type="number" min="1" placeholder="點數" id="wish-pts-${w.id}" />
+      <button class="wish-add-btn" onclick="addWishAsGift('${w.id}')">✅ 加入禮物</button>
+      <button class="wish-del-btn" title="刪除" onclick="deleteWish('${w.id}')">🗑️</button>
+    `;
+    wrap.appendChild(item);
+  });
+}
+
+async function addWishAsGift(id) {
+  const w = (data.wishes || []).find(x => x.id === id);
+  if (!w) return;
+  const costInput = document.getElementById(`wish-pts-${id}`);
+  const cost = parseFloat(costInput.value);
+  if (!cost || cost <= 0) { alert('請先填評估點數'); return; }
+  data.gifts.push({ id: 'g' + Date.now(), name: w.text, cost });
+  data.wishes = (data.wishes || []).filter(x => x.id !== id);
+  await save();
+  buildWishPool(); buildGifts(); updSum();
+}
+
+async function deleteWish(id) {
+  if (!confirm('確定要刪除這個願望嗎？')) return;
+  data.wishes = (data.wishes || []).filter(x => x.id !== id);
+  await save();
+  buildWishPool();
+}
+
 function openPhotoLightbox(id) {
   const g = (data.gifts || []).find(x => x.id === id);
   if (!g || !g.img) return;
