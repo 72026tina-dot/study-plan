@@ -1,0 +1,2543 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>課跡 Kèjì</title>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/plain" id="app-source">
+
+const { useState, useEffect, useMemo } = React;
+
+function makeIcon(symbol) {
+  return function IconComp({ size = 16, style, ...rest }) {
+    return React.createElement(
+      "span",
+      { style: { fontSize: size, lineHeight: 1, display: "inline-block", ...style }, ...rest },
+      symbol
+    );
+  };
+}
+const Calendar = makeIcon("\uD83D\uDCC5");
+const CheckSquare = makeIcon("\u2705");
+const Wallet = makeIcon("\uD83D\uDCB0");
+const Menu = makeIcon("\u2630");
+const Plus = makeIcon("\uFF0B");
+const X = makeIcon("\u2715");
+const ChevronLeft = makeIcon("\u2039");
+const ChevronRight = makeIcon("\u203A");
+const Trash2 = makeIcon("\uD83D\uDDD1");
+const Star = makeIcon("\u2B50");
+const Target = makeIcon("\uD83C\uDFAF");
+const Users = makeIcon("\uD83D\uDC65");
+const Sprout = makeIcon("\uD83C\uDF31");
+const ArrowLeft = makeIcon("\u2190");
+const Check = makeIcon("\u2713");
+const ClipboardList = makeIcon("\uD83D\uDCCB");
+const FileText = makeIcon("\uD83D\uDCC4");
+const TrendingUp = makeIcon("\uD83D\uDCC8");
+const Pencil = makeIcon("\u270F\uFE0F");
+const UserPlus = makeIcon("\u2795");
+
+
+const TEACHER_NAME = "老師";
+const TODAY = new Date(); // always reflects the real device date
+const HOLIDAYS = {
+  "2026-01-01": "元旦",
+  "2026-02-15": "小年夜",
+  "2026-02-16": "除夕",
+  "2026-02-17": "春節",
+  "2026-02-18": "春節",
+  "2026-02-19": "春節",
+  "2026-02-20": "小年夜補假",
+  "2026-02-27": "228補假",
+  "2026-02-28": "和平紀念日",
+  "2026-04-04": "兒童節",
+  "2026-04-05": "清明節",
+  "2026-05-01": "勞動節",
+  "2026-06-19": "端午節",
+  "2026-09-25": "中秋節",
+  "2026-09-28": "教師節",
+  "2026-10-10": "國慶日",
+  "2026-10-25": "台灣光復節",
+  "2026-12-25": "行憲紀念日",
+};
+const COURSE_TYPES = ["正常上課", "試聽課", "補課", "請假（不計費）", "其他"];
+const WEEKDAYS = ["一", "二", "三", "四", "五", "六", "日"]; // Monday-first order for column headers
+function weekdayLabel(jsDay) { return WEEKDAYS[(jsDay + 6) % 7]; } // jsDay: 0=Sun..6=Sat
+const DURATIONS = [3, 2.5, 2, 1.5, 1, 0.5];
+const LEVELS = { elem: "國小", mid: "國中" };
+const DEFAULT_POINT_CATEGORIES = [
+  { id: "focus", emoji: "🎯", label: "專心上課", value: 2 },
+  { id: "speak", emoji: "🙋", label: "主動發言", value: 2 },
+  { id: "hw", emoji: "✅", label: "按時完成作業", value: 3 },
+  { id: "progress", emoji: "📈", label: "今日有進步", value: 2 },
+  { id: "manner", emoji: "😊", label: "禮貌／態度佳", value: 1 },
+  { id: "distract", emoji: "💤", label: "分心／不專心", value: -2 },
+  { id: "forget", emoji: "📕", label: "忘記帶課本/作業", value: -2 },
+];
+function isBillable(lesson) { return lesson.courseType !== "請假（不計費）"; }
+function effectiveRate(lesson, student, trialRate) {
+  if (lesson.rateOverride !== undefined && lesson.rateOverride !== null && lesson.rateOverride !== "") return Number(lesson.rateOverride);
+  if (lesson.courseType === "試聽課") return Number(trialRate || 0);
+  return Number(student?.rate || 0);
+}
+
+function pad(n) { return String(n).padStart(2, "0"); }
+function fmt(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+function todayStr() { return fmt(TODAY); }
+function monthKey(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; }
+function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + n);
+  return fmt(d);
+}
+function qKey(studentId, month) { return `${studentId}|${month}`; }
+function emptyCounts() { return [0, 0, 0, 0, 0, 0]; }
+function calcQuick(counts, rate) {
+  let hours = 0, days = 0;
+  DURATIONS.forEach((d, i) => {
+    const c = parseFloat(counts[i]) || 0;
+    hours += d * c; days += c;
+  });
+  const fee = Math.round(hours * (parseFloat(rate) || 0));
+  return { days: Math.round(days * 10) / 10, hours: Math.round(hours * 10) / 10, fee };
+}
+
+const SEED_STUDENTS = [
+  { id: "s1", name: "陳小美", rate: 700, level: "mid", billingType: "hourly", periodicAmount: 0, note: "國三數學" },
+  { id: "s2", name: "林大文", rate: 600, level: "elem", billingType: "periodic", periodicAmount: 6000, note: "小六英文，月結" },
+];
+const SEED_LESSONS = [
+  {
+    id: "l1", studentId: "s1", date: todayStr(), time: "16:00", hours: 1,
+    courseType: "正常上課", status: "attended",
+    materials: [{ id: uid(), material: "康軒數學 三下", content: "第四章 一元一次方程式" }],
+    homework: [{ id: uid(), text: "習作 p.20-21", done: false }],
+    extra: { learningStatus: "上課專注，計算偶有粗心", examScore: "", points: 3, weakness: "分數通分容易算錯" },
+  },
+];
+
+async function loadKey(key, fallback) {
+  try {
+    const v = localStorage.getItem("kejizhu_" + key);
+    return v ? JSON.parse(v) : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+async function saveKey(key, value) {
+  try { localStorage.setItem("kejizhu_" + key, JSON.stringify(value)); } catch (e) {}
+}
+
+// Cloud sync — uses the same Firebase Realtime Database as the old tutor-fees
+// tool, but under its own "tutor_log" path so it never overwrites that data.
+const FB_URL = "https://math-plan-default-rtdb.asia-southeast1.firebasedatabase.app/tutor_log.json";
+async function cloudLoad() {
+  try {
+    const r = await fetch(FB_URL);
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j && typeof j === "object" ? j : null;
+  } catch (e) {
+    return null;
+  }
+}
+async function cloudSave(state) {
+  try {
+    await fetch(FB_URL, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(state) });
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function App() {
+  const [ready, setReady] = useState(false);
+  const [students, setStudents] = useState(SEED_STUDENTS);
+  const [lessons, setLessons] = useState(SEED_LESSONS);
+  const [fees, setFees] = useState([]);
+  const [settled, setSettled] = useState([]);
+  const [quickTally, setQuickTally] = useState({});
+  const [activePeriodic, setActivePeriodic] = useState([]);
+  const [trialRate, setTrialRate] = useState(250);
+  const [weaknessNotes, setWeaknessNotes] = useState([]);
+  const [examRecords, setExamRecords] = useState([]);
+  const [progressList, setProgressList] = useState([]);
+  const [pointCategories, setPointCategories] = useState(DEFAULT_POINT_CATEGORIES);
+  const [pointLogs, setPointLogs] = useState([]);
+  const [homeworkList, setHomeworkList] = useState([]);
+  const [syncStatus, setSyncStatus] = useState("syncing"); // syncing | synced | error
+
+  const [tab, setTab] = useState("schedule");
+  const [calMode, setCalMode] = useState("month");
+  const [viewMonth, setViewMonth] = useState(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1));
+  const [selectedDate, setSelectedDate] = useState(todayStr());
+  const [moreView, setMoreView] = useState(null);
+
+  const [logForm, setLogForm] = useState(null);
+  const [scheduleForm, setScheduleForm] = useState(null);
+  const [actionSheet, setActionSheet] = useState(null);
+  const [editTimeLesson, setEditTimeLesson] = useState(null);
+  const [dayPeek, setDayPeek] = useState(null); // { date, lessons }
+
+  useEffect(() => {
+    (async () => {
+      const cloud = await cloudLoad();
+      if (cloud) {
+        setStudents(cloud.students || SEED_STUDENTS);
+        setLessons(cloud.lessons || SEED_LESSONS);
+        setFees(cloud.fees || []);
+        setSettled(cloud.settled || []);
+        setQuickTally(cloud.quickTally || {});
+        setActivePeriodic(cloud.activePeriodic || []);
+        setTrialRate(cloud.trialRate ?? 250);
+        setWeaknessNotes(cloud.weaknessNotes || []);
+        setExamRecords(cloud.examRecords || []);
+        setProgressList(cloud.progressList || []);
+        setPointCategories(cloud.pointCategories || DEFAULT_POINT_CATEGORIES);
+        setPointLogs(cloud.pointLogs || []);
+        setHomeworkList(cloud.homeworkList || []);
+        setSyncStatus("synced");
+      } else {
+        // Cloud unreachable — fall back to this device's local copy so work isn't lost.
+        const s = await loadKey("students", null);
+        const l = await loadKey("lessons", null);
+        const f = await loadKey("fees", null);
+        const st = await loadKey("settled", null);
+        const qt = await loadKey("quickTally", null);
+        const ap = await loadKey("activePeriodic", null);
+        const tr = await loadKey("trialRate", null);
+        const wn = await loadKey("weaknessNotes", null);
+        const er = await loadKey("examRecords", null);
+        const pl = await loadKey("progressList", null);
+        const pc = await loadKey("pointCategories", null);
+        const pg = await loadKey("pointLogs", null);
+        const hl = await loadKey("homeworkList", null);
+        if (s) setStudents(s);
+        if (l) setLessons(l);
+        if (f) setFees(f);
+        if (st) setSettled(st);
+        if (qt) setQuickTally(qt);
+        if (ap) setActivePeriodic(ap);
+        if (tr != null) setTrialRate(tr);
+        if (wn) setWeaknessNotes(wn);
+        if (er) setExamRecords(er);
+        if (pl) setProgressList(pl);
+        if (pc) setPointCategories(pc);
+        if (pg) setPointLogs(pg);
+        if (hl) setHomeworkList(hl);
+        setSyncStatus("error");
+      }
+      setReady(true);
+    })();
+  }, []);
+
+  // Debounced write-through: every change gets mirrored to local storage
+  // immediately, and to the shared cloud database shortly after.
+  useEffect(() => {
+    if (!ready) return;
+    const state = {
+      students, lessons, fees, settled, quickTally, activePeriodic, trialRate,
+      weaknessNotes, examRecords, progressList, pointCategories, pointLogs, homeworkList,
+    };
+    saveKey("students", students);
+    saveKey("lessons", lessons);
+    saveKey("fees", fees);
+    saveKey("settled", settled);
+    saveKey("quickTally", quickTally);
+    saveKey("activePeriodic", activePeriodic);
+    saveKey("trialRate", trialRate);
+    saveKey("weaknessNotes", weaknessNotes);
+    saveKey("examRecords", examRecords);
+    saveKey("progressList", progressList);
+    saveKey("pointCategories", pointCategories);
+    saveKey("pointLogs", pointLogs);
+    saveKey("homeworkList", homeworkList);
+    setSyncStatus("syncing");
+    const t = setTimeout(async () => {
+      const ok = await cloudSave(state);
+      setSyncStatus(ok ? "synced" : "error");
+    }, 700);
+    return () => clearTimeout(t);
+  }, [students, lessons, fees, settled, quickTally, activePeriodic, trialRate, weaknessNotes, examRecords, progressList, pointCategories, pointLogs, homeworkList, ready]);
+
+  const studentById = (id) => students.find((s) => s.id === id);
+
+  function upsertLesson(lesson) {
+    setLessons((prev) => {
+      const idx = prev.findIndex((l) => l.id === lesson.id);
+      if (idx === -1) return [...prev, lesson];
+      const next = [...prev];
+      next[idx] = lesson;
+      return next;
+    });
+  }
+  function removeLesson(id) { setLessons((prev) => prev.filter((l) => l.id !== id)); }
+  function removeFee(id) { setFees((prev) => prev.filter((f) => f.id !== id)); }
+  function quickAttend(lesson) { upsertLesson({ ...lesson, status: "attended" }); }
+  function bulkAttendDay(dateLessons) {
+    setLessons((prev) => prev.map((l) => {
+      if (dateLessons.some((d) => d.id === l.id) && l.status === "scheduled") return { ...l, status: "attended" };
+      return l;
+    }));
+  }
+  function seriesSiblings(lesson) {
+    if (!lesson?.seriesId) return [];
+    return lessons.filter((l) => l.seriesId === lesson.seriesId && l.status === "scheduled" && l.id !== lesson.id);
+  }
+  function applyTimeToSeries(lesson, time, hours) {
+    setLessons((prev) => prev.map((l) => {
+      if (l.seriesId === lesson.seriesId && l.status === "scheduled") return { ...l, time, hours };
+      return l;
+    }));
+  }
+  function deleteSeries(lesson) {
+    setLessons((prev) => prev.filter((l) => !(l.seriesId === lesson.seriesId && l.status === "scheduled")));
+  }
+  function toggleHomework(lessonId, hwId) {
+    setLessons((prev) => prev.map((l) => {
+      if (l.id !== lessonId) return l;
+      return { ...l, homework: l.homework.map((h) => h.id === hwId ? { ...h, done: !h.done } : h) };
+    }));
+  }
+  function feesFor(studentId, month) {
+    const list = fees.filter((f) => f.studentId === studentId && f.month === month);
+    const add = list.filter((f) => f.type === "add").reduce((a, f) => a + Number(f.amount || 0), 0);
+    const disc = list.filter((f) => f.type === "discount").reduce((a, f) => a + Number(f.amount || 0), 0);
+    return { add, disc };
+  }
+
+  const lessonsOn = (date) => lessons.filter((l) => l.date === date).sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+
+  const monthBreakdown = useMemo(() => {
+    const key = monthKey(viewMonth);
+    return students.map((s) => {
+      const k = qKey(s.id, key);
+      if (quickTally[k]) return null; // billed through the quick tally instead, don't double count
+      const monthLessons = lessons.filter((l) => l.studentId === s.id && l.date.startsWith(key) && l.status === "attended");
+      const billableLessons = monthLessons.filter(isBillable);
+      const hours = billableLessons.reduce((a, l) => a + Number(l.hours || 0), 0);
+      let base;
+      if (s.billingType === "periodic") {
+        const active = billableLessons.length > 0 || activePeriodic.includes(k);
+        base = active ? Number(s.periodicAmount || 0) : 0;
+      } else {
+        base = billableLessons.reduce((a, l) => a + Number(l.hours || 0) * effectiveRate(l, s, trialRate), 0);
+      }
+      const { add, disc } = feesFor(s.id, key);
+      const total = base + add - disc;
+      const show = monthLessons.length > 0 || add > 0 || disc > 0 || (s.billingType === "periodic" && activePeriodic.includes(k));
+      if (!show) return null;
+      const hasTrial = monthLessons.some((l) => l.courseType === "試聽課");
+      return { student: s, hours, base, add, disc, total, count: billableLessons.length, hasTrial, isSettled: settled.includes(k), key: k };
+    }).filter(Boolean);
+  }, [students, lessons, fees, settled, activePeriodic, quickTally, trialRate, viewMonth]);
+
+  const quickBreakdown = useMemo(() => {
+    const key = monthKey(viewMonth);
+    return Object.keys(quickTally)
+      .filter((k) => k.endsWith("|" + key))
+      .map((k) => {
+        const sid = k.slice(0, k.length - ("|" + key).length);
+        const s = studentById(sid);
+        if (!s) return null;
+        const counts = quickTally[k];
+        const { days, hours, fee } = calcQuick(counts, s.rate);
+        const { add, disc } = feesFor(sid, key);
+        const total = fee + add - disc;
+        return { student: s, counts, days, hours, base: fee, add, disc, total, key, isSettled: settled.includes(k) };
+      }).filter(Boolean);
+  }, [quickTally, students, fees, settled, viewMonth]);
+
+  const allRows = [...monthBreakdown, ...quickBreakdown];
+  const monthTotal = allRows.reduce((a, b) => a + b.total, 0);
+  const settledPct = allRows.length ? Math.round((allRows.filter((b) => b.isSettled).length / allRows.length) * 100) : 0;
+
+  const scheduledPreview = useMemo(() => {
+    const key = monthKey(viewMonth);
+    const upcoming = lessons.filter((l) => l.status === "scheduled" && l.date.startsWith(key));
+    const amount = upcoming.reduce((a, l) => {
+      const s = studentById(l.studentId);
+      if (!s) return a;
+      const rate = l.courseType === "試聽課" ? Number(trialRate || 0) : Number(s.rate || 0);
+      return a + Number(l.hours || 0) * rate;
+    }, 0);
+    return { count: upcoming.length, amount };
+  }, [lessons, students, trialRate, viewMonth]);
+
+  const homeworkItems = useMemo(() => {
+    const items = [];
+    lessons.forEach((l) => {
+      (l.homework || []).forEach((h) => {
+        items.push({ ...h, source: "lesson", lessonId: l.id, studentId: l.studentId, date: l.date });
+      });
+    });
+    homeworkList.forEach((h) => {
+      items.push({ ...h, source: "standalone", date: h.assignedDate });
+    });
+    return items.sort((a, b) => {
+      const da = a.dueDate || a.date, db = b.dueDate || b.date;
+      return db.localeCompare(da);
+    });
+  }, [lessons, homeworkList]);
+
+  function addStandaloneHomework(studentId, text, dueDate) {
+    setHomeworkList((prev) => [...prev, { id: uid(), studentId, text, assignedDate: todayStr(), dueDate: dueDate || "", done: false }]);
+  }
+  function toggleStandaloneHomework(id) {
+    setHomeworkList((prev) => prev.map((h) => h.id === id ? { ...h, done: !h.done } : h));
+  }
+  function deleteHomeworkItem(item) {
+    if (item.source === "standalone") {
+      setHomeworkList((prev) => prev.filter((h) => h.id !== item.id));
+    } else {
+      setLessons((prev) => prev.map((l) => l.id === item.lessonId ? { ...l, homework: l.homework.filter((h) => h.id !== item.id) } : l));
+    }
+  }
+
+  return (
+    <AppErrorBoundary>
+    <div style={S.shell}>
+      <style>{CSS}</style>
+      <div style={S.device}>
+        <Header todayCount={lessonsOn(todayStr()).length} />
+        <div style={S.banner}>
+          {syncStatus === "syncing" && <span>☁️ 同步中…</span>}
+          {syncStatus === "synced" && <span>☁️ 已同步雲端，換裝置打開也看得到最新資料</span>}
+          {syncStatus === "error" && <span style={{ color: "var(--coral-text)" }}>⚠️ 雲端連線失敗，暫時只存在這台裝置的畫面上</span>}
+        </div>
+
+        <div style={S.content}>
+          <TabErrorBoundary key={tab + "|" + (moreView || "")}>
+          {tab === "schedule" && (
+            <ScheduleTab
+              calMode={calMode} setCalMode={setCalMode}
+              viewMonth={viewMonth} setViewMonth={setViewMonth}
+              selectedDate={selectedDate} setSelectedDate={setSelectedDate}
+              lessons={lessons} lessonsOn={lessonsOn} studentById={studentById}
+              students={students} examRecords={examRecords}
+              onAddCourse={(date) => setScheduleForm({ date })}
+              onOpenLesson={(l) => setActionSheet(l)}
+              onBulkAttend={bulkAttendDay}
+              onDayClick={(dateStr, dayLessons) => {
+                if (dayLessons.length === 0) setScheduleForm({ date: dateStr });
+                else if (dayLessons.length === 1) setActionSheet(dayLessons[0]);
+                else setDayPeek({ date: dateStr, lessons: dayLessons });
+              }}
+            />
+          )}
+          {tab === "homework" && (
+            <HomeworkTab
+              items={homeworkItems} students={students} studentById={studentById}
+              onToggleLesson={toggleHomework} onToggleStandalone={toggleStandaloneHomework}
+              onAdd={addStandaloneHomework} onDelete={deleteHomeworkItem}
+            />
+          )}
+          {tab === "billing" && (
+            <BillingTab
+              viewMonth={viewMonth} setViewMonth={setViewMonth}
+              breakdown={monthBreakdown} quickBreakdown={quickBreakdown}
+              total={monthTotal} pct={settledPct}
+              students={students}
+              quickTally={quickTally} setQuickTally={setQuickTally}
+              activePeriodic={activePeriodic} setActivePeriodic={setActivePeriodic}
+              trialRate={trialRate} setTrialRate={setTrialRate}
+              scheduledPreview={scheduledPreview} lessons={lessons} fees={fees}
+              onSettleAll={() => {
+                setSettled((prev) => Array.from(new Set([...prev, ...[...monthBreakdown, ...quickBreakdown].map((b) => b.key)])));
+              }}
+              onUnsettleAll={() => {
+                const keys = new Set([...monthBreakdown, ...quickBreakdown].map((b) => b.key));
+                setSettled((prev) => prev.filter((k) => !keys.has(k)));
+              }}
+              onToggleSettle={(keys) => {
+                setSettled((prev) => {
+                  const allSettled = keys.every((k) => prev.includes(k));
+                  if (allSettled) return prev.filter((k) => !keys.includes(k));
+                  return Array.from(new Set([...prev, ...keys]));
+                });
+              }}
+              onAddFee={(fee) => setFees((prev) => [...prev, { ...fee, id: uid(), month: monthKey(viewMonth) }])}
+              onDeleteFee={removeFee}
+            />
+          )}
+          {tab === "more" && !moreView && (
+            <MoreMenu onSelect={setMoreView} />
+          )}
+          {tab === "more" && moreView && (
+            <MoreDetail
+              view={moreView} onBack={() => setMoreView(null)}
+              students={students} setStudents={setStudents} lessons={lessons} studentById={studentById}
+              onEditLesson={(l) => setLogForm(l)} onDeleteLesson={removeLesson}
+              weaknessNotes={weaknessNotes} setWeaknessNotes={setWeaknessNotes}
+              examRecords={examRecords} setExamRecords={setExamRecords}
+              progressList={progressList} setProgressList={setProgressList}
+              pointCategories={pointCategories} setPointCategories={setPointCategories}
+              pointLogs={pointLogs} setPointLogs={setPointLogs}
+            />
+          )}
+          </TabErrorBoundary>
+        </div>
+
+        <BottomNav
+          tab={tab}
+          onTab={(t) => { setTab(t); if (t !== "more") setMoreView(null); }}
+          onLog={() => setLogForm({})}
+        />
+      </div>
+
+      {logForm && (
+        <LogFormModal
+          initial={logForm} students={students} progressList={progressList} setProgressList={setProgressList}
+          onClose={() => setLogForm(null)}
+          onSave={(lesson) => { upsertLesson(lesson); setLogForm(null); }}
+        />
+      )}
+      {scheduleForm && (
+        <ScheduleFormModal
+          students={students} initial={scheduleForm}
+          onClose={() => setScheduleForm(null)}
+          onSave={(newLessons) => { newLessons.forEach(upsertLesson); setScheduleForm(null); }}
+        />
+      )}
+      {actionSheet && (
+        <ActionSheet
+          lesson={actionSheet} studentById={studentById}
+          siblingCount={seriesSiblings(actionSheet).length}
+          onClose={() => setActionSheet(null)}
+          onAttend={() => { quickAttend(actionSheet); setActionSheet(null); }}
+          onAttendWithLog={() => { setLogForm(actionSheet); setActionSheet(null); }}
+          onLeave={() => { upsertLesson({ ...actionSheet, status: "leave" }); setActionSheet(null); }}
+          onEditTime={() => { setEditTimeLesson(actionSheet); setActionSheet(null); }}
+          onDelete={() => { removeLesson(actionSheet.id); setActionSheet(null); }}
+          onDeleteSeries={() => { deleteSeries(actionSheet); setActionSheet(null); }}
+        />
+      )}
+      {editTimeLesson && (
+        <EditTimeModal
+          lesson={editTimeLesson} siblingCount={seriesSiblings(editTimeLesson).length}
+          onClose={() => setEditTimeLesson(null)}
+          onSave={(l) => { upsertLesson(l); setEditTimeLesson(null); }}
+          onSaveSeries={(time, hours) => { applyTimeToSeries(editTimeLesson, time, hours); setEditTimeLesson(null); }}
+        />
+      )}
+      {dayPeek && (
+        <DayPeekSheet
+          date={dayPeek.date} lessons={dayPeek.lessons} studentById={studentById}
+          onClose={() => setDayPeek(null)}
+          onPickLesson={(l) => { setActionSheet(l); setDayPeek(null); }}
+          onAddCourse={() => { setScheduleForm({ date: dayPeek.date }); setDayPeek(null); }}
+        />
+      )}
+    </div>
+    </AppErrorBoundary>
+  );
+}
+
+class AppErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 24, fontFamily: "sans-serif", maxWidth: 480, margin: "40px auto" }}>
+          <div style={{ color: "#a64330", fontWeight: 700, fontSize: 16, marginBottom: 10 }}>應用程式出了點問題</div>
+          <div style={{ color: "#6B7280", fontSize: 13, marginBottom: 10 }}>資料都還在雲端／裝置上，重新整理就會恢復。可以把下面這段訊息回報給開發者：</div>
+          <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, background: "#F1ECDF", padding: 12, borderRadius: 6, color: "#2A2A3B" }}>
+            {String((this.state.error && this.state.error.message) || this.state.error)}
+          </pre>
+          <button
+            style={{ marginTop: 14, padding: "10px 18px", background: "#232A3B", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}
+            onClick={() => window.location.reload()}
+          >重新整理頁面</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+class TabErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={S.card}>
+          <div style={{ color: "var(--coral-text)", fontWeight: 600, marginBottom: 8 }}>這個畫面出了點問題</div>
+          <div style={S.muted}>資料還在，只是這個畫面顯示不出來。可以把這段訊息回報給開發者：</div>
+          <div style={{ ...S.messagePreview, marginTop: 8 }}>{String((this.state.error && this.state.error.message) || this.state.error)}</div>
+          <button style={{ ...S.darkBtn, marginTop: 10 }} onClick={() => this.setState({ error: null })}>重新整理這個畫面</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function Header({ todayCount }) {
+  const t = TODAY;
+  const greetingDate = `${t.getMonth() + 1}月${t.getDate()}日 星期${weekdayLabel(t.getDay())}`;
+  const countText = todayCount > 0 ? `今天有 ${todayCount} 堂課` : "今天沒有排課";
+  return (
+    <div style={S.header}>
+      <div>
+        <div style={S.brand}>課跡 <span style={S.brandAccent}>Kèjì</span></div>
+        <div style={S.brandSub}>{TEACHER_NAME}，你好 👋　{greetingDate}・{countText}</div>
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button style={S.ghostBtn}>登出</button>
+      </div>
+    </div>
+  );
+}
+
+function BottomNav({ tab, onTab, onLog }) {
+  const Item = ({ id, icon: Icon, label }) => (
+    <button style={S.navItem(tab === id)} onClick={() => onTab(id)}>
+      <Icon size={20} />
+      <span>{label}</span>
+    </button>
+  );
+  return (
+    <div style={S.navBar}>
+      <Item id="schedule" icon={Calendar} label="排課" />
+      <Item id="homework" icon={CheckSquare} label="作業" />
+      <button style={S.navCenter} onClick={onLog} aria-label="記一課">
+        <Plus size={24} />
+      </button>
+      <Item id="billing" icon={Wallet} label="月費" />
+      <Item id="more" icon={Menu} label="更多" />
+    </div>
+  );
+}
+
+function LevelTag({ level }) {
+  return <span style={S.levelTag(level)}>{LEVELS[level] || "國小"}</span>;
+}
+
+function ScheduleTab({ calMode, setCalMode, viewMonth, setViewMonth, selectedDate, setSelectedDate, lessonsOn, studentById, onAddCourse, onOpenLesson, onBulkAttend, onDayClick, students, examRecords }) {
+  const [filterStudentId, setFilterStudentId] = useState("");
+  const year = viewMonth.getFullYear(), month = viewMonth.getMonth();
+  const first = new Date(year, month, 1);
+  const startWeekday = (first.getDay() + 6) % 7; // Monday-first: Mon=0 ... Sun=6
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < startWeekday; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const changeMonth = (delta) => setViewMonth(new Date(year, month + delta, 1));
+
+  function filteredLessonsOn(date) {
+    const all = lessonsOn(date);
+    return filterStudentId ? all.filter((l) => l.studentId === filterStudentId) : all;
+  }
+  function examsOn(date) {
+    return examRecords.filter((e) => {
+      const inRange = date >= e.date && date <= (e.endDate || e.date);
+      return inRange && (!filterStudentId || e.studentId === filterStudentId);
+    });
+  }
+
+  return (
+    <div>
+      <div style={S.rowBetween}>
+        <div style={S.tabToggle}>
+          <button style={S.tabBtn(calMode === "day")} onClick={() => setCalMode("day")}>日視圖</button>
+          <button style={S.tabBtn(calMode === "month")} onClick={() => setCalMode("month")}>月曆</button>
+        </div>
+        <select style={S.inputSm} value={filterStudentId} onChange={(e) => setFilterStudentId(e.target.value)}>
+          <option value="">全部學生</option>
+          {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+      </div>
+
+      {calMode === "month" ? (
+        <div style={S.card}>
+          <div style={S.rowBetween}>
+            <div style={S.monthTitle}>{year} 年 {month + 1} 月</div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button style={S.smallBtn} onClick={() => changeMonth(-1)}><ChevronLeft size={16} /> 上月</button>
+              <button style={S.smallBtn} onClick={() => setViewMonth(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1))}>今天</button>
+              <button style={S.smallBtn} onClick={() => changeMonth(1)}>下月 <ChevronRight size={16} /></button>
+              <button style={S.darkBtn} onClick={() => onAddCourse()}><Plus size={14} /> 新增課</button>
+            </div>
+          </div>
+          <div style={S.gridHead}>
+            {WEEKDAYS.map((w) => <div key={w} style={S.gridHeadCell}>{w}</div>)}
+          </div>
+          <div style={S.grid}>
+            {cells.map((d, i) => {
+              if (!d) return <div key={i} style={S.dayCellEmpty} />;
+              const dateStr = fmt(new Date(year, month, d));
+              const dayLessons = filteredLessonsOn(dateStr);
+              const dayExams = examsOn(dateStr);
+              const holiday = HOLIDAYS[dateStr];
+              const isToday = dateStr === todayStr();
+              return (
+                <div key={i} style={S.dayCell(isToday, !!holiday)} onClick={() => onDayClick(dateStr, dayLessons)}>
+                  <div style={S.dayNum(isToday)}>{d}</div>
+                  {holiday && <div style={S.holidayLabel}>{holiday}</div>}
+                  {dayExams.map((e) => (
+                    <div key={e.id} style={S.examMarker}>📝 {studentById(e.studentId)?.name || "學生"} {e.examType}</div>
+                  ))}
+                  {dayLessons.slice(0, 3).map((l) => (
+                    <div key={l.id} style={S.lessonChip(l.status)}>{l.time || ""} {studentById(l.studentId)?.name || "學生"}</div>
+                  ))}
+                  {dayLessons.length > 3 && <div style={S.moreLabel}>還有 {dayLessons.length - 3} 堂 ›</div>}
+                </div>
+              );
+            })}
+          </div>
+          <div style={S.legendRow}>
+            <span style={S.legendDot("#E7C79A")}></span>已排課
+            <span style={{ ...S.legendDot("#9BC1A8"), marginLeft: 14 }}></span>已出席
+            <span style={{ ...S.legendDot("#D98E86"), marginLeft: 14 }}></span>請假
+            <span style={{ marginLeft: 14 }}>📝 段考</span>
+          </div>
+        </div>
+      ) : (
+        <DayView date={selectedDate} setDate={setSelectedDate} lessonsOn={filteredLessonsOn} studentById={studentById} onAddCourse={onAddCourse} onOpenLesson={onOpenLesson} onBulkAttend={onBulkAttend} />
+      )}
+    </div>
+  );
+}
+
+function DayView({ date, setDate, lessonsOn, studentById, onAddCourse, onOpenLesson, onBulkAttend }) {
+  const dayLessons = lessonsOn(date);
+  const pendingCount = dayLessons.filter((l) => l.status === "scheduled").length;
+  const d = new Date(date + "T00:00:00");
+  const label = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 星期${weekdayLabel(d.getDay())}`;
+  return (
+    <div style={S.card}>
+      <div style={S.rowBetween}>
+        <div style={S.monthTitle}>{label}</div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <button style={S.smallBtn} onClick={() => setDate(addDays(date, -1))}><ChevronLeft size={16} /></button>
+          <button style={S.smallBtn} onClick={() => setDate(todayStr())}>今天</button>
+          <button style={S.smallBtn} onClick={() => setDate(addDays(date, 1))}><ChevronRight size={16} /></button>
+          <button style={S.darkBtn} onClick={() => onAddCourse(date)}><Plus size={14} /> 新增課</button>
+        </div>
+      </div>
+      {pendingCount > 0 && (
+        <button style={S.bulkAttendBtn} onClick={() => onBulkAttend(dayLessons)}>
+          <Check size={14} /> 今天全部出席（{pendingCount} 堂）
+        </button>
+      )}
+      {dayLessons.length === 0 && <div style={S.emptyState}>這天還沒有排課。</div>}
+      {dayLessons.map((l) => (
+        <div key={l.id} style={S.lessonRow}>
+          <div style={S.lessonRowTime}>{l.time || "未定時間"}</div>
+          <div style={{ flex: 1, cursor: "pointer" }} onClick={() => onOpenLesson(l)}>
+            <div style={{ fontWeight: 500 }}>{studentById(l.studentId)?.name || "未知學生"} · {l.courseType}</div>
+            <div style={S.muted}>{l.hours} 小時</div>
+          </div>
+          {l.status === "scheduled" ? (
+            <button style={S.quickAttendChip} onClick={() => onBulkAttend([l])}>✓ 出席</button>
+          ) : (
+            <span style={S.statusPill(l.status)}>{l.status === "attended" ? "已出席" : "請假"}</span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DayPeekSheet({ date, lessons, studentById, onClose, onPickLesson, onAddCourse }) {
+  const d = new Date(date + "T00:00:00");
+  const label = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 星期${weekdayLabel(d.getDay())}`;
+  return (
+    <div style={S.overlay} onClick={onClose}>
+      <div style={S.sheet} onClick={(e) => e.stopPropagation()}>
+        <div style={S.sheetTitle}>{label}</div>
+        {lessons.map((l) => (
+          <button key={l.id} style={S.peekRow} onClick={() => onPickLesson(l)}>
+            <span>{l.time || "未定時間"}　{studentById(l.studentId)?.name || "學生"}</span>
+            <span style={S.statusPill(l.status)}>{l.status === "attended" ? "已出席" : l.status === "leave" ? "請假" : "已排課"}</span>
+          </button>
+        ))}
+        <button style={S.sheetBtn} onClick={onAddCourse}><Plus size={16} /> 這天再新增一堂課</button>
+        <button style={S.cancelBtn} onClick={onClose}>取消</button>
+      </div>
+    </div>
+  );
+}
+
+function ActionSheet({ lesson, studentById, siblingCount, onClose, onAttend, onAttendWithLog, onLeave, onEditTime, onDelete, onDeleteSeries }) {
+  return (
+    <div style={S.overlay} onClick={onClose}>
+      <div style={S.sheet} onClick={(e) => e.stopPropagation()}>
+        <div style={S.sheetTitle}>{studentById(lesson.studentId)?.name || "課程"} · {lesson.date} {lesson.time || ""}</div>
+        <button style={S.sheetBtn} onClick={onAttend}><Check size={16} /> 快速出席（不用填內容）</button>
+        <button style={S.sheetBtn} onClick={onAttendWithLog}><Pencil size={16} /> 出席並記錄內容</button>
+        <button style={S.sheetBtn} onClick={onLeave}><X size={16} /> 請假</button>
+        <button style={S.sheetBtn} onClick={onEditTime}><Pencil size={16} /> 編輯時間</button>
+        <button style={{ ...S.sheetBtn, color: "var(--coral)" }} onClick={onDelete}><Trash2 size={16} /> 刪除這堂課</button>
+        {siblingCount > 0 && (
+          <button style={{ ...S.sheetBtn, color: "var(--coral)" }} onClick={onDeleteSeries}>
+            <Trash2 size={16} /> 刪除整個系列（含這堂，共 {siblingCount + 1} 堂尚未上課）
+          </button>
+        )}
+        <button style={S.cancelBtn} onClick={onClose}>取消</button>
+      </div>
+    </div>
+  );
+}
+
+function EditTimeModal({ lesson, siblingCount, onClose, onSave, onSaveSeries }) {
+  const [date, setDate] = useState(lesson.date);
+  const [time, setTime] = useState(lesson.time || "");
+  const [hours, setHours] = useState(lesson.hours);
+  const [applyToSeries, setApplyToSeries] = useState(false);
+
+  function handleSave() {
+    if (applyToSeries && siblingCount > 0) {
+      onSaveSeries(time, Number(hours));
+    } else {
+      onSave({ ...lesson, date, time, hours: Number(hours) });
+    }
+  }
+
+  return (
+    <div style={S.overlay} onClick={onClose}>
+      <div style={S.modalSm} onClick={(e) => e.stopPropagation()}>
+        <div style={S.modalHead}><span>編輯時間</span><X size={18} style={{ cursor: "pointer" }} onClick={onClose} /></div>
+        <label style={S.label}>日期</label>
+        <input style={S.input} type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={applyToSeries} />
+        <label style={S.label}>時間</label>
+        <input style={S.input} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+        <label style={S.label}>時數</label>
+        <input style={S.input} type="number" step="0.5" value={hours} onChange={(e) => setHours(e.target.value)} />
+        {siblingCount > 0 && (
+          <label style={S.checkboxRow}>
+            <input type="checkbox" checked={applyToSeries} onChange={(e) => setApplyToSeries(e.target.checked)} />
+            套用到這個系列還沒上課的其他 {siblingCount} 堂（只改時間與時數，日期不變）
+          </label>
+        )}
+        <button style={S.saveBtn} onClick={handleSave}>儲存</button>
+      </div>
+    </div>
+  );
+}
+
+function ScheduleFormModal({ students, initial, onClose, onSave }) {
+  const [studentId, setStudentId] = useState(students[0]?.id || "");
+  const [date, setDate] = useState(initial?.date || todayStr());
+  const [time, setTime] = useState("16:00");
+  const [hours, setHours] = useState(1);
+  const [courseType, setCourseType] = useState(COURSE_TYPES[0]);
+  const [repeatMode, setRepeatMode] = useState("once"); // once | weekly
+  const [weeks, setWeeks] = useState(8);
+
+  if (students.length === 0) {
+    return (
+      <div style={S.overlay} onClick={onClose}>
+        <div style={S.modalSm} onClick={(e) => e.stopPropagation()}>
+          <div style={S.modalHead}><span>新增課</span><X size={18} style={{ cursor: "pointer" }} onClick={onClose} /></div>
+          <div style={S.emptyState}>還沒有學生資料，請先到「更多 → 學生名冊」新增學生。</div>
+        </div>
+      </div>
+    );
+  }
+
+  function handleSave() {
+    const count = repeatMode === "weekly" ? Math.max(1, Number(weeks || 1)) : 1;
+    const seriesId = count > 1 ? uid() : null;
+    const list = [];
+    for (let i = 0; i < count; i++) {
+      list.push({
+        id: uid(), studentId, date: addDays(date, i * 7), time, hours: Number(hours),
+        courseType, status: "scheduled", materials: [], homework: [], extra: {}, seriesId,
+      });
+    }
+    onSave(list);
+  }
+
+  return (
+    <div style={S.overlay} onClick={onClose}>
+      <div style={S.modalSm} onClick={(e) => e.stopPropagation()}>
+        <div style={S.modalHead}><span>新增課</span><X size={18} style={{ cursor: "pointer" }} onClick={onClose} /></div>
+        <label style={S.label}>學生</label>
+        <select style={S.input} value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+          {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+        <div style={S.twoCol}>
+          <div>
+            <label style={S.label}>日期</label>
+            <input style={S.input} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+          <div>
+            <label style={S.label}>時間</label>
+            <input style={S.input} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+          </div>
+        </div>
+        <div style={S.twoCol}>
+          <div>
+            <label style={S.label}>時數</label>
+            <input style={S.input} type="number" step="0.5" value={hours} onChange={(e) => setHours(e.target.value)} />
+          </div>
+          <div>
+            <label style={S.label}>重複</label>
+            <select style={S.input} value={repeatMode} onChange={(e) => setRepeatMode(e.target.value)}>
+              <option value="once">只有這一天</option>
+              <option value="weekly">每週固定</option>
+            </select>
+          </div>
+        </div>
+        {repeatMode === "weekly" && (
+          <>
+            <label style={S.label}>產生幾週（含這週）</label>
+            <input style={S.input} type="number" min="1" value={weeks} onChange={(e) => setWeeks(e.target.value)} />
+          </>
+        )}
+        <label style={S.label}>課程類型</label>
+        <select style={S.input} value={courseType} onChange={(e) => setCourseType(e.target.value)}>
+          {COURSE_TYPES.map((c) => <option key={c}>{c}</option>)}
+        </select>
+        <div style={S.btnRow}>
+          <button style={S.cancelBtnInline} onClick={onClose}>取消</button>
+          <button style={S.primaryBtnInline} onClick={handleSave}>新增</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LogFormModal({ initial, students, progressList, setProgressList, onClose, onSave }) {
+  const isEditing = !!initial.id;
+  const base = initial.id ? initial : {
+    id: uid(), studentId: students[0]?.id || "", date: todayStr(), hours: 1,
+    courseType: COURSE_TYPES[0], status: "attended", materials: [], homework: [], extra: {},
+  };
+  const [studentId, setStudentId] = useState(base.studentId);
+  const [date, setDate] = useState(base.date);
+  const [hours, setHours] = useState(base.hours);
+  const [courseType, setCourseType] = useState(base.courseType);
+  const [rateOverride, setRateOverride] = useState(
+    base.rateOverride !== undefined && base.rateOverride !== null ? base.rateOverride : ""
+  );
+  const [materials, setMaterials] = useState(base.materials?.length ? base.materials : [{ id: uid(), material: "", content: "" }]);
+  const [homework, setHomework] = useState(base.homework?.length ? base.homework : [{ id: uid(), text: "", done: false }]);
+  const [showMore, setShowMore] = useState(false);
+  const [extra, setExtra] = useState(base.extra || {});
+
+  const studentTracks = progressList
+    .filter((t) => t.studentId === studentId)
+    .map((t) => ({ material: "", units: [], ...t }));
+
+  if (students.length === 0) {
+    return (
+      <div style={S.overlay} onClick={onClose}>
+        <div style={S.modalSm} onClick={(e) => e.stopPropagation()}>
+          <div style={S.modalHead}><span>記一課</span><X size={18} style={{ cursor: "pointer" }} onClick={onClose} /></div>
+          <div style={S.emptyState}>還沒有學生資料，請先到「更多 → 學生名冊」新增學生。</div>
+        </div>
+      </div>
+    );
+  }
+
+  function updateRow(list, setList, id, field, value) {
+    setList(list.map((r) => r.id === id ? { ...r, [field]: value } : r));
+  }
+
+  function handleSave() {
+    // For any material row linked to a progress-tracker unit, mark that unit done.
+    materials.forEach((m) => {
+      if (m.linkedTrackId && m.linkedUnitId) {
+        setProgressList((prev) => prev.map((t) =>
+          t.id === m.linkedTrackId ? { ...t, units: (t.units || []).map((u) => u.id === m.linkedUnitId ? { ...u, done: true } : u) } : t
+        ));
+      }
+    });
+    onSave({
+      ...base,
+      studentId, date, hours: Number(hours), courseType, status: "attended",
+      rateOverride: rateOverride === "" ? null : Number(rateOverride),
+      materials: materials.filter((m) => m.material || m.content).map(({ linkedTrackId, linkedUnitId, ...rest }) => rest),
+      homework: homework.filter((h) => h.text),
+      extra,
+    });
+  }
+
+  return (
+    <div style={S.overlay} onClick={onClose}>
+      <div style={S.modalLg} onClick={(e) => e.stopPropagation()}>
+        <div style={S.modalHead}><span>記一課</span><X size={18} style={{ cursor: "pointer" }} onClick={onClose} /></div>
+        <div style={S.modalBody}>
+          <label style={S.label}>學生</label>
+          <select style={S.input} value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+            {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          <div style={S.twoCol}>
+            <div>
+              <label style={S.label}>日期</label>
+              <input style={S.input} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
+            <div>
+              <label style={S.label}>時數</label>
+              <input style={S.input} type="number" step="0.5" value={hours} onChange={(e) => setHours(e.target.value)} />
+            </div>
+          </div>
+          <label style={S.label}>本堂時薪（留空＝自動依課程類型計算，只有要修正這一筆才填）</label>
+          <input style={S.input} type="number" placeholder="留空即可" value={rateOverride} onChange={(e) => setRateOverride(e.target.value)} />
+          <div style={S.hintText}>填了這裡，這堂課就一律用這個金額計費，不會再套用試聽課費率或學生鐘點費。</div>
+          <label style={S.label}>課程類型</label>
+          <select style={S.input} value={courseType} onChange={(e) => setCourseType(e.target.value)}>
+            {COURSE_TYPES.map((c) => <option key={c}>{c}</option>)}
+          </select>
+
+          <label style={S.label}>教材 × 今日上課內容</label>
+          <datalist id="material-datalist">
+            {Array.from(new Set(studentTracks.map((t) => t.material).filter(Boolean))).map((m) => <option key={m} value={m} />)}
+          </datalist>
+          {materials.map((m) => {
+            const matchedTrack = studentTracks.find((t) => t.material && t.material === m.material);
+            const incompleteUnits = matchedTrack ? matchedTrack.units.filter((u) => !u.done) : [];
+            return (
+              <div key={m.id}>
+                <div style={S.rowInputs}>
+                  <input style={S.inputSm} list="material-datalist" placeholder="教材" value={m.material} onChange={(e) => updateRow(materials, setMaterials, m.id, "material", e.target.value)} />
+                  <input style={{ ...S.inputSm, flex: 1 }} placeholder="上到哪、教了什麼" value={m.content} onChange={(e) => updateRow(materials, setMaterials, m.id, "content", e.target.value)} />
+                  <X size={16} style={{ cursor: "pointer", color: "var(--ink-soft)" }} onClick={() => setMaterials(materials.filter((r) => r.id !== m.id))} />
+                </div>
+                {matchedTrack && incompleteUnits.length > 0 && (
+                  <select
+                    style={{ ...S.inputSm, width: "100%", marginBottom: 6, color: "var(--teal)" }}
+                    value=""
+                    onChange={(e) => {
+                      const unit = incompleteUnits.find((u) => u.id === e.target.value);
+                      if (!unit) return;
+                      setMaterials(materials.map((r) => r.id === m.id ? { ...r, content: unit.name, linkedTrackId: matchedTrack.id, linkedUnitId: unit.id } : r));
+                    }}
+                  >
+                    <option value="">📈 從課程進度選單元（自動填內容，存檔時同步標記完成）</option>
+                    {incompleteUnits.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  </select>
+                )}
+                {m.linkedUnitId && <div style={S.hintText}>✓ 儲存時會把「{m.content}」在課程進度標記為完成</div>}
+              </div>
+            );
+          })}
+          <button style={S.dashedBtn} onClick={() => setMaterials([...materials, { id: uid(), material: "", content: "" }])}>+ 新增一列</button>
+
+          <label style={S.label}>回家作業（一項一格，可選填繳交期限）</label>
+          {homework.map((h, i) => (
+            <div key={h.id} style={S.rowInputs}>
+              <span style={S.muted}>功課{i + 1}</span>
+              <input style={{ ...S.inputSm, flex: 1 }} placeholder="例：習作 p.20-21" value={h.text} onChange={(e) => updateRow(homework, setHomework, h.id, "text", e.target.value)} />
+              <input style={S.inputSm} type="date" value={h.dueDate || ""} onChange={(e) => updateRow(homework, setHomework, h.id, "dueDate", e.target.value)} title="繳交期限（選填）" />
+              <X size={16} style={{ cursor: "pointer", color: "var(--ink-soft)" }} onClick={() => setHomework(homework.filter((r) => r.id !== h.id))} />
+            </div>
+          ))}
+          <button style={S.dashedBtn} onClick={() => setHomework([...homework, { id: uid(), text: "", done: false }])}>+ 新增功課</button>
+
+          <button style={S.moreToggle} onClick={() => setShowMore(!showMore)}>
+            {showMore ? "－" : "＋"} 更多選項（學習狀況、考試、點數、弱點、附件）
+          </button>
+          {showMore && (
+            <div style={S.moreBox}>
+              <label style={S.label}>學習狀況</label>
+              <input style={S.input} value={extra.learningStatus || ""} onChange={(e) => setExtra({ ...extra, learningStatus: e.target.value })} />
+              <div style={S.twoCol}>
+                <div>
+                  <label style={S.label}>考試成績</label>
+                  <input style={S.input} value={extra.examScore || ""} onChange={(e) => setExtra({ ...extra, examScore: e.target.value })} />
+                </div>
+                <div>
+                  <label style={S.label}>點數表現（1-5）</label>
+                  <input style={S.input} type="number" min="1" max="5" value={extra.points || ""} onChange={(e) => setExtra({ ...extra, points: e.target.value })} />
+                </div>
+              </div>
+              <label style={S.label}>弱點記錄</label>
+              <input style={S.input} value={extra.weakness || ""} onChange={(e) => setExtra({ ...extra, weakness: e.target.value })} />
+              <label style={S.label}>附件備註</label>
+              <input style={S.input} value={extra.attachmentNote || ""} onChange={(e) => setExtra({ ...extra, attachmentNote: e.target.value })} />
+            </div>
+          )}
+        </div>
+        {isEditing && <div style={{ ...S.editingBanner, margin: "0 18px" }}>✎ 正在編輯一筆既有紀錄</div>}
+        <div style={{ ...S.btnRow, margin: "16px 18px 18px" }}>
+          {isEditing && <button style={S.cancelBtnInline} onClick={onClose}>取消編輯</button>}
+          <button style={S.primaryBtnInline} onClick={handleSave}>{isEditing ? "更新紀錄" : "儲存紀錄"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HomeworkTab({ items, students, studentById, onToggleLesson, onToggleStandalone, onAdd, onDelete }) {
+  const [tab, setTab] = useState("pending");
+  const [filterStudent, setFilterStudent] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [newStudentId, setNewStudentId] = useState(students[0]?.id || "");
+  const [newText, setNewText] = useState("");
+  const [newDue, setNewDue] = useState("");
+
+  const filtered = filterStudent ? items.filter((i) => i.studentId === filterStudent) : items;
+  const pending = filtered.filter((i) => !i.done);
+  const done = filtered.filter((i) => i.done);
+  const list = tab === "pending" ? pending : tab === "done" ? done : filtered;
+
+  function toggle(item) {
+    if (item.source === "standalone") onToggleStandalone(item.id);
+    else onToggleLesson(item.lessonId, item.id);
+  }
+  function handleAdd() {
+    if (!newText.trim() || !newStudentId) return;
+    onAdd(newStudentId, newText.trim(), newDue);
+    setNewText(""); setNewDue("");
+  }
+
+  function isOverdue(item) {
+    return !item.done && item.dueDate && item.dueDate < todayStr();
+  }
+
+  return (
+    <div style={S.card}>
+      <div style={S.rowInputs}>
+        <select style={S.inputSm} value={filterStudent} onChange={(e) => setFilterStudent(e.target.value)}>
+          <option value="">全部學生</option>
+          {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+        <button style={S.smallBtn} onClick={() => setShowAdd(!showAdd)} disabled={students.length === 0}>{showAdd ? "取消" : "+ 快速新增作業"}</button>
+      </div>
+
+      {showAdd && (
+        <div style={S.moreBox}>
+          <label style={S.label}>學生</label>
+          <select style={S.input} value={newStudentId} onChange={(e) => setNewStudentId(e.target.value)}>
+            {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          <label style={S.label}>作業內容</label>
+          <input style={S.input} placeholder="例：習作 p.20-21" value={newText} onChange={(e) => setNewText(e.target.value)} />
+          <label style={S.label}>繳交期限（選填）</label>
+          <input style={S.input} type="date" value={newDue} onChange={(e) => setNewDue(e.target.value)} />
+          <button style={S.darkBtn} onClick={handleAdd}>+ 加入作業</button>
+        </div>
+      )}
+
+      <div style={S.tabToggle}>
+        <button style={S.tabBtn(tab === "pending")} onClick={() => setTab("pending")}>待追蹤</button>
+        <button style={S.tabBtn(tab === "all")} onClick={() => setTab("all")}>全部</button>
+        <button style={S.tabBtn(tab === "done")} onClick={() => setTab("done")}>已完成</button>
+      </div>
+      {list.length === 0 && <div style={S.emptyState}>目前沒有{tab === "pending" ? "待追蹤" : tab === "done" ? "已完成" : ""}的作業。</div>}
+      {list.map((i) => (
+        <div key={(i.lessonId || "s") + i.id} style={S.hwRow}>
+          <input type="checkbox" checked={i.done} onChange={() => toggle(i)} style={{ width: 18, height: 18 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 500 }}>{i.text}</div>
+            <div style={S.muted}>
+              {studentById(i.studentId)?.name || "學生"} · {i.date}
+              {i.dueDate && <span style={isOverdue(i) ? S.overdueTag : S.dueTag}>{isOverdue(i) ? `逾期 ${i.dueDate}` : `期限 ${i.dueDate}`}</span>}
+            </div>
+          </div>
+          <X size={14} style={{ cursor: "pointer", color: "var(--ink-soft)" }} onClick={() => { if (window.confirm("確定要刪除這項作業嗎？")) onDelete(i); }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BillingTab({
+  viewMonth, setViewMonth, breakdown, quickBreakdown, total, pct, students,
+  quickTally, setQuickTally, activePeriodic, setActivePeriodic, trialRate, setTrialRate, scheduledPreview, lessons, fees,
+  onSettleAll, onUnsettleAll, onToggleSettle, onAddFee, onDeleteFee,
+}) {
+  const [previewModal, setPreviewModal] = useState(null); // { title, text }
+  const [copiedPreview, setCopiedPreview] = useState(false);
+  const monthLabel = `${viewMonth.getMonth() + 1}月`;
+
+  function studentMonthLessons(studentId) {
+    const key = monthKey(viewMonth);
+    return lessons.filter((l) => l.studentId === studentId && l.date.startsWith(key) && l.status === "attended" && isBillable(l));
+  }
+  function hoursBreakdownFromQuickCounts(counts) {
+    return DURATIONS.map((d, i) => ({ hours: d, count: Number(counts[i] || 0) })).filter((x) => x.count > 0);
+  }
+  function groupByRate(lns, student) {
+    const map = {};
+    lns.forEach((l) => {
+      const rate = effectiveRate(l, student, trialRate);
+      const isTrial = l.courseType === "試聽課";
+      const label = isTrial ? "試聽課" : (rate !== Number(student.rate || 0) ? "調整價" : null);
+      const key = `${rate}|${label || ""}`;
+      if (!map[key]) map[key] = { rate, label, counts: {} };
+      const h = Number(l.hours || 0);
+      map[key].counts[h] = (map[key].counts[h] || 0) + 1;
+    });
+    return Object.values(map).map((g) => {
+      const items = Object.keys(g.counts).map(Number).sort((a, b) => b - a).map((h) => ({ hours: h, count: g.counts[h] }));
+      const days = items.reduce((a, x) => a + x.count, 0);
+      const sumHours = items.reduce((a, x) => a + x.hours * x.count, 0);
+      return { ...g, items, days, sumHours, fee: sumHours * g.rate };
+    }).sort((a, b) => (a.label ? 1 : 0) - (b.label ? 1 : 0));
+  }
+
+  function feeItemsFor(studentId) {
+    const key = monthKey(viewMonth);
+    return fees.filter((f) => f.studentId === studentId && f.month === key);
+  }
+
+  function memberBlockLines(b) {
+    if (b.student.billingType === "periodic") {
+      const lines = [`${monthLabel}課程費用 NT$${b.base.toLocaleString()}`];
+      feeItemsFor(b.student.id).forEach((f) => {
+        lines.push(`${f.type === "add" ? "+" : "-"} ${f.note || (f.type === "add" ? "加收" : "折扣")} NT$${Number(f.amount).toLocaleString()}`);
+      });
+      lines.push(`本月總計：NT$${b.total.toLocaleString()}`);
+      return lines;
+    }
+    const lines = [];
+    let totalDays;
+    if (b.days !== undefined) {
+      const bd = hoursBreakdownFromQuickCounts(b.counts);
+      bd.forEach((x) => lines.push(`${x.hours} 小時 × ${x.count} 天`));
+      totalDays = bd.reduce((a, x) => a + x.count, 0);
+    } else {
+      const groups = groupByRate(studentMonthLessons(b.student.id), b.student);
+      if (groups.length <= 1) {
+        (groups[0]?.items || []).forEach((x) => lines.push(`${x.hours} 小時 × ${x.count} 天`));
+      } else {
+        groups.forEach((g) => {
+          if (g.label) lines.push(`【${g.label}】`);
+          g.items.forEach((x) => lines.push(`${x.hours} 小時 × ${x.count} 天`));
+          lines.push(`小計：${g.sumHours} 小時 × NT$${g.rate} = NT$${g.fee.toLocaleString()}`);
+          lines.push("");
+        });
+      }
+      totalDays = groups.reduce((a, g) => a + g.days, 0);
+    }
+    lines.push(`本月共上 ${totalDays} 天・${b.hours} 小時`);
+    const feeItems = feeItemsFor(b.student.id);
+    if (feeItems.length > 0) {
+      lines.push(`小計：NT$${b.base.toLocaleString()}`);
+      feeItems.forEach((f) => {
+        lines.push(`${f.type === "add" ? "+" : "-"} ${f.note || (f.type === "add" ? "加收" : "折扣")} NT$${Number(f.amount).toLocaleString()}`);
+      });
+    }
+    lines.push(`本月費用：NT$${b.total.toLocaleString()}`);
+    return lines;
+  }
+
+  function buildMessage(b) {
+    const lines = [`${b.student.name}家長您好：`, `${monthLabel}課程時數：`, ...memberBlockLines(b), `再麻煩請您確認時數，謝謝您~`];
+    return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  }
+
+  function buildFamilyMessage(group) {
+    const lines = [`${group.household}家長您好：`, `${monthLabel}課程時數：`, ""];
+    group.members.forEach((m) => {
+      lines.push(`【${m.student.name}】`);
+      lines.push(...memberBlockLines(m));
+      lines.push("");
+    });
+    lines.push(`本月合計：NT$${group.total.toLocaleString()}`);
+    lines.push(`再麻煩請您確認時數，謝謝您~`);
+    return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  }
+
+  function groupRowsByHousehold(rows) {
+    const groups = {};
+    const singles = [];
+    rows.forEach((r) => {
+      const h = r.student.household;
+      if (h) {
+        if (!groups[h]) groups[h] = [];
+        groups[h].push(r);
+      } else {
+        singles.push(r);
+      }
+    });
+    const combined = Object.entries(groups).map(([household, members]) => ({
+      household, members,
+      total: members.reduce((a, m) => a + m.total, 0),
+      isSettled: members.every((m) => m.isSettled),
+      key: `household:${household}|${key}`,
+    }));
+    return { combined, singles };
+  }
+
+
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        return true;
+      } catch (e2) {
+        return false;
+      }
+    }
+  }
+
+  function openPreview(title, text) {
+    setPreviewModal({ title, text });
+    setCopiedPreview(false);
+  }
+
+  async function handleCopyPreview() {
+    const ok = await copyText(previewModal.text);
+    if (ok) {
+      setCopiedPreview(true);
+      setTimeout(() => setCopiedPreview(false), 1500);
+    }
+  }
+
+  function buildLevelOverview() {
+    const key = monthKey(viewMonth);
+    const lines = [`${monthLabel}份：`];
+    let grandTerms = [];
+    ["mid", "elem"].forEach((lvl) => {
+      const levelStudents = students.filter((s) => s.level === lvl && s.billingType !== "periodic");
+      if (levelStudents.length === 0) return;
+      const levelLessons = lessons.filter((l) =>
+        levelStudents.some((s) => s.id === l.studentId) &&
+        l.date.startsWith(key) && l.status === "attended" && isBillable(l)
+      );
+      if (levelLessons.length === 0) return;
+      const hourTerms = levelLessons.map((l) => Number(l.hours || 0));
+      const sumHours = hourTerms.reduce((a, h) => a + h, 0);
+      const days = new Set(levelLessons.map((l) => l.date)).size;
+      const rates = new Set(levelLessons.map((l) => effectiveRate(l, students.find((s) => s.id === l.studentId), trialRate)));
+      let fee;
+      let calcLine;
+      if (rates.size === 1) {
+        const rate = [...rates][0];
+        fee = sumHours * rate;
+        calcLine = `${sumHours}*${rate} = ${fee.toLocaleString()}`;
+      } else {
+        fee = levelLessons.reduce((a, l) => a + Number(l.hours || 0) * effectiveRate(l, students.find((s) => s.id === l.studentId), trialRate), 0);
+        calcLine = `小計 NT$${fee.toLocaleString()}`;
+      }
+      lines.push(`${LEVELS[lvl]}共${days}天：`);
+      lines.push(`時數：${hourTerms.join("+")} = ${sumHours}`);
+      lines.push(calcLine);
+      lines.push("");
+      grandTerms.push(fee);
+    });
+    if (grandTerms.length > 1) {
+      const grandTotal = grandTerms.reduce((a, f) => a + f, 0);
+      lines.push(`${grandTerms.map((f) => f.toLocaleString()).join("+")} = ${grandTotal.toLocaleString()}`);
+      lines.push("");
+    }
+    lines.push("再麻煩請您確認時數，謝謝您~");
+    return lines.join("\n").trim();
+  }
+
+  const [feeStudentId, setFeeStudentId] = useState(students[0]?.id || "");
+  const [feeAmount, setFeeAmount] = useState("");
+  const [feeNote, setFeeNote] = useState("");
+  const [feeType, setFeeType] = useState("add");
+  const [expanded, setExpanded] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [tallyLevel, setTallyLevel] = useState("");
+  const [tallyStudentId, setTallyStudentId] = useState("");
+  const key = monthKey(viewMonth);
+
+  const periodicStudents = students.filter((s) => s.billingType === "periodic");
+  const tallyCandidates = students.filter((s) =>
+    s.billingType !== "periodic" &&
+    !quickTally[qKey(s.id, key)] &&
+    (!tallyLevel || s.level === tallyLevel)
+  );
+
+  function updateTallyCount(sid, idx, value) {
+    setQuickTally((prev) => {
+      const k = qKey(sid, key);
+      const counts = [...(prev[k] || emptyCounts())];
+      counts[idx] = value;
+      return { ...prev, [k]: counts };
+    });
+  }
+  function removeTally(sid) {
+    setQuickTally((prev) => {
+      const next = { ...prev };
+      delete next[qKey(sid, key)];
+      return next;
+    });
+  }
+  function clearTallyCounts() {
+    if (!window.confirm("確定要清空本月所有快速結算堂數嗎？學生名單會保留，只清空堂數與金額。")) return;
+    setQuickTally((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((k) => { if (k.endsWith("|" + key)) next[k] = emptyCounts(); });
+      return next;
+    });
+  }
+  function togglePeriodicActive(sid) {
+    const k = qKey(sid, key);
+    setActivePeriodic((prev) => prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]);
+  }
+
+  const forecastTotal = total + scheduledPreview.amount;
+  const { combined: familyGroups, singles: singleRows } = groupRowsByHousehold([...breakdown, ...quickBreakdown]);
+
+  return (
+    <div>
+      <div style={S.rowBetween}>
+        <select style={S.monthSelect} value={key} onChange={(e) => {
+          const [y, m] = e.target.value.split("-").map(Number);
+          setViewMonth(new Date(y, m - 1, 1));
+        }}>
+          {Array.from({ length: 8 }).map((_, i) => {
+            const d = new Date(TODAY.getFullYear(), TODAY.getMonth() - 3 + i, 1);
+            const k = monthKey(d);
+            return <option key={k} value={k}>{k}</option>;
+          })}
+        </select>
+        <button style={S.darkBtn} onClick={onSettleAll}>一鍵結算本月</button>
+      </div>
+      <div style={S.rowBetween}>
+        <button style={S.linkBtn} onClick={() => { if (window.confirm("確定要把這個月全部取消結算嗎？")) onUnsettleAll(); }}>全部取消結算</button>
+      </div>
+
+      <div style={S.incomeCard}>
+        <div style={S.twoStatRow}>
+          <div>
+            <div style={S.muted}>已確認收入</div>
+            <div style={S.bigNumber}>NT${total.toLocaleString()}</div>
+          </div>
+          <div>
+            <div style={S.muted}>本月預估總收入</div>
+            <div style={S.bigNumberSecondary}>NT${forecastTotal.toLocaleString()}</div>
+            {scheduledPreview.count > 0 && <div style={S.hintText}>含 {scheduledPreview.count} 堂已排課、尚未出席</div>}
+          </div>
+        </div>
+        <button style={S.linkBtn} onClick={() => setExpanded(!expanded)}>{expanded ? "▲ 收起明細" : "▼ 查看每位學生明細"}</button>
+        {expanded && (
+          <div style={{ marginTop: 10 }}>
+            {breakdown.length === 0 && quickBreakdown.length === 0 && (
+              <div style={S.emptyState}>這個月還沒有課堂紀錄 → 去「排課」或「記一課」新增，或到下面「進階設定」用快速結算直接輸入堂數。</div>
+            )}
+            {familyGroups.map((g) => (
+              <div key={g.key} style={S.billingRow}>
+                <div>
+                  <div style={{ fontWeight: 500 }}>{g.household}家 <span style={S.quickTag}>合併結算</span></div>
+                  {g.members.map((m) => (
+                    <div key={m.key} style={S.muted}>{m.student.name}：NT${m.total.toLocaleString()}</div>
+                  ))}
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={S.moneyText}>NT${g.total.toLocaleString()}</div>
+                  <button style={{ ...(g.isSettled ? S.settledTag : S.unsettledTag), ...S.settleToggleBtn }} onClick={() => onToggleSettle(g.members.map((m) => m.key))}>{g.isSettled ? "已結算" : "未結算"}</button>
+                  <button style={S.copyBtn} onClick={() => openPreview("家長通知訊息", buildFamilyMessage(g))}>複製訊息</button>
+                </div>
+              </div>
+            ))}
+            {singleRows.map((b) => (
+              <div key={b.key} style={S.billingRow}>
+                <div>
+                  <div style={{ fontWeight: 500 }}>{b.student.name} <LevelTag level={b.student.level} />{b.hasTrial && <span style={S.quickTag}>含試聽課</span>}{b.days !== undefined && <span style={S.quickTag}>快速結算</span>}</div>
+                  <div style={S.muted}>
+                    {b.student.billingType === "periodic" ? "月結定額" : b.days !== undefined ? `${b.days} 天 · ${b.hours} 小時` : `${b.count} 堂 · ${b.hours} 小時`}
+                    {b.add > 0 ? ` · +NT$${b.add}` : ""}{b.disc > 0 ? ` · -NT$${b.disc}` : ""}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={S.moneyText}>NT${b.total.toLocaleString()}</div>
+                  <button style={{ ...(b.isSettled ? S.settledTag : S.unsettledTag), ...S.settleToggleBtn }} onClick={() => onToggleSettle([b.key])}>{b.isSettled ? "已結算" : "未結算"}</button>
+                  <button style={S.copyBtn} onClick={() => openPreview("家長通知訊息", buildMessage(b))}>複製訊息</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <button style={S.advancedToggle} onClick={() => setShowAdvanced(!showAdvanced)}>
+        {showAdvanced ? "▲ 收起進階設定" : "▼ 進階設定（試聽課費率、月結、快速結算、加費折扣）"}
+      </button>
+
+      {showAdvanced && (
+        <>
+          <div style={S.rowBetween}>
+            <button style={S.copyOverviewBtn} onClick={() => openPreview("本月總覽（依年級）", buildLevelOverview())}>
+              📋 複製本月總覽（依年級）
+            </button>
+          </div>
+
+          <div style={S.card}>
+            <div style={S.rowInputs}>
+              <span style={S.inlineLabel}>試聽課鐘點費</span>
+              <input style={S.durInput} type="number" value={trialRate} onChange={(e) => setTrialRate(Number(e.target.value) || 0)} />
+              <span style={S.muted}>元 / 小時</span>
+            </div>
+            <div style={S.muted}>只要課程類型選「試聽課」，結算時就自動用這個價錢，不會用學生原本的鐘點費。</div>
+          </div>
+
+          {periodicStudents.length > 0 && (
+            <div style={S.card}>
+              <div style={S.label}>月結學生（週期定額）</div>
+              <div style={S.muted}>有排課紀錄的月結學生會自動列入；沒有逐堂排課的話，點一下標記「本月已上課」即可。</div>
+              <div style={S.chipRow}>
+                {periodicStudents.map((s) => {
+                  const active = activePeriodic.includes(qKey(s.id, key));
+                  return (
+                    <button key={s.id} style={S.chip(active)} onClick={() => togglePeriodicActive(s.id)}>
+                      {s.name}　NT${s.periodicAmount}{active ? " ✓" : ""}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div style={S.card}>
+            <div style={S.rowBetween}>
+              <div style={S.label}>快速結算（免逐堂排課，用天數直接算）</div>
+            </div>
+            <div style={S.muted}>不想每堂都排課的學生，直接選人、輸入這個月每種時數各上了幾天，鐘點費自動算好。</div>
+
+            {tallyCandidates.length === 0 && Object.keys(quickTally).filter((k) => k.endsWith("|" + key)).length === 0 ? (
+              <div style={S.emptyState}>目前沒有可加入的學生，先到「更多 → 學生名冊」新增。</div>
+            ) : (
+              <div style={S.pickerBox}>
+                <div style={S.rowInputs}>
+                  <select style={S.inputSm} value={tallyLevel} onChange={(e) => { setTallyLevel(e.target.value); setTallyStudentId(""); }}>
+                    <option value="">年級</option>
+                    <option value="elem">國小</option>
+                    <option value="mid">國中</option>
+                  </select>
+                  <select style={{ ...S.inputSm, flex: 1 }} value={tallyStudentId} onChange={(e) => setTallyStudentId(e.target.value)} disabled={tallyCandidates.length === 0}>
+                    <option value="">{tallyCandidates.length === 0 ? "這個年級沒有可加入的學生" : "選擇學生"}</option>
+                    {tallyCandidates.map((s) => <option key={s.id} value={s.id}>{s.name}（{s.rate} 元/hr）</option>)}
+                  </select>
+                  <button
+                    style={S.darkBtn}
+                    disabled={!tallyStudentId}
+                    onClick={() => {
+                      setQuickTally((prev) => ({ ...prev, [qKey(tallyStudentId, key)]: emptyCounts() }));
+                      setTallyStudentId("");
+                    }}
+                  >加入</button>
+                </div>
+              </div>
+            )}
+
+            {quickBreakdown.map((b) => (
+              <div key={b.key} style={S.tallyCard}>
+                <div style={S.rowBetween}>
+                  <div style={{ fontWeight: 500 }}>{b.student.name} <LevelTag level={b.student.level} /></div>
+                  <Trash2 size={16} style={{ cursor: "pointer", color: "var(--coral)" }} onClick={() => removeTally(b.student.id)} />
+                </div>
+                <div style={S.muted}>鐘點費 <span style={S.moneyText}>{b.student.rate}</span> 元 / 小時</div>
+                <div style={S.durGrid}>
+                  {DURATIONS.map((d, i) => (
+                    <div key={d} style={{ textAlign: "center" }}>
+                      <div style={S.durLabel}>{d} 小時</div>
+                      <input
+                        style={S.durInput} type="number" min="0"
+                        value={quickTally[qKey(b.student.id, key)][i]}
+                        onChange={(e) => updateTallyCount(b.student.id, i, e.target.value)}
+                      />
+                      <div style={S.durLabel}>天數</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={S.rowBetween}>
+                  <span style={S.muted}>本月共上 <strong>{b.days}</strong> 天・<strong>{b.hours}</strong> 小時</span>
+                  <span style={S.moneyBig}>NT${b.base.toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+            {quickBreakdown.length > 0 && (
+              <button style={S.dashedBtn} onClick={clearTallyCounts}>清空本月快速結算堂數</button>
+            )}
+          </div>
+
+          <div style={S.card}>
+            <div style={S.label}>本月其他費用／折扣</div>
+            <div style={S.muted}>加收：教材費、講義費、車馬費　·　折扣：介紹費回饋、續約優惠、老客戶折扣</div>
+            <div style={S.rowInputs}>
+              <button style={S.tabBtn(feeType === "add")} onClick={() => setFeeType("add")}>＋ 加費</button>
+              <button style={S.tabBtn(feeType === "discount")} onClick={() => setFeeType("discount")}>－ 折扣</button>
+            </div>
+            <div style={S.rowInputs}>
+              <select style={S.inputSm} value={feeStudentId} onChange={(e) => setFeeStudentId(e.target.value)}>
+                {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+              <input style={S.inputSm} placeholder="金額（請輸入正數）" type="number" value={feeAmount} onChange={(e) => setFeeAmount(e.target.value)} />
+            </div>
+            <input style={S.input} placeholder="說明，例：講義費／介紹費折扣／續約優惠" value={feeNote} onChange={(e) => setFeeNote(e.target.value)} />
+            <button style={S.saveBtn} onClick={() => {
+              if (!feeAmount || !feeStudentId) return;
+              onAddFee({ studentId: feeStudentId, amount: Number(feeAmount), note: feeNote, type: feeType });
+              setFeeAmount(""); setFeeNote("");
+            }}>+ 加入費用</button>
+
+            {(() => {
+              const monthFees = fees.filter((f) => f.month === key);
+              if (monthFees.length === 0) return null;
+              return (
+                <div style={{ marginTop: 14 }}>
+                  <div style={S.label}>本月已加入的項目</div>
+                  {monthFees.map((f) => {
+                    const s = students.find((x) => x.id === f.studentId);
+                    return (
+                      <div key={f.id} style={S.feeItemRow}>
+                        <span>
+                          {s?.name || "未知學生"}　
+                          <span style={{ color: f.type === "add" ? "var(--coral-text)" : "var(--green-text)" }}>
+                            {f.type === "add" ? "+" : "-"}NT${Number(f.amount).toLocaleString()}
+                          </span>
+                          {f.note ? `　${f.note}` : ""}
+                        </span>
+                        <X size={14} style={{ cursor: "pointer", color: "var(--ink-soft)" }} onClick={() => onDeleteFee(f.id)} />
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+        </>
+      )}
+
+      {previewModal && (
+        <div style={S.overlay} onClick={() => setPreviewModal(null)}>
+          <div style={S.modalSm} onClick={(e) => e.stopPropagation()}>
+            <div style={S.modalHead}><span>{previewModal.title}</span><X size={18} style={{ cursor: "pointer" }} onClick={() => setPreviewModal(null)} /></div>
+            <div style={S.muted}>訊息內容可以直接修改，改完再複製。</div>
+            <textarea
+              style={S.messageTextarea}
+              rows={10}
+              value={previewModal.text}
+              onChange={(e) => setPreviewModal({ ...previewModal, text: e.target.value })}
+            />
+            <div style={{ ...S.btnRow, marginTop: 12 }}>
+              <button style={S.cancelBtnInline} onClick={() => setPreviewModal(null)}>關閉</button>
+              <button style={S.primaryBtnInline} onClick={handleCopyPreview}>{copiedPreview ? "已複製 ✓" : "複製訊息"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const MORE_ITEMS = [
+  { id: "records", label: "課堂紀錄", icon: ClipboardList },
+  { id: "progress", label: "課程進度", icon: TrendingUp },
+  { id: "weakness", label: "弱點記錄", icon: Target },
+  { id: "exams", label: "考試成績", icon: FileText },
+  { id: "points", label: "點數表現", icon: Star },
+  { id: "students", label: "學生名冊", icon: Users },
+];
+
+function MoreMenu({ onSelect }) {
+  return (
+    <div style={S.card}>
+      <div style={S.label}>更多功能</div>
+      {MORE_ITEMS.map((item) => (
+        <button key={item.id} style={S.moreRow} onClick={() => onSelect(item.id)}>
+          <item.icon size={18} style={{ color: "var(--teal)" }} />
+          <span>{item.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MoreDetail({
+  view, onBack, students, setStudents, lessons, studentById, onEditLesson, onDeleteLesson,
+  weaknessNotes, setWeaknessNotes, examRecords, setExamRecords,
+  progressList, setProgressList, pointCategories, setPointCategories, pointLogs, setPointLogs,
+}) {
+  return (
+    <div style={S.card}>
+      <button style={S.backRow} onClick={onBack}><ArrowLeft size={16} /> 返回更多功能</button>
+      {view === "students" && <StudentRoster students={students} setStudents={setStudents} lessons={lessons} />}
+      {view === "records" && (
+        <LessonRecordsPage
+          lessons={lessons} students={students} studentById={studentById}
+          onEdit={onEditLesson} onDelete={onDeleteLesson}
+        />
+      )}
+      {view === "progress" && <ProgressPage students={students} progressList={progressList} setProgressList={setProgressList} />}
+      {view === "weakness" && <WeaknessPage students={students} weaknessNotes={weaknessNotes} setWeaknessNotes={setWeaknessNotes} />}
+      {view === "exams" && <ExamsPage students={students} examRecords={examRecords} setExamRecords={setExamRecords} />}
+      {view === "points" && (
+        <PointsPage
+          students={students} pointCategories={pointCategories} setPointCategories={setPointCategories}
+          pointLogs={pointLogs} setPointLogs={setPointLogs}
+        />
+      )}
+      {view === "help" && <HelpGuide />}
+    </div>
+  );
+}
+
+function LessonRecordsPage({ lessons, students, studentById, onEdit, onDelete }) {
+  const [filterStudent, setFilterStudent] = useState("");
+  const [filterMonth, setFilterMonth] = useState("");
+  const [msgFor, setMsgFor] = useState(null);
+  const [selected, setSelected] = useState(null);
+
+  const months = Array.from(new Set(lessons.map((l) => l.date.slice(0, 7)))).sort().reverse();
+  const records = lessons
+    .filter((l) => l.status !== "scheduled")
+    .filter((l) => !filterStudent || l.studentId === filterStudent)
+    .filter((l) => !filterMonth || l.date.startsWith(filterMonth))
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  function statusLabel(l) {
+    if (l.status === "leave") return { text: "請假不計費", style: S.coralTag, tone: "coral" };
+    if (l.courseType === "請假（不計費）") return { text: "請假不計費", style: S.coralTag, tone: "coral" };
+    if (l.courseType === "試聽課") return { text: "試聽課", style: S.goldTag, tone: "gold" };
+    return { text: "已出席", style: S.greenTag, tone: "green" };
+  }
+
+  function buildLessonMessage(l) {
+    const name = studentById(l.studentId)?.name || "學生";
+    const tag = l.status === "leave" || l.courseType === "請假（不計費）" ? "（請假）" : "";
+    const content = l.materials?.map((m) => [m.material, m.content].filter(Boolean).join("：")).filter(Boolean).join("\n") || "—";
+    const hw = l.homework?.map((h) => h.text).filter(Boolean).join("\n") || "—";
+    return `【${name} ${l.date} 課堂紀錄】${tag}\n📘 今天教學內容：\n${content}\n📝 回家作業：\n${hw}`;
+  }
+
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch (e) {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        document.execCommand("copy"); document.body.removeChild(ta);
+        return true;
+      } catch (e2) { return false; }
+    }
+  }
+
+  return (
+    <div>
+      <div style={S.rowInputs}>
+        <select style={S.inputSm} value={filterStudent} onChange={(e) => setFilterStudent(e.target.value)}>
+          <option value="">全部學生</option>
+          {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+        <select style={S.inputSm} value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)}>
+          <option value="">全部月份</option>
+          {months.map((m) => <option key={m} value={m}>{m}</option>)}
+        </select>
+      </div>
+
+      {records.length === 0 && <div style={S.emptyState}>沒有符合條件的課堂紀錄。</div>}
+
+      <div style={S.recordGrid}>
+        {records.map((l) => {
+          const s = statusLabel(l);
+          const shortDate = l.date.slice(5).replace("-", "/");
+          return (
+            <button key={l.id} style={S.recordTile(s.tone)} onClick={() => setSelected(l)}>
+              <div style={{ fontWeight: 600 }}>{studentById(l.studentId)?.name || "學生"}</div>
+              <div style={S.recordTileDate}>{shortDate}</div>
+              <div style={S.recordTileTag}>{s.text}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      {selected && (() => {
+        const l = selected;
+        const s = statusLabel(l);
+        const content = l.materials?.map((m) => [m.material, m.content].filter(Boolean).join("：")).filter(Boolean).join("；") || "—";
+        const hw = l.homework?.map((h) => h.text).filter(Boolean).join("；") || "—";
+        return (
+          <div style={S.overlay} onClick={() => setSelected(null)}>
+            <div style={S.modalSm} onClick={(e) => e.stopPropagation()}>
+              <div style={S.modalHead}>
+                <span>{studentById(l.studentId)?.name || "學生"} <span style={s.style}>{s.text}</span></span>
+                <X size={18} style={{ cursor: "pointer" }} onClick={() => setSelected(null)} />
+              </div>
+              <div style={S.muted}>{l.date} · {l.status === "leave" || l.courseType === "請假（不計費）" ? 0 : l.hours}hr</div>
+              <div style={{ marginTop: 8 }}>教學內容：{content}</div>
+              <div>回家作業：{hw}</div>
+              <div style={{ ...S.rowInputs, marginTop: 14 }}>
+                <button style={S.smallBtn} onClick={() => onEdit(l)}>編輯</button>
+                <button style={S.smallBtn} onClick={() => { setMsgFor(l); setSelected(null); }}>產生通知訊息</button>
+                <button style={{ ...S.smallBtn, color: "var(--coral)" }} onClick={() => { if (window.confirm("確定要刪除這堂課的紀錄嗎？刪除後不能復原，這個月的月費也會跟著變動。")) { onDelete(l.id); setSelected(null); } }}>刪除</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {msgFor && (
+        <div style={S.overlay} onClick={() => setMsgFor(null)}>
+          <div style={S.modalSm} onClick={(e) => e.stopPropagation()}>
+            <div style={S.modalHead}><span>家長通知訊息</span><X size={18} style={{ cursor: "pointer" }} onClick={() => setMsgFor(null)} /></div>
+            <div style={S.messagePreview}>{buildLessonMessage(msgFor)}</div>
+            <div style={{ ...S.btnRow, marginTop: 14 }}>
+              <button style={S.cancelBtnInline} onClick={() => setMsgFor(null)}>關閉</button>
+              <button style={S.primaryBtnInline} onClick={() => copyText(buildLessonMessage(msgFor))}>複製訊息</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StudentRoster({ students, setStudents, lessons }) {
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState("");
+  const [level, setLevel] = useState("elem");
+  const [rate, setRate] = useState(600);
+  const [billingType, setBillingType] = useState("hourly");
+  const [periodicAmount, setPeriodicAmount] = useState(0);
+  const [household, setHousehold] = useState("");
+  const [pageUrl, setPageUrl] = useState("");
+  const [note, setNote] = useState("");
+  const [expandedIds, setExpandedIds] = useState({});
+
+  function addStudent() {
+    if (!name) return;
+    setStudents([...students, {
+      id: uid(), name, level, rate: Number(rate), billingType,
+      periodicAmount: Number(periodicAmount), household: household.trim(), pageUrl: pageUrl.trim(), note,
+    }]);
+    setName(""); setNote(""); setRate(600); setPeriodicAmount(0); setHousehold(""); setPageUrl(""); setBillingType("hourly"); setLevel("elem"); setAdding(false);
+  }
+
+  function updateField(id, field, value) {
+    const numericFields = ["rate", "periodicAmount"];
+    const v = field === "household" ? value.trim() : value;
+    setStudents(students.map((s) => s.id === id ? { ...s, [field]: numericFields.includes(field) ? Number(v) : v } : s));
+  }
+  function toggleLevel(id) {
+    setStudents(students.map((s) => s.id === id ? { ...s, level: s.level === "elem" ? "mid" : "elem" } : s));
+  }
+  function deleteStudent(s) {
+    if (!window.confirm(`確定要刪除「${s.name}」的資料嗎？這個動作無法復原。`)) return;
+    setStudents(students.filter((x) => x.id !== s.id));
+  }
+  function toggleExpand(id) {
+    setExpandedIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  }
+  const existingHouseholds = Array.from(new Set(students.map((s) => s.household).filter(Boolean)));
+
+  return (
+    <div>
+      <div style={S.rowBetween}>
+        <div>
+          <div style={S.label}>學生名冊</div>
+          <div style={S.muted}>點學生可展開編輯；同家庭填一樣的名稱，月費會自動合併結算</div>
+        </div>
+        <button style={S.darkBtn} onClick={() => setAdding(!adding)}><UserPlus size={14} /> 新增學生</button>
+      </div>
+      {adding && (
+        <div style={S.moreBox}>
+          <label style={S.label}>姓名</label>
+          <input style={S.input} value={name} onChange={(e) => setName(e.target.value)} />
+          <label style={S.label}>年級</label>
+          <select style={S.input} value={level} onChange={(e) => setLevel(e.target.value)}>
+            <option value="elem">國小</option>
+            <option value="mid">國中</option>
+          </select>
+          <label style={S.label}>收費方式</label>
+          <select style={S.input} value={billingType} onChange={(e) => setBillingType(e.target.value)}>
+            <option value="hourly">單堂鐘點費</option>
+            <option value="periodic">週期定額（月結）</option>
+          </select>
+          {billingType === "periodic" ? (
+            <>
+              <label style={S.label}>每月定額（NT$）</label>
+              <input style={S.input} type="number" value={periodicAmount} onChange={(e) => setPeriodicAmount(e.target.value)} />
+            </>
+          ) : (
+            <>
+              <label style={S.label}>每小時鐘點費（NT$）</label>
+              <input style={S.input} type="number" value={rate} onChange={(e) => setRate(e.target.value)} />
+            </>
+          )}
+          <label style={S.label}>所屬家庭（同家庭的手足會合併結算，例：王家；沒有就留空）</label>
+          <input style={S.input} list="household-list" value={household} onChange={(e) => setHousehold(e.target.value)} placeholder="例：王家" />
+          <label style={S.label}>學生成效頁網址（選填，例如給家長看的頁面）</label>
+          <input style={S.input} value={pageUrl} onChange={(e) => setPageUrl(e.target.value)} placeholder="例：math-plan.html 或完整網址" />
+          <label style={S.label}>備註</label>
+          <input style={S.input} value={note} onChange={(e) => setNote(e.target.value)} />
+          <button style={S.saveBtn} onClick={addStudent}>儲存學生</button>
+        </div>
+      )}
+      {students.length === 0 && !adding && <div style={S.emptyState}>還沒有學生，點右上角「新增學生」開始。</div>}
+      <datalist id="household-list">
+        {existingHouseholds.map((h) => <option key={h} value={h} />)}
+      </datalist>
+      {students.map((s) => {
+        const isOpen = !!expandedIds[s.id];
+        return (
+          <div key={s.id} style={S.studentCard}>
+            <div style={{ ...S.rowBetween, cursor: "pointer", marginBottom: 0 }} onClick={() => toggleExpand(s.id)}>
+              <div style={S.rowInputs}>
+                <span style={{ fontWeight: 700, fontSize: 15 }}>{s.name}</span>
+                <span style={S.levelTag(s.level)}>{LEVELS[s.level]}</span>
+                {s.household && <span style={S.familyTag}>👨‍👩‍👧 {s.household}家</span>}
+                <span style={S.muted}>{s.billingType === "periodic" ? `月結 NT$${s.periodicAmount}` : `NT$${s.rate}/hr`}</span>
+                {s.pageUrl && (
+                  <a href={s.pageUrl} target="_blank" rel="noopener noreferrer" style={S.pageLinkIcon} onClick={(e) => e.stopPropagation()} title="開啟學生成效頁">🔗</a>
+                )}
+              </div>
+              <span style={S.expandArrow}>{isOpen ? "▲" : "▼"}</span>
+            </div>
+            {isOpen && (
+              <div style={{ marginTop: 10 }}>
+                <div style={S.rowInputs}>
+                  <input style={S.nameInput} value={s.name} onChange={(e) => updateField(s.id, "name", e.target.value)} />
+                  <button style={S.levelTagBtn(s.level)} onClick={() => toggleLevel(s.id)}>{LEVELS[s.level]}</button>
+                  <Trash2 size={16} style={{ cursor: "pointer", color: "var(--coral)", marginLeft: "auto" }} onClick={() => deleteStudent(s)} />
+                </div>
+                <label style={S.label}>收費方式</label>
+                <select style={S.input} value={s.billingType} onChange={(e) => updateField(s.id, "billingType", e.target.value)}>
+                  <option value="hourly">單堂鐘點費</option>
+                  <option value="periodic">週期定額（月結）</option>
+                </select>
+                {s.billingType === "periodic" ? (
+                  <div style={{ ...S.rowInputs, marginBottom: 4 }}>
+                    <span style={S.muted}>月結定額</span>
+                    <input style={S.durInput} type="number" value={s.periodicAmount} onChange={(e) => updateField(s.id, "periodicAmount", e.target.value)} />
+                    <span style={S.muted}>元 / 月</span>
+                  </div>
+                ) : (
+                  <div style={{ ...S.rowInputs, marginBottom: 4 }}>
+                    <span style={S.muted}>鐘點費</span>
+                    <input style={S.durInput} type="number" value={s.rate} onChange={(e) => updateField(s.id, "rate", e.target.value)} />
+                    <span style={S.muted}>元 / 小時</span>
+                  </div>
+                )}
+                <label style={S.label}>所屬家庭（同家庭手足合併結算，留空＝獨立結算）</label>
+                <input style={S.input} list="household-list" value={s.household || ""} onChange={(e) => updateField(s.id, "household", e.target.value)} placeholder="例：王家" />
+                <label style={S.label}>學生成效頁網址（選填）</label>
+                <input style={S.input} value={s.pageUrl || ""} onChange={(e) => updateField(s.id, "pageUrl", e.target.value)} placeholder="例：math-plan.html 或完整網址" />
+                <label style={S.label}>備註</label>
+                <input
+                  style={S.noteInput}
+                  placeholder="備註（例：國三數學、上課地點…）"
+                  value={s.note || ""}
+                  onChange={(e) => updateField(s.id, "note", e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function MaterialTrack({ track, onUpdate, onDelete }) {
+  const units = track.units || [];
+  const [open, setOpen] = useState(false);
+  const [newUnit, setNewUnit] = useState("");
+  const [pasteText, setPasteText] = useState("");
+  const [autoExpand, setAutoExpand] = useState(true);
+  const [showPaste, setShowPaste] = useState(false);
+
+  function addUnit() {
+    if (!newUnit.trim()) return;
+    onUpdate({ units: [...units, { id: uid(), name: newUnit.trim(), done: false }] });
+    setNewUnit("");
+  }
+  function toggleUnit(unitId) {
+    onUpdate({ units: units.map((u) => u.id === unitId ? { ...u, done: !u.done } : u) });
+  }
+  function removeUnit(unitId) {
+    onUpdate({ units: units.filter((u) => u.id !== unitId) });
+  }
+  function bulkAdd() {
+    const lines = pasteText.split("\n").map((l) => l.trim()).filter(Boolean);
+    const added = [];
+    lines.forEach((line) => {
+      if (/花路米|^CHAPTER\b/i.test(line)) return; // skip appendix/review sections and chapter-title lines
+      const clean = line.replace(/\s*\d+\s*$/, "").trim(); // strip trailing page numbers
+      if (!clean) return;
+      if (autoExpand) {
+        added.push({ id: uid(), name: `${clean} 例題`, done: false });
+        added.push({ id: uid(), name: `${clean} 自我評量`, done: false });
+      } else {
+        added.push({ id: uid(), name: clean, done: false });
+      }
+    });
+    if (added.length) onUpdate({ units: [...units, ...added] });
+    setPasteText("");
+    setShowPaste(false);
+  }
+
+  const doneCount = units.filter((u) => u.done).length;
+  const pct = units.length ? Math.round((doneCount / units.length) * 100) : 0;
+
+  return (
+    <div style={S.trackCard}>
+      <div style={{ ...S.rowBetween, cursor: "pointer", marginBottom: 0 }} onClick={() => setOpen(!open)}>
+        <div style={S.rowInputs}>
+          <span style={{ fontWeight: 600 }}>{track.material || "（未命名教材）"}</span>
+          <span style={S.muted}>{pct}%（{doneCount}/{units.length}）</span>
+        </div>
+        <span style={S.expandArrow}>{open ? "▲" : "▼"}</span>
+      </div>
+      {open && (
+        <div style={{ marginTop: 10 }}>
+          <label style={S.label}>使用教材</label>
+          <input style={S.input} placeholder="例：南一國三數學課本" value={track.material} onChange={(e) => onUpdate({ material: e.target.value })} />
+          <div style={S.progressTrack}><div style={S.progressFill(pct)} /></div>
+
+          <div style={S.trackUnitList}>
+            {units.length === 0 && <div style={{ ...S.emptyState, padding: "12px 0" }}>尚未新增單元</div>}
+            {units.map((u) => (
+              <div key={u.id} style={S.hwRow}>
+                <input type="checkbox" checked={u.done} onChange={() => toggleUnit(u.id)} style={{ width: 18, height: 18 }} />
+                <div style={{ flex: 1, textDecoration: u.done ? "line-through" : "none", color: u.done ? "var(--ink-soft)" : "var(--ink)" }}>{u.name}</div>
+                <X size={14} style={{ cursor: "pointer", color: "var(--ink-soft)" }} onClick={() => removeUnit(u.id)} />
+              </div>
+            ))}
+          </div>
+
+          <div style={{ ...S.rowInputs, marginTop: 10 }}>
+            <input style={{ ...S.input, flex: 1 }} placeholder="新增單元，例：Unit 6 長母音 oa/ow" value={newUnit} onChange={(e) => setNewUnit(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addUnit()} />
+            <button style={S.darkBtn} onClick={addUnit}>+ 新增</button>
+          </div>
+
+          <button style={S.moreToggle} onClick={() => setShowPaste(!showPaste)}>{showPaste ? "－" : "＋"} 貼上目錄，一次新增多筆</button>
+          {showPaste && (
+            <div style={S.moreBox}>
+              <div style={S.muted}>把課本目錄整段貼進來，一行一個章節，我會自動拆成清單（跳過含「花路米」或「CHAPTER」的行）。</div>
+              <textarea style={S.textarea} rows={5} placeholder={"例：\n1-1 連比\n1-2 比例線段\n1-3 相似形"} value={pasteText} onChange={(e) => setPasteText(e.target.value)} />
+              <label style={S.checkboxRow}>
+                <input type="checkbox" checked={autoExpand} onChange={(e) => setAutoExpand(e.target.checked)} />
+                每個章節自動加上「例題」與「自我評量」兩筆
+              </label>
+              <button style={S.darkBtn} onClick={bulkAdd}>批次新增</button>
+            </div>
+          )}
+
+          <button style={{ ...S.dashedBtn, marginTop: 10, color: "var(--coral)", borderColor: "var(--coral)" }} onClick={onDelete}>刪除這個教材</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProgressPage({ students, progressList, setProgressList }) {
+  const [studentId, setStudentId] = useState(students[0]?.id || "");
+
+  useEffect(() => {
+    const needsFix = progressList.some((t) => !t.id || !t.units);
+    if (needsFix) {
+      setProgressList((prev) => prev.map((t) => ({ units: [], ...t, id: t.id || uid() })));
+    }
+  }, []);
+
+  function addTrack() {
+    setProgressList((prev) => [...prev, { id: uid(), studentId, material: "", units: [] }]);
+  }
+  function updateTrackById(id, patch) {
+    setProgressList((prev) => prev.map((t) => t.id === id ? { ...t, ...patch } : t));
+  }
+  function deleteTrack(id) {
+    if (!window.confirm("確定要刪除這個教材的進度紀錄嗎？")) return;
+    setProgressList((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  const tracks = progressList
+    .filter((t) => t.studentId === studentId)
+    .map((t) => ({ id: t.id || `${t.studentId}-legacy-${t.material || ""}`, units: [], ...t }));
+
+  if (students.length === 0) return <div style={S.emptyState}>還沒有學生，先到「學生名冊」新增。</div>;
+
+  return (
+    <div>
+      <div style={S.rowBetween}>
+        <div style={{ flex: 1 }}>
+          <div style={S.label}>選擇學生</div>
+          <select style={S.input} value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+            {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+      </div>
+      <button style={S.darkBtn} onClick={addTrack}>+ 新增教材</button>
+      {tracks.length === 0 && <div style={{ ...S.emptyState, padding: "20px 0" }}>這位學生還沒有教材，點上面新增一本開始追蹤進度</div>}
+      {tracks.map((t) => (
+        <MaterialTrack key={t.id} track={t} onUpdate={(patch) => updateTrackById(t.id, patch)} onDelete={() => deleteTrack(t.id)} />
+      ))}
+    </div>
+  );
+}
+
+function WeaknessPage({ students, weaknessNotes, setWeaknessNotes }) {
+  const [studentId, setStudentId] = useState(students[0]?.id || "");
+  const [text, setText] = useState("");
+  const notes = weaknessNotes.filter((n) => n.studentId === studentId).sort((a, b) => b.date.localeCompare(a.date));
+
+  function addNote() {
+    if (!text.trim()) return;
+    setWeaknessNotes((prev) => [...prev, { id: uid(), studentId, date: todayStr(), text: text.trim() }]);
+    setText("");
+  }
+  function removeNote(id) {
+    setWeaknessNotes((prev) => prev.filter((n) => n.id !== id));
+  }
+
+  if (students.length === 0) return <div style={S.emptyState}>還沒有學生，先到「學生名冊」新增。</div>;
+
+  return (
+    <div>
+      <div style={S.label}>選擇學生</div>
+      <select style={S.input} value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+        {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+      </select>
+      <div style={S.progressBox}>
+        <div style={S.label}>記錄弱點／常錯的地方</div>
+        <textarea style={S.textarea} rows={3} placeholder="例：ee 和 ea 發音容易混淆；介係詞 in/on/at 常用錯" value={text} onChange={(e) => setText(e.target.value)} />
+        <button style={S.darkBtn} onClick={addNote}>＋ 加入記錄</button>
+        {notes.length === 0 && <div style={{ ...S.emptyState, padding: "20px 0" }}>尚無記錄</div>}
+        {notes.map((n) => (
+          <div key={n.id} style={S.recordRow}>
+            <div style={S.rowBetween}>
+              <span style={S.muted}>{n.date}</span>
+              <X size={14} style={{ cursor: "pointer", color: "var(--ink-soft)" }} onClick={() => removeNote(n.id)} />
+            </div>
+            <div>{n.text}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const EXAM_TYPES = ["小考", "段考", "模考", "其他"];
+
+function ExamsPage({ students, examRecords, setExamRecords }) {
+  const [studentId, setStudentId] = useState(students[0]?.id || "");
+  const [date, setDate] = useState(todayStr());
+  const [endDate, setEndDate] = useState("");
+  const [examType, setExamType] = useState(EXAM_TYPES[0]);
+  const [examName, setExamName] = useState("");
+  const [score, setScore] = useState("");
+  const [maxScore, setMaxScore] = useState(100);
+  const [content, setContent] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const records = examRecords.filter((r) => r.studentId === studentId).sort((a, b) => b.date.localeCompare(a.date));
+
+  function resetForm() {
+    setEditingId(null); setDate(todayStr()); setEndDate(""); setExamType(EXAM_TYPES[0]);
+    setExamName(""); setScore(""); setMaxScore(100); setContent("");
+  }
+  function startEdit(r) {
+    setEditingId(r.id);
+    setDate(r.date); setEndDate(r.endDate || ""); setExamType(r.examType); setExamName(r.examName);
+    setScore(r.score == null ? "" : String(r.score)); setMaxScore(r.maxScore); setContent(r.content || "");
+  }
+  function saveRecord() {
+    if (!examName.trim()) return;
+    const payload = {
+      studentId, date, endDate: endDate && endDate > date ? endDate : "", examType, examName: examName.trim(),
+      score: score === "" ? null : Number(score), maxScore: Number(maxScore || 100), content: content.trim(),
+    };
+    if (editingId) {
+      setExamRecords((prev) => prev.map((r) => r.id === editingId ? { ...r, ...payload } : r));
+    } else {
+      setExamRecords((prev) => [...prev, { id: uid(), ...payload }]);
+    }
+    resetForm();
+  }
+  function removeRecord(id) {
+    setExamRecords((prev) => prev.filter((r) => r.id !== id));
+    if (editingId === id) resetForm();
+  }
+
+  if (students.length === 0) return <div style={S.emptyState}>還沒有學生，先到「學生名冊」新增。</div>;
+
+  return (
+    <div>
+      <div style={S.label}>選擇學生</div>
+      <select style={S.input} value={studentId} onChange={(e) => { setStudentId(e.target.value); resetForm(); }}>
+        {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+      </select>
+      <div style={S.progressBox}>
+        <div style={S.label}>{editingId ? "編輯考試" : "新增考試（可以先只填日期，成績之後再補）"}</div>
+        <div style={S.twoCol}>
+          <div>
+            <label style={S.label}>日期</label>
+            <input style={S.input} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+          <div>
+            <label style={S.label}>考到第幾天（選填，段考/模考常常不只一天）</label>
+            <input style={S.input} type="date" value={endDate} min={date} onChange={(e) => setEndDate(e.target.value)} />
+          </div>
+        </div>
+        <label style={S.label}>考試類型</label>
+        <select style={S.input} value={examType} onChange={(e) => setExamType(e.target.value)}>
+          {EXAM_TYPES.map((t) => <option key={t}>{t}</option>)}
+        </select>
+        <label style={S.label}>考試名稱</label>
+        <input style={S.input} placeholder="例：Unit 5 小考、3 月模考" value={examName} onChange={(e) => setExamName(e.target.value)} />
+        <div style={S.twoCol}>
+          <div>
+            <label style={S.label}>得分（選填，考完再回來補）</label>
+            <input style={S.input} type="number" value={score} onChange={(e) => setScore(e.target.value)} />
+          </div>
+          <div>
+            <label style={S.label}>滿分</label>
+            <input style={S.input} type="number" value={maxScore} onChange={(e) => setMaxScore(e.target.value)} />
+          </div>
+        </div>
+        <label style={S.label}>考試內容（選填）</label>
+        <textarea style={S.textarea} rows={2} placeholder="例：Unit 5 單字、長母音 oa 拼讀規則" value={content} onChange={(e) => setContent(e.target.value)} />
+        {editingId ? (
+          <div style={S.btnRow}>
+            <button style={S.cancelBtnInline} onClick={resetForm}>取消編輯</button>
+            <button style={S.primaryBtnInline} onClick={saveRecord}>更新這筆</button>
+          </div>
+        ) : (
+          <button style={S.darkBtn} onClick={saveRecord}>＋ 加入成績</button>
+        )}
+
+        {records.length === 0 && <div style={{ ...S.emptyState, padding: "20px 0" }}>尚無成績紀錄</div>}
+        {records.map((r) => (
+          <div key={r.id} style={S.recordRow}>
+            <div style={S.rowBetween}>
+              <div>
+                <span style={{ fontWeight: 500 }}>{r.examName}</span> <span style={S.goldTag}>{r.examType}</span>
+              </div>
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <button style={S.smallBtn} onClick={() => startEdit(r)}>編輯</button>
+                <X size={14} style={{ cursor: "pointer", color: "var(--coral)" }} onClick={() => { if (window.confirm("確定要刪除這筆考試紀錄嗎？")) removeRecord(r.id); }} />
+              </div>
+            </div>
+            <div style={S.muted}>{r.date}{r.endDate ? `～${r.endDate}` : ""} · {r.score == null ? "尚未考（先記日期）" : `${r.score} / ${r.maxScore} 分`}{r.content ? ` · ${r.content}` : ""}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PointsPage({ students, pointCategories, setPointCategories, pointLogs, setPointLogs }) {
+  const [tab, setTab] = useState("quick"); // quick | rank | categories
+  const [studentId, setStudentId] = useState(students[0]?.id || "");
+  const [flash, setFlash] = useState(null);
+  const [newCat, setNewCat] = useState({ emoji: "⭐", label: "", value: 1 });
+
+  function studentTotal(sid) {
+    return pointLogs.filter((p) => p.studentId === sid).reduce((a, p) => a + Number(p.value || 0), 0);
+  }
+  function logPoint(cat) {
+    setPointLogs((prev) => [...prev, { id: uid(), studentId, categoryId: cat.id, value: cat.value, date: todayStr() }]);
+    setFlash(cat.id);
+    setTimeout(() => setFlash(null), 500);
+  }
+  function addCategory() {
+    if (!newCat.label.trim()) return;
+    setPointCategories((prev) => [...prev, { id: uid(), emoji: newCat.emoji || "⭐", label: newCat.label.trim(), value: Number(newCat.value || 0) }]);
+    setNewCat({ emoji: "⭐", label: "", value: 1 });
+  }
+  function removeCategory(id) {
+    setPointCategories((prev) => prev.filter((c) => c.id !== id));
+  }
+
+  if (students.length === 0) return <div style={S.emptyState}>還沒有學生，先到「學生名冊」新增。</div>;
+
+  return (
+    <div>
+      <div style={S.tabToggle}>
+        <button style={S.tabBtn(tab === "quick")} onClick={() => setTab("quick")}>快速登記</button>
+        <button style={S.tabBtn(tab === "rank")} onClick={() => setTab("rank")}>排行榜</button>
+        <button style={S.tabBtn(tab === "categories")} onClick={() => setTab("categories")}>類別設定</button>
+      </div>
+
+      {tab === "quick" && (
+        <div style={{ marginTop: 12 }}>
+          <div style={S.label}>選擇學生</div>
+          <select style={S.input} value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+            {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          <div style={{ ...S.muted, margin: "8px 0" }}>目前累積：<strong style={{ color: "var(--ink)" }}>{studentTotal(studentId)}</strong> 分</div>
+          <div style={S.pointGrid}>
+            {pointCategories.map((c) => (
+              <button key={c.id} style={{ ...S.pointBtn, ...(flash === c.id ? S.pointBtnFlash : {}) }} onClick={() => logPoint(c)}>
+                <div style={{ fontSize: 24 }}>{c.emoji}</div>
+                <div>{c.label}</div>
+                <div style={{ color: c.value >= 0 ? "var(--green-text)" : "var(--coral-text)", fontWeight: 700 }}>{c.value >= 0 ? "+" : ""}{c.value}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === "rank" && (
+        <div style={{ marginTop: 12 }}>
+          {[...students].sort((a, b) => studentTotal(b.id) - studentTotal(a.id)).map((s, i) => (
+            <div key={s.id} style={S.rankRow}>
+              <span style={S.rankNum}>{i + 1}</span>
+              <span style={{ flex: 1, fontWeight: 500 }}>{s.name}</span>
+              <span style={S.moneyText}>{studentTotal(s.id)} 分</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === "categories" && (
+        <div style={{ marginTop: 12 }}>
+          {pointCategories.map((c) => (
+            <div key={c.id} style={S.rowBetween}>
+              <span>{c.emoji} {c.label}（{c.value >= 0 ? "+" : ""}{c.value}）</span>
+              <X size={14} style={{ cursor: "pointer", color: "var(--coral)" }} onClick={() => removeCategory(c.id)} />
+            </div>
+          ))}
+          <div style={{ ...S.rowInputs, marginTop: 10 }}>
+            <input style={{ ...S.inputSm, width: 50 }} placeholder="🎯" value={newCat.emoji} onChange={(e) => setNewCat({ ...newCat, emoji: e.target.value })} />
+            <input style={{ ...S.inputSm, flex: 1 }} placeholder="類別名稱" value={newCat.label} onChange={(e) => setNewCat({ ...newCat, label: e.target.value })} />
+            <input style={{ ...S.inputSm, width: 60 }} type="number" value={newCat.value} onChange={(e) => setNewCat({ ...newCat, value: e.target.value })} />
+            <button style={S.darkBtn} onClick={addCategory}>+ 新增</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HelpGuide() {
+  const steps = [
+    { t: "三步開始：建學生 → 排課 → 自動算錢", d: "先建學生（姓名、年級、時薪），然後在「排課」新增課或直接「記一課」，月底的學費就會自動算好，不用自己加。" },
+    { t: "不想逐堂排課？用快速結算", d: "「月費」頁面的「快速結算」可以選人、直接輸入這個月每種時數上了幾天，系統幫你把天數換算成小時與金額。" },
+    { t: "出席・請假・補課", d: "點課程可以選「出席」記錄內容，或「請假」；請假可另外安排補課時間。時間排錯了，直接「編輯時間」即可。" },
+    { t: "記一課", d: "課上完，點底部「＋」。填教材、今天上了什麼、出什麼作業（一項一格）。以後翻某個學生上過哪裡，不用再翻本子。" },
+    { t: "作業追蹤", d: "還沒做完的列在「待追蹤」，逐項打勾就會移到「已完成」。" },
+    { t: "月底不用再自己加錢", d: "「月費」頁面自動算好每位學生的鐘點費，一鍵結算、標記已收，清楚又快速。" },
+  ];
+  return (
+    <div>
+      <div style={S.label}>新手上路</div>
+      {steps.map((s, i) => (
+        <div key={i} style={S.helpStep}>
+          <div style={{ fontWeight: 500 }}>{s.t}</div>
+          <div style={S.muted}>{s.d}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const S = {
+  shell: { minHeight: "100vh", background: "var(--desk)", display: "flex", justifyContent: "center", padding: "0" },
+  device: { width: "100%", maxWidth: 640, background: "var(--paper)", minHeight: "100vh", display: "flex", flexDirection: "column", position: "relative" },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "18px 20px 12px", borderBottom: "1px solid var(--line)" },
+  brand: { fontFamily: "var(--font-serif)", fontSize: 24, color: "var(--ink)", fontWeight: 700 },
+  brandAccent: { color: "var(--teal)", fontStyle: "italic" },
+  brandSub: { fontSize: 13, color: "var(--ink-soft)", marginTop: 4 },
+  ghostBtn: { border: "1px solid var(--line)", background: "var(--paper)", borderRadius: 6, padding: "6px 12px", fontSize: 13, cursor: "pointer", color: "var(--ink)" },
+  banner: { background: "var(--banner-bg)", borderBottom: "1px solid var(--line)", padding: "8px 20px", fontSize: 13, color: "var(--ink-soft)" },
+  content: { flex: 1, padding: "16px 20px 90px", overflowY: "auto" },
+  navBar: { position: "sticky", bottom: 0, display: "flex", alignItems: "center", justifyContent: "space-around", background: "var(--paper)", borderTop: "1px solid var(--line)", padding: "8px 0 10px" },
+  navItem: (active) => ({ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, fontSize: 11, background: "none", border: "none", cursor: "pointer", color: active ? "var(--teal)" : "var(--ink-soft)" }),
+  navCenter: { width: 46, height: 46, borderRadius: "50%", background: "var(--gold)", border: "none", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", marginTop: -18, boxShadow: "0 0 0 4px var(--paper)" },
+  rowBetween: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 10 },
+  tabToggle: { display: "flex", border: "1px solid var(--line)", borderRadius: 6, overflow: "hidden" },
+  tabBtn: (active) => ({ padding: "6px 14px", fontSize: 13, border: "none", cursor: "pointer", background: active ? "var(--ink)" : "var(--paper)", color: active ? "#fff" : "var(--ink)" }),
+  card: { background: "var(--card)", border: "1px solid var(--line)", borderRadius: 6, padding: 16, marginBottom: 14 },
+  monthTitle: { fontFamily: "var(--font-serif)", fontSize: 18, color: "var(--ink)" },
+  smallBtn: { display: "flex", alignItems: "center", gap: 2, border: "1px solid var(--line)", background: "var(--paper)", borderRadius: 6, padding: "5px 9px", fontSize: 12, cursor: "pointer", color: "var(--ink)" },
+  darkBtn: { display: "flex", alignItems: "center", gap: 4, background: "var(--ink)", color: "#fff", border: "none", borderRadius: 6, padding: "7px 12px", fontSize: 13, cursor: "pointer" },
+  gridHead: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "1px solid var(--line)", paddingBottom: 6, marginBottom: 4 },
+  gridHeadCell: { textAlign: "center", fontSize: 12, color: "var(--ink-soft)" },
+  grid: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 },
+  dayCellEmpty: { minHeight: 84, background: "var(--empty-cell)" },
+  dayCell: (isToday, isHoliday) => ({ minHeight: 84, border: isToday ? "1px solid var(--teal)" : "1px solid var(--line)", borderRadius: 4, padding: 4, cursor: "pointer", background: isHoliday ? "var(--holiday-bg)" : "var(--card)" }),
+  dayNum: (isToday) => ({ fontSize: 12, fontWeight: isToday ? 700 : 400, color: isToday ? "var(--teal)" : "var(--ink)" }),
+  holidayLabel: { fontSize: 10, color: "var(--coral)" },
+  lessonChip: (status) => ({
+    fontSize: 10, marginTop: 2, padding: "1px 4px", borderRadius: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+    background: status === "attended" ? "var(--green-bg)" : status === "leave" ? "var(--coral-bg)" : "var(--gold-bg)",
+    color: status === "attended" ? "var(--green-text)" : status === "leave" ? "var(--coral-text)" : "var(--gold-text)",
+  }),
+  moreLabel: { fontSize: 10, color: "var(--teal)", fontWeight: 600, marginTop: 2, background: "var(--card)", border: "1px solid var(--teal)", borderRadius: 3, padding: "1px 4px", display: "inline-block" },
+  examMarker: { fontSize: 10, marginTop: 2, padding: "1px 4px", borderRadius: 3, background: "var(--mid-bg)", color: "var(--mid-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  legendRow: { display: "flex", alignItems: "center", marginTop: 10, fontSize: 12, color: "var(--ink-soft)" },
+  legendDot: (color) => ({ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: color, marginRight: 4 }),
+  emptyState: { fontSize: 13, color: "var(--ink-soft)", padding: "16px 0", textAlign: "center" },
+  lessonRow: { display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--line)" },
+  bulkAttendBtn: { display: "flex", alignItems: "center", gap: 6, justifyContent: "center", width: "100%", background: "var(--green-bg)", color: "var(--green-text)", border: "1px solid var(--green-text)", borderRadius: 6, padding: "8px 0", fontSize: 13, cursor: "pointer", marginBottom: 10, fontWeight: 500 },
+  quickAttendChip: { fontSize: 11, border: "1px solid var(--green-text)", background: "var(--green-bg)", color: "var(--green-text)", borderRadius: 10, padding: "4px 8px", cursor: "pointer", whiteSpace: "nowrap" },
+  lessonRowTime: { fontSize: 13, color: "var(--ink-soft)", width: 56 },
+  muted: { fontSize: 12, color: "var(--ink-soft)" },
+  statusPill: (status) => ({
+    fontSize: 11, padding: "3px 8px", borderRadius: 10,
+    background: status === "attended" ? "var(--green-bg)" : status === "leave" ? "var(--coral-bg)" : "var(--gold-bg)",
+    color: status === "attended" ? "var(--green-text)" : status === "leave" ? "var(--coral-text)" : "var(--gold-text)",
+  }),
+  overlay: { position: "fixed", inset: 0, background: "rgba(35,42,59,0.45)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 50 },
+  sheet: { background: "var(--paper)", width: "100%", maxWidth: 640, borderRadius: "14px 14px 0 0", padding: 18 },
+  sheetTitle: { fontSize: 14, color: "var(--ink-soft)", marginBottom: 10 },
+  peekRow: { display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", padding: "12px 4px", border: "none", borderTop: "1px solid var(--line)", background: "none", fontSize: 14, cursor: "pointer", color: "var(--ink)", textAlign: "left" },
+  sheetBtn: { display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "12px 4px", border: "none", borderTop: "1px solid var(--line)", background: "none", fontSize: 14, cursor: "pointer", color: "var(--ink)", textAlign: "left" },
+  cancelBtn: { width: "100%", marginTop: 8, padding: "10px 0", borderRadius: 6, border: "1px solid var(--line)", background: "var(--card)", cursor: "pointer" },
+  modalSm: { background: "var(--paper)", width: "92%", maxWidth: 400, borderRadius: 10, padding: 18, margin: "auto", maxHeight: "88vh", overflowY: "auto" },
+  modalLg: { background: "var(--paper)", width: "92%", maxWidth: 520, borderRadius: 10, padding: 0, margin: "auto", maxHeight: "90vh", display: "flex", flexDirection: "column" },
+  modalBody: { padding: "0 18px", overflowY: "auto" },
+  modalHead: { display: "flex", justifyContent: "space-between", alignItems: "center", fontFamily: "var(--font-serif)", fontSize: 17, padding: 18, borderBottom: "1px solid var(--line)" },
+  label: { display: "block", fontSize: 12, color: "var(--ink-soft)", margin: "10px 0 4px" },
+  hintText: { fontSize: 11, color: "var(--ink-soft)", marginTop: 2 },
+  editingBanner: { background: "var(--gold-bg)", color: "var(--gold-text)", fontSize: 12, padding: "8px 10px", borderRadius: 6 },
+  inlineLabel: { fontSize: 13, color: "var(--ink)", fontWeight: 500 },
+  input: { width: "100%", boxSizing: "border-box", padding: "8px 10px", border: "1px solid var(--line)", borderRadius: 6, fontSize: 14, background: "var(--card)", color: "var(--ink)" },
+  inputSm: { padding: "8px 10px", border: "1px solid var(--line)", borderRadius: 6, fontSize: 13, background: "var(--card)", color: "var(--ink)" },
+  twoCol: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
+  rowInputs: { display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" },
+  dashedBtn: { border: "1px dashed var(--line)", background: "var(--card)", borderRadius: 6, padding: "6px 10px", fontSize: 12, cursor: "pointer", color: "var(--ink-soft)", marginBottom: 8 },
+  moreToggle: { border: "none", background: "none", color: "var(--teal)", fontSize: 13, cursor: "pointer", padding: "10px 0", textAlign: "left" },
+  moreBox: { background: "var(--empty-cell)", borderRadius: 6, padding: 12, marginBottom: 10 },
+  saveBtn: { width: "100%", marginTop: 10, padding: "9px 0", borderRadius: 6, border: "none", background: "var(--ink)", color: "#fff", cursor: "pointer", fontSize: 14 },
+  checkboxRow: { display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "var(--ink-soft)", margin: "10px 0", cursor: "pointer" },
+  btnRow: { display: "flex", gap: 10, marginTop: 16 },
+  cancelBtnInline: { flex: 1, padding: "10px 0", borderRadius: 6, border: "1px solid var(--line)", background: "var(--card)", color: "var(--ink)", cursor: "pointer", fontSize: 14 },
+  primaryBtnInline: { flex: 1, padding: "10px 0", borderRadius: 6, border: "none", background: "var(--ink)", color: "#fff", cursor: "pointer", fontSize: 14, fontWeight: 500 },
+  saveBtnBig: { margin: 18, padding: "12px 0", borderRadius: 6, border: "none", background: "var(--ink)", color: "#fff", cursor: "pointer", fontSize: 15 },
+  hwRow: { display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: "1px solid var(--line)" },
+  parentTag: { fontSize: 11, color: "var(--gold-text)", background: "var(--gold-bg)", padding: "2px 6px", borderRadius: 8 },
+  dueTag: { fontSize: 10, color: "var(--ink-soft)", marginLeft: 6 },
+  overdueTag: { fontSize: 10, color: "var(--coral-text)", fontWeight: 600, marginLeft: 6 },
+  monthSelect: { border: "1px solid var(--line)", borderRadius: 6, padding: "7px 10px", fontSize: 13, background: "var(--card)", color: "var(--ink)" },
+  incomeCard: { background: "var(--incomeCard)", border: "1px solid var(--line)", borderRadius: 6, padding: 18, marginBottom: 14 },
+  bigNumber: { fontFamily: "var(--font-mono)", fontSize: 32, color: "var(--ink)", margin: "4px 0 14px", fontWeight: 700 },
+  bigNumberSecondary: { fontFamily: "var(--font-mono)", fontSize: 22, color: "var(--ink-soft)", margin: "4px 0 14px", fontWeight: 700 },
+  twoStatRow: { display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 4 },
+  advancedToggle: { width: "100%", textAlign: "left", border: "none", background: "none", color: "var(--teal)", fontSize: 13, cursor: "pointer", padding: "10px 2px", marginBottom: 4 },
+  moneyText: { fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--ink)" },
+  moneyBig: { fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--teal)", fontSize: 17 },
+  progressTrack: { height: 6, background: "var(--line)", borderRadius: 3, marginBottom: 8, overflow: "hidden" },
+  progressFill: (pct) => ({ height: "100%", width: `${pct}%`, background: "var(--teal)", borderRadius: 3, transition: "width .3s" }),
+  linkBtn: { border: "none", background: "none", color: "var(--teal)", cursor: "pointer", fontSize: 12 },
+  billingRow: { display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: "1px solid var(--line)" },
+  settledTag: { fontSize: 11, color: "var(--green-text)" },
+  unsettledTag: { fontSize: 11, color: "var(--coral-text)" },
+  settleToggleBtn: { border: "1px solid currentColor", background: "none", borderRadius: 8, padding: "2px 8px", cursor: "pointer", fontFamily: "inherit" },
+  copyBtn: { fontSize: 11, border: "1px solid var(--line)", background: "var(--card)", borderRadius: 6, padding: "3px 8px", cursor: "pointer", color: "var(--teal)", marginTop: 4 },
+  copyOverviewBtn: { width: "100%", border: "1px solid var(--line)", background: "var(--card)", borderRadius: 6, padding: "10px 0", cursor: "pointer", color: "var(--ink)", fontSize: 13, fontWeight: 500 },
+  feeItemRow: { display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, padding: "8px 0", borderTop: "1px solid var(--line)" },
+  quickTag: { fontSize: 10, color: "var(--gold-text)", background: "var(--gold-bg)", padding: "1px 6px", borderRadius: 8, marginLeft: 4 },
+  warnTag: { fontSize: 10, color: "var(--coral-text)", background: "var(--coral-bg)", padding: "1px 6px", borderRadius: 8, marginLeft: 4 },
+  previewLine: { fontSize: 12, color: "var(--ink-soft)", marginBottom: 10 },
+  moreRow: { display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "12px 4px", border: "none", borderTop: "1px solid var(--line)", background: "none", fontSize: 14, cursor: "pointer", color: "var(--ink)", textAlign: "left" },
+  backRow: { display: "flex", alignItems: "center", gap: 6, border: "none", background: "none", cursor: "pointer", color: "var(--teal)", fontSize: 13, marginBottom: 12, padding: 0 },
+  studentCard: { background: "var(--card)", border: "1px solid var(--line)", borderRadius: 8, padding: "14px 16px", marginBottom: 12 },
+  familyTag: { fontSize: 11, color: "var(--gold-text)", background: "var(--gold-bg)", padding: "2px 8px", borderRadius: 10 },
+  expandArrow: { color: "var(--ink-soft)", fontSize: 12, cursor: "pointer" },
+  pageLinkIcon: { textDecoration: "none", fontSize: 14, cursor: "pointer" },
+  nameInput: { border: "1px solid transparent", background: "transparent", fontWeight: 700, fontSize: 16, padding: "2px 4px", borderRadius: 4, color: "var(--ink)", width: 130 },
+  noteInput: { width: "100%", boxSizing: "border-box", border: "none", borderBottom: "1px dashed var(--line)", background: "transparent", fontSize: 12, color: "var(--ink-soft)", padding: "4px 2px", marginTop: 4 },
+  levelTag: (level) => ({ fontSize: 11, fontWeight: 500, padding: "2px 8px", borderRadius: 10, background: level === "mid" ? "var(--mid-bg)" : "var(--elem-bg)", color: level === "mid" ? "var(--mid-text)" : "var(--elem-text)" }),
+  levelTagBtn: (level) => ({ fontSize: 11, fontWeight: 500, padding: "3px 10px", borderRadius: 10, border: "none", cursor: "pointer", background: level === "mid" ? "var(--mid-bg)" : "var(--elem-bg)", color: level === "mid" ? "var(--mid-text)" : "var(--elem-text)" }),
+  recordRow: { padding: "10px 0", borderTop: "1px solid var(--line)" },
+  recordCard: { background: "var(--card)", border: "1px solid var(--line)", borderRadius: 8, padding: "12px 14px", marginBottom: 10 },
+  recordGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(84px, 1fr))", gap: 8 },
+  recordTile: (tone) => ({
+    display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "10px 4px",
+    border: `1px solid ${tone === "coral" ? "var(--coral)" : tone === "gold" ? "var(--gold)" : "var(--green-text)"}`,
+    background: tone === "coral" ? "var(--coral-bg)" : tone === "gold" ? "var(--gold-bg)" : "var(--green-bg)",
+    borderRadius: 8, cursor: "pointer", fontSize: 12, color: "var(--ink)", textAlign: "center",
+  }),
+  recordTileDate: { fontSize: 11, color: "var(--ink-soft)" },
+  recordTileTag: { fontSize: 10, opacity: 0.8 },
+  coralTag: { fontSize: 11, color: "var(--coral-text)", background: "var(--coral-bg)", padding: "2px 8px", borderRadius: 10 },
+  goldTag: { fontSize: 11, color: "var(--gold-text)", background: "var(--gold-bg)", padding: "2px 8px", borderRadius: 10 },
+  greenTag: { fontSize: 11, color: "var(--green-text)", background: "var(--green-bg)", padding: "2px 8px", borderRadius: 10 },
+  messagePreview: { background: "var(--empty-cell)", borderRadius: 6, padding: 14, fontSize: 13, whiteSpace: "pre-wrap", lineHeight: 1.6, color: "var(--ink)" },
+  messageTextarea: { width: "100%", boxSizing: "border-box", background: "var(--empty-cell)", border: "1px solid var(--line)", borderRadius: 6, padding: 12, fontSize: 13, lineHeight: 1.6, color: "var(--ink)", resize: "vertical", marginTop: 8, fontFamily: "inherit" },
+  helpStep: { padding: "10px 0", borderTop: "1px solid var(--line)" },
+  progressBox: { background: "var(--empty-cell)", borderRadius: 8, padding: 14, marginTop: 10 },
+  trackCard: { background: "var(--card)", border: "1px solid var(--line)", borderRadius: 8, padding: "12px 14px", marginBottom: 10 },
+  trackUnitList: { marginTop: 8, paddingLeft: 10, borderLeft: "2px solid var(--line)" },
+  textarea: { width: "100%", boxSizing: "border-box", padding: "8px 10px", border: "1px solid var(--line)", borderRadius: 6, fontSize: 14, background: "var(--card)", color: "var(--ink)", fontFamily: "inherit", resize: "vertical", marginBottom: 8 },
+  pointGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: 10, marginTop: 8 },
+  pointBtn: { display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "14px 8px", border: "1px solid var(--line)", background: "var(--card)", borderRadius: 8, cursor: "pointer", fontSize: 13, color: "var(--ink)", transition: "transform .1s" },
+  pointBtnFlash: { transform: "scale(0.94)", background: "var(--green-bg)", borderColor: "var(--green-text)" },
+  rankRow: { display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderTop: "1px solid var(--line)" },
+  rankNum: { width: 22, height: 22, borderRadius: "50%", background: "var(--gold-bg)", color: "var(--gold-text)", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" },
+  chipRow: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 },
+  chip: (active) => ({ fontSize: 12, padding: "6px 12px", borderRadius: 16, border: active ? "1px solid var(--teal)" : "1px solid var(--line)", background: active ? "var(--green-bg)" : "var(--card)", color: active ? "var(--green-text)" : "var(--ink)", cursor: "pointer" }),
+  pickerBox: { background: "var(--gold-bg)", borderRadius: 6, padding: 10, marginTop: 6, marginBottom: 12 },
+  tallyCard: { background: "var(--card)", border: "1px solid var(--line)", borderRadius: 6, padding: 12, marginBottom: 10 },
+  durGrid: { display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 4, margin: "10px 0" },
+  durLabel: { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--ink-soft)" },
+  durInput: { width: "100%", boxSizing: "border-box", textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 6, padding: "5px 2px", background: "var(--paper)", margin: "2px 0" },
+};
+
+const CSS = `
+:root {
+  --paper: #F7F3E8;
+  --card: #FBF9F2;
+  --desk: #232A3B;
+  --ink: #232A3B;
+  --ink-soft: #6B7280;
+  --line: #DED5C0;
+  --teal: #2F6F62;
+  --coral: #C1533B;
+  --gold: #C98A2B;
+  --banner-bg: #EFE9D8;
+  --empty-cell: #F1ECDF;
+  --holiday-bg: #F7ECEA;
+  --incomeCard: #FBF9F2;
+  --green-bg: #E1EDE3; --green-text: #33714A;
+  --coral-bg: #F3DEDA; --coral-text: #A64330;
+  --gold-bg: #F1E1BE; --gold-text: #96690F;
+  --elem-bg: #E1EDE3; --elem-text: #2A7D5F;
+  --mid-bg: #EDE3F5; --mid-text: #6B4894;
+  --font-serif: Georgia, 'Noto Serif TC', serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+* { font-family: -apple-system, 'PingFang TC', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif; box-sizing: border-box; }
+button { font-family: inherit; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+@media (max-width: 640px) {
+  body { background: var(--paper); }
+}
+`;
+
+const rootEl = document.getElementById("root");
+ReactDOM.createRoot(rootEl).render(React.createElement(App));
+
+</script>
+<script>
+  (function () {
+    var source = document.getElementById("app-source").textContent;
+    try {
+      var compiled = Babel.transform(source, {
+        presets: [["react", { runtime: "classic" }]]
+      }).code;
+      new Function(compiled)();
+    } catch (err) {
+      document.getElementById("root").innerHTML =
+        '<pre style="white-space:pre-wrap;padding:20px;color:#a64330;font-family:monospace;">' +
+        '啟動失敗，請把這段錯誤訊息回報給開發者：\n\n' +
+        String(err && err.stack || err) +
+        '</pre>';
+    }
+  })();
+</script>
+</body>
+</html>
