@@ -85,6 +85,56 @@ function TimeSelect({ value, onChange }) {
   );
 }
 const LEVELS = { elem: "國小", mid: "國中" };
+// 各科教材版本：國、數、社、自、英
+const SUBJECTS = [
+  { key: "chinese", short: "國", elem: "國語", mid: "國文" },
+  { key: "math", short: "數", elem: "數學", mid: "數學" },
+  { key: "social", short: "社", elem: "社會", mid: "社會" },
+  { key: "science", short: "自", elem: "自然", mid: "自然" },
+  { key: "english", short: "英", elem: "英語", mid: "英語" },
+];
+const PUBLISHERS = ["康軒", "南一", "翰林", "何嘉仁", "佳音"];
+function subjectName(subj, level) { return subj[level] || subj.elem; }
+function textbookSuggestions(student) {
+  if (!student || !student.textbooks) return [];
+  return SUBJECTS
+    .filter((subj) => (student.textbooks[subj.key] || "").trim())
+    .map((subj) => `${student.textbooks[subj.key].trim()}${subjectName(subj, student.level)}`);
+}
+function TextbookGrid({ level, value, onChange }) {
+  const tb = value || {};
+  return (
+    <div style={S.textbookGrid}>
+      {SUBJECTS.map((subj) => (
+        <div key={subj.key} style={S.textbookCell}>
+          <span style={S.textbookCellLabel}>{subjectName(subj, level)}</span>
+          <input
+            className="tb-input"
+            style={S.textbookInput}
+            list="publisher-list"
+            placeholder="版本"
+            value={tb[subj.key] || ""}
+            onChange={(e) => onChange({ ...tb, [subj.key]: e.target.value })}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+function TextbookSummary({ student }) {
+  const tb = student.textbooks || {};
+  const filled = SUBJECTS.filter((subj) => (tb[subj.key] || "").trim());
+  if (filled.length === 0) return <div style={{ ...S.muted, marginTop: 6 }}>尚未填寫教材版本</div>;
+  return (
+    <div style={S.textbookSummary}>
+      {filled.map((subj) => (
+        <span key={subj.key} style={S.textbookChip}>
+          <span style={S.textbookChipSubj}>{subj.short}</span>{tb[subj.key].trim()}
+        </span>
+      ))}
+    </div>
+  );
+}
 const DEFAULT_POINT_CATEGORIES = [
   { id: "focus", emoji: "🎯", label: "專心上課", value: 2 },
   { id: "speak", emoji: "🙋", label: "主動發言", value: 2 },
@@ -124,7 +174,7 @@ function calcQuick(counts, rate) {
 }
 
 const SEED_STUDENTS = [
-  { id: "s1", name: "陳小美", rate: 700, level: "mid", billingType: "hourly", periodicAmount: 0, note: "國三數學" },
+  { id: "s1", name: "陳小美", rate: 700, level: "mid", billingType: "hourly", periodicAmount: 0, note: "國三數學", textbooks: { chinese: "翰林", math: "康軒", social: "南一", science: "康軒", english: "翰林" } },
   { id: "s2", name: "林大文", rate: 600, level: "elem", billingType: "periodic", periodicAmount: 6000, note: "小六英文，月結" },
 ];
 const SEED_LESSONS = [
@@ -1021,7 +1071,10 @@ function LogFormModal({ initial, students, progressList, setProgressList, onClos
 
           <label style={S.label}>教材 × 今日上課內容</label>
           <datalist id="material-datalist">
-            {Array.from(new Set(studentTracks.map((t) => t.material).filter(Boolean))).map((m) => <option key={m} value={m} />)}
+            {Array.from(new Set([
+              ...studentTracks.map((t) => t.material).filter(Boolean),
+              ...textbookSuggestions(students.find((st) => st.id === studentId)),
+            ])).map((m) => <option key={m} value={m} />)}
           </datalist>
           {materials.map((m) => {
             const matchedTrack = studentTracks.find((t) => t.material && t.material === m.material);
@@ -1829,21 +1882,25 @@ function StudentRoster({ students, setStudents, lessons }) {
   const [household, setHousehold] = useState("");
   const [pageUrl, setPageUrl] = useState("");
   const [note, setNote] = useState("");
+  const [textbooks, setTextbooks] = useState({});
   const [expandedIds, setExpandedIds] = useState({});
 
   function addStudent() {
     if (!name) return;
     setStudents([...students, {
       id: uid(), name, level, rate: Number(rate), billingType,
-      periodicAmount: Number(periodicAmount), household: household.trim(), pageUrl: pageUrl.trim(), note,
+      periodicAmount: Number(periodicAmount), household: household.trim(), pageUrl: pageUrl.trim(), note, textbooks,
     }]);
-    setName(""); setNote(""); setRate(600); setPeriodicAmount(0); setHousehold(""); setPageUrl(""); setBillingType("hourly"); setLevel("elem"); setAdding(false);
+    setName(""); setNote(""); setRate(600); setPeriodicAmount(0); setHousehold(""); setPageUrl(""); setBillingType("hourly"); setLevel("elem"); setTextbooks({}); setAdding(false);
   }
 
   function updateField(id, field, value) {
     const numericFields = ["rate", "periodicAmount"];
     const v = field === "household" ? value.trim() : value;
     setStudents(students.map((s) => s.id === id ? { ...s, [field]: numericFields.includes(field) ? Number(v) : v } : s));
+  }
+  function updateTextbooks(id, tb) {
+    setStudents(students.map((s) => s.id === id ? { ...s, textbooks: tb } : s));
   }
   function toggleLevel(id) {
     setStudents(students.map((s) => s.id === id ? { ...s, level: s.level === "elem" ? "mid" : "elem" } : s));
@@ -1875,6 +1932,8 @@ function StudentRoster({ students, setStudents, lessons }) {
             <option value="elem">國小</option>
             <option value="mid">國中</option>
           </select>
+          <label style={S.label}>各科教材版本（可從清單選，也可以自己輸入）</label>
+          <TextbookGrid level={level} value={textbooks} onChange={setTextbooks} />
           <label style={S.label}>收費方式</label>
           <select style={S.input} value={billingType} onChange={(e) => setBillingType(e.target.value)}>
             <option value="hourly">單堂鐘點費</option>
@@ -1901,6 +1960,9 @@ function StudentRoster({ students, setStudents, lessons }) {
         </div>
       )}
       {students.length === 0 && !adding && <div style={S.emptyState}>還沒有學生，點右上角「新增學生」開始。</div>}
+      <datalist id="publisher-list">
+        {PUBLISHERS.map((p) => <option key={p} value={p} />)}
+      </datalist>
       <datalist id="household-list">
         {existingHouseholds.map((h) => <option key={h} value={h} />)}
       </datalist>
@@ -1920,6 +1982,7 @@ function StudentRoster({ students, setStudents, lessons }) {
               </div>
               <span style={S.expandArrow}>{isOpen ? "▲" : "▼"}</span>
             </div>
+            <TextbookSummary student={s} />
             {isOpen && (
               <div style={{ marginTop: 10 }}>
                 <div style={S.rowInputs}>
@@ -1927,6 +1990,8 @@ function StudentRoster({ students, setStudents, lessons }) {
                   <button style={S.levelTagBtn(s.level)} onClick={() => toggleLevel(s.id)}>{LEVELS[s.level]}</button>
                   <Trash2 size={16} style={{ cursor: "pointer", color: "var(--coral)", marginLeft: "auto" }} onClick={() => deleteStudent(s)} />
                 </div>
+                <label style={S.label}>各科教材版本</label>
+                <TextbookGrid level={s.level} value={s.textbooks} onChange={(tb) => updateTextbooks(s.id, tb)} />
                 <label style={S.label}>收費方式</label>
                 <select style={S.input} value={s.billingType} onChange={(e) => updateField(s.id, "billingType", e.target.value)}>
                   <option value="hourly">單堂鐘點費</option>
@@ -2461,6 +2526,13 @@ const S = {
   previewLine: { fontSize: 12, color: "var(--ink-soft)", marginBottom: 10 },
   moreRow: { display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "12px 4px", border: "none", borderTop: "1px solid var(--line)", background: "none", fontSize: 14, cursor: "pointer", color: "var(--ink)", textAlign: "left" },
   backRow: { display: "flex", alignItems: "center", gap: 6, border: "none", background: "none", cursor: "pointer", color: "var(--teal)", fontSize: 13, marginBottom: 12, padding: 0 },
+  textbookGrid: { display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 },
+  textbookCell: { display: "flex", flexDirection: "column", gap: 3, minWidth: 0 },
+  textbookCellLabel: { fontSize: 11, color: "var(--ink-soft)", textAlign: "center" },
+  textbookInput: { width: "100%", boxSizing: "border-box", textAlign: "center", border: "1px solid var(--line)", borderRadius: 6, padding: "7px 2px", fontSize: 13, background: "var(--card)", color: "var(--ink)", minWidth: 0 },
+  textbookSummary: { display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 },
+  textbookChip: { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--ink)", border: "1px solid var(--line)", background: "var(--paper)", borderRadius: 4, padding: "2px 8px 2px 2px" },
+  textbookChipSubj: { fontFamily: "var(--font-serif)", fontSize: 11, fontWeight: 700, color: "#fff", background: "var(--teal)", borderRadius: 3, padding: "1px 5px" },
   studentCard: { background: "var(--card)", border: "1px solid var(--line)", borderRadius: 8, padding: "14px 16px", marginBottom: 12 },
   familyTag: { fontSize: 11, color: "var(--gold-text)", background: "var(--gold-bg)", padding: "2px 8px", borderRadius: 10 },
   expandArrow: { color: "var(--ink-soft)", fontSize: 12, cursor: "pointer" },
@@ -2529,6 +2601,7 @@ const CSS = `
 }
 * { font-family: -apple-system, 'PingFang TC', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif; box-sizing: border-box; }
 button { font-family: inherit; }
+.tb-input::-webkit-calendar-picker-indicator { display: none !important; }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (max-width: 640px) {
   body { background: var(--paper); }
