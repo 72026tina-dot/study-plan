@@ -185,7 +185,32 @@
   .rule-block.gold { border-left-color: var(--gold); }
   .rule-block.red { border-left-color: #c0392b; }
 
-  /* Countdown */
+  /* Custom countdown (same as 英文學習成效表) */
+  .countdown-wrap { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 18px; }
+  .cd-card {
+    background: var(--card); border: 1.5px solid var(--border); border-left: 3px solid var(--gold);
+    border-radius: 12px; padding: 9px 12px; display: flex; align-items: center; gap: 10px;
+    min-width: 148px; flex-shrink: 0; box-shadow: 0 1px 4px rgba(0,0,0,0.05); position: relative;
+  }
+  .cd-left { flex: 1; min-width: 0; }
+  .cd-name { font-size: 0.72rem; font-weight: 700; color: var(--text); font-family: 'Klee One', cursive; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cd-date { font-size: 0.6rem; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 1px; }
+  .cd-days { text-align: center; }
+  .cd-num { font-family: 'DM Mono', monospace; font-size: 1.3rem; font-weight: 700; color: var(--gold); line-height: 1; }
+  .cd-lbl { font-size: 0.55rem; color: var(--muted); }
+  .cd-edit-btn { position: absolute; top: 3px; right: 4px; background: none; border: none; font-size: 0.62rem; color: var(--muted); cursor: pointer; padding: 2px; }
+  .cd-add-btn {
+    border: 1.5px dashed var(--accent2); background: var(--accent-light); color: var(--accent);
+    border-radius: 12px; padding: 9px 16px; font-size: 0.75rem; font-weight: 700; cursor: pointer;
+    flex-shrink: 0; white-space: nowrap; font-family: 'Klee One', cursive;
+  }
+  .cd-add-btn:hover { opacity: 0.85; }
+  .field-row { display: flex; flex-direction: column; gap: 3px; margin-bottom: 9px; }
+  .field-row label { font-size: 0.68rem; font-weight: 700; color: var(--muted); }
+  .field-row input { padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'Noto Sans TC', sans-serif; font-size: 0.8rem; background: var(--bg); color: var(--text); }
+  .field-row input:focus { outline: none; border-color: var(--accent); }
+
+  /* Old fixed countdown (no longer used) */
   .cd-row { display: flex; gap: 10px; margin-top: 18px; }
   .cd {
     flex: 1; border-radius: 12px;
@@ -352,6 +377,9 @@
   <div class="header-deco"></div>
 </div>
 
+<!-- Countdown (自訂日期) -->
+<div class="countdown-wrap" id="countdown-wrap"></div>
+
 <div class="pts-bar">
   <div class="pts-top">
     <div><div class="pts-num" id="tot-pts">0</div><div class="pts-sub">累積點數</div></div>
@@ -474,8 +502,9 @@
   <div class="rule-block blue">
     <span class="rule-title">📝 段考達標獎勵</span>
     段考達到目標分數得基本點數，超標另有加分：<br>
-    <strong>數學</strong> 60 分 → 達標 <strong>10 點</strong>，超標每 1 分 +1 點<br>
-    <strong>自然</strong> 70 分 → 達標 <strong>10 點</strong>，超標每 1 分 +1 點
+    <strong>數學</strong> <span id="rule-target-math">60</span> 分 → 達標 <strong>10 點</strong>，超標每 1 分 +1 點<br>
+    <strong>自然</strong> <span id="rule-target-natl_exam">70</span> 分 → 達標 <strong>10 點</strong>，超標每 1 分 +1 點<br>
+    <span style="font-size:0.75rem;color:var(--muted);">※ 目標分數可在「段考成績」點科目卡片修改</span>
   </div>
 
   <div class="rule-block red">
@@ -485,14 +514,18 @@
   </div>
 </div>
 
-<div class="cd-row">
-  <div class="cd exam">
-    <div class="cd-l">🏫 開學倒數</div>
-    <div class="cd-n" id="cd-n">— <span>天</span></div>
-  </div>
-  <div class="cd guan">
-    <div class="cd-l">🎯 會考倒數</div>
-    <div class="cd-n" id="cd-guan">— <span>天</span></div>
+<!-- Countdown modal -->
+<div class="overlay" id="cd-overlay">
+  <div class="modal">
+    <h3 id="cd-modal-title">➕ 新增倒數</h3>
+    <div class="msub">自訂倒數目標日期（例：期中考、期末考）</div>
+    <div class="field-row"><label>名稱</label><input type="text" id="cd-input-name" placeholder="例：第二次段考" maxlength="20" /></div>
+    <div class="field-row"><label>日期</label><input type="date" id="cd-input-date" /></div>
+    <div class="mbtns">
+      <button class="btn btn-c" onclick="closeCdModal()">取消</button>
+      <button class="btn btn-x" id="cd-del-btn" style="display:none" onclick="deleteCd()">刪除</button>
+      <button class="btn btn-s" onclick="saveCd()">儲存</button>
+    </div>
   </div>
 </div>
 
@@ -567,6 +600,14 @@
     <h3 id="em-t"></h3>
     <div class="msub" id="em-s"></div>
     <div class="mprev" id="em-p">輸入分數後顯示點數</div>
+    <div id="em-target-row">
+      <div class="mslabel">目標分數（達標可得基本點數）</div>
+      <div class="em-row">
+        <label>目標</label>
+        <input type="number" id="em-target" min="0" max="100" step="1" placeholder="分" />
+        <span class="em-pts"></span>
+      </div>
+    </div>
     <div class="mslabel">實際成績</div>
     <div class="em-row">
       <label>分數</label>
@@ -581,9 +622,7 @@
 const FB = 'https://math-plan-default-rtdb.asia-southeast1.firebasedatabase.app/s1_mathplan.json';
 const today = new Date(); today.setHours(0,0,0,0);
 
-const schoolStart = new Date(2026, 7, 31); // 開學：8/31
-const examDay = schoolStart;
-const guanKaoDay = new Date(2028, 4, 20); // 2028/5/20 predicted
+// 倒數日期改成自訂（data.countdowns），在頁面上方新增／修改
 
 const planStart = new Date(2026, 8, 1);
 // Rolling window: always extends to 1 year ahead of today, so the calendar
@@ -611,11 +650,28 @@ const EXAM_SUBJECTS = [
   { key: 'natl_exam', lbl: '自然', target: 70, base: 10, step: 1, bonus: 1 },
 ];
 
-function ePts(score, cfg) {
+// 目標分數可自訂：存在 data.examTargets，沒設定就用預設值
+function examTarget(cfg) {
+  const t = data && data.examTargets ? data.examTargets[cfg.key] : undefined;
+  return (t !== undefined && t !== null && t !== '') ? Number(t) : cfg.target;
+}
+function ePts(score, cfg, targetOverride) {
   cfg = cfg || EXAM_CFG;
   if (score === null || score === undefined || score === '') return 0;
-  const s = parseInt(score); if (isNaN(s) || s < cfg.target) return 0;
-  return cfg.base + Math.floor((s - cfg.target) / cfg.step) * cfg.bonus;
+  const target = (targetOverride !== undefined) ? targetOverride : examTarget(cfg);
+  const s = parseInt(score); if (isNaN(s) || s < target) return 0;
+  return cfg.base + Math.floor((s - target) / cfg.step) * cfg.bonus;
+}
+function calcExamPts() {
+  let pts = 0;
+  EXAM_SUBJECTS.forEach(cfg => { pts += ePts(data.exam[cfg.key], cfg); });
+  return pts;
+}
+function updRuleTargets() {
+  EXAM_SUBJECTS.forEach(cfg => {
+    const el = document.getElementById('rule-target-' + cfg.key);
+    if (el) el.textContent = examTarget(cfg);
+  });
 }
 
 function dk(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
@@ -647,7 +703,9 @@ async function load() {
   if (!data.exam) data.exam = {};
   if (!data.settlements) data.settlements = [];
   if (data.settleBaseline === undefined) data.settleBaseline = null;
-  buildCal(); buildExam(); updSum(); buildHistory();
+  if (!data.examTargets) data.examTargets = {};
+  if (!data.countdowns) data.countdowns = [{ id: 'guankao', name: '會考', date: '2028-05-20' }];
+  buildCal(); buildExam(); updSum(); buildHistory(); renderCountdown(); updRuleTargets();
 }
 
 async function save() {
@@ -815,7 +873,7 @@ function buildExam() {
         ${pts > 0 ? `<span class="ec-pts">+${pts} 點</span>` : ''}
       </div>
       <div class="ec-info">
-        <span>目標 ${cfg.target} 分・達標 ${cfg.base} 點・超標每1分+1點</span>
+        <span>目標 ${examTarget(cfg)} 分・達標 ${cfg.base} 點・超標每1分+1點</span>
         ${has ? `<span class="ec-score">${score} 分</span>` : '<span style="color:var(--border)">未輸入</span>'}
       </div>
       <div class="ec-prog"><div class="ec-pf" style="width:${pct}%"></div></div>
@@ -922,6 +980,7 @@ function openHistoryEM(sub, semKey, timeKey) {
   document.getElementById('em-s').textContent = '';
   document.getElementById('em-p').textContent = '';
   document.getElementById('em-p').style.display = 'none';
+  document.getElementById('em-target-row').style.display = 'none';
   const cur = data.exam[k] ?? '';
   document.getElementById('em-sc').value = cur; updHistoryEMPrev(sub);
   document.getElementById('em-sc').oninput = () => updHistoryEMPrev(sub);
@@ -951,8 +1010,7 @@ function updHistoryEMPrev(sub) {
 function updSum() {
   const quizTotal = calcQuizPts();
   const freePts = calcFreePts();
-  let examPts = 0;
-  EXAM_SUBJECTS.forEach(cfg => { examPts += ePts(data.exam[cfg.key], cfg); });
+  const examPts = calcExamPts();
   const tot = quizTotal + freePts + examPts;
 
   document.getElementById('tot-pts').textContent = tot;
@@ -972,11 +1030,6 @@ function updSum() {
       settleInfo.textContent = '尚未結算過';
     }
   }
-
-  const diff = Math.ceil((examDay - today) / 86400000);
-  document.getElementById('cd-n').innerHTML = `${diff} <span>天</span>`;
-  const guanDiff = Math.ceil((guanKaoDay - today) / 86400000);
-  document.getElementById('cd-guan').innerHTML = `${guanDiff} <span>天</span>`;
 }
 
 // Daily modal (weekly quiz entry)
@@ -1130,7 +1183,10 @@ function openEM(cfg) {
   _emCfg = cfg;
   document.getElementById('em-t').textContent = `${cfg.lbl}段考成績`;
   document.getElementById('em-p').style.display = '';
-  document.getElementById('em-s').textContent = `目標 ${cfg.target} 分・達標 ${cfg.base} 點・超標每1分+1點`;
+  document.getElementById('em-target-row').style.display = '';
+  document.getElementById('em-s').textContent = `達標 ${cfg.base} 點・超標每1分+1點`;
+  document.getElementById('em-target').value = examTarget(cfg);
+  document.getElementById('em-target').oninput = updEMPrev;
   const cur = data.exam[cfg.key] ?? '';
   document.getElementById('em-sc').value = cur; updEMPrev();
   document.getElementById('em-sc').oninput = updEMPrev;
@@ -1145,18 +1201,22 @@ function openEM(cfg) {
   document.getElementById('em-c').onclick = closeEM;
   document.getElementById('em-sv').onclick = async () => {
     const v = document.getElementById('em-sc').value;
+    const t = document.getElementById('em-target').value;
+    if (t !== '' && !isNaN(parseFloat(t))) data.examTargets[cfg.key] = parseFloat(t);
     if (v !== '') data.exam[cfg.key] = parseFloat(v);
-    await save(); buildExam(); updSum(); closeEM();
+    await save(); buildExam(); updSum(); updRuleTargets(); closeEM();
   };
   document.getElementById('oe').classList.add('show');
 }
 function updEMPrev() {
   const cfg = _emCfg;
+  const tRaw = document.getElementById('em-target').value;
+  const target = (tRaw !== '' && !isNaN(parseFloat(tRaw))) ? parseFloat(tRaw) : examTarget(cfg);
   const v = document.getElementById('em-sc').value;
-  const pts = ePts(v, cfg); const s = parseInt(v);
+  const pts = ePts(v, cfg, target); const s = parseInt(v);
   if (!v) { document.getElementById('em-p').textContent = '輸入分數後顯示點數'; document.getElementById('em-pts').textContent = ''; return; }
-  if (isNaN(s) || s < cfg.target) {
-    document.getElementById('em-p').textContent = `未達標（差 ${cfg.target - s} 分）`;
+  if (isNaN(s) || s < target) {
+    document.getElementById('em-p').textContent = `未達標（差 ${target - s} 分）`;
     document.getElementById('em-pts').textContent = '';
   } else {
     document.getElementById('em-p').textContent = `達標！可得 ${pts} 點 ⭐`;
@@ -1223,15 +1283,92 @@ initCustomSelect('dm-correct-btn', 'dm-correct-opts', 'dm-correct-label', (val) 
 document.getElementById('settle-btn').onclick = async () => {
   const quizTotal = calcQuizPts();
   const freePts = calcFreePts();
-  const pts = quizTotal + freePts;
+  const examPts = calcExamPts();
+  const pts = quizTotal + freePts + examPts;
   const money = pts * 10;
-  const ok = confirm(`確定要結算本期嗎？\n\n目前點數：${pts} 點（${money} 元）\n\n結算後，這段期間的小考／自由練習紀錄仍會保留，但不會再計入下一期的點數，會從今天重新開始累計。`);
+  const examLines = EXAM_SUBJECTS
+    .filter(cfg => ePts(data.exam[cfg.key], cfg) > 0)
+    .map(cfg => `・${cfg.lbl}段考 ${data.exam[cfg.key]} 分：${ePts(data.exam[cfg.key], cfg)} 點`).join('\n');
+  const ok = confirm(`確定要結算本期嗎？\n\n小考＋自由任務：${quizTotal + freePts} 點\n段考達標：${examPts} 點${examLines ? '\n' + examLines : ''}\n合計：${pts} 點（${money} 元）\n\n結算後，小考紀錄會保留但不再計入下一期；段考成績會一起清空，點數從 0 重新累計。`);
   if (!ok) return;
-  data.settlements.push({ date: dk(today), points: pts, money: money });
+  // 把這期的段考成績記在結算紀錄裡，再清空，下次段考重新輸入
+  const examSnapshot = {};
+  EXAM_SUBJECTS.forEach(cfg => {
+    const sc = data.exam[cfg.key];
+    if (sc !== null && sc !== undefined && sc !== '') {
+      examSnapshot[cfg.key] = { score: sc, target: examTarget(cfg), pts: ePts(sc, cfg) };
+      delete data.exam[cfg.key];
+    }
+  });
+  data.settlements.push({ date: dk(today), points: pts, money: money, quizPts: quizTotal + freePts, examPts: examPts, exam: examSnapshot });
   data.settleBaseline = dk(today);
   await save();
+  buildExam();
   updSum();
 };
+
+// ── Countdown (自訂日期，跟英文學習成效表同一套) ──
+function daysUntil(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const target = new Date(y, m - 1, d);
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.ceil((target - now) / 86400000);
+}
+function escHtml(str) {
+  return String(str).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+let cdEditId = null;
+function renderCountdown() {
+  const wrap = document.getElementById('countdown-wrap');
+  wrap.innerHTML = '';
+  (data.countdowns || []).slice().sort((a,b) => a.date.localeCompare(b.date)).forEach(cd => {
+    const days = daysUntil(cd.date);
+    const card = document.createElement('div');
+    card.className = 'cd-card';
+    card.innerHTML = `
+      <div class="cd-left"><div class="cd-name">🎯 ${escHtml(cd.name)}</div><div class="cd-date">${cd.date.replace(/-/g, '/')}</div></div>
+      <div class="cd-days"><div class="cd-num">${days >= 0 ? days : 0}</div><div class="cd-lbl">${days >= 0 ? '天後' : '已過'}</div></div>
+      <button class="cd-edit-btn" aria-label="編輯倒數">✏️</button>
+    `;
+    card.querySelector('.cd-edit-btn').onclick = () => openCdModal(cd.id);
+    wrap.appendChild(card);
+  });
+  const addBtn = document.createElement('button');
+  addBtn.className = 'cd-add-btn';
+  addBtn.textContent = '＋ 新增倒數';
+  addBtn.onclick = () => openCdModal(null);
+  wrap.appendChild(addBtn);
+}
+function openCdModal(id) {
+  cdEditId = id;
+  document.getElementById('cd-modal-title').textContent = id ? '✏️ 編輯倒數' : '➕ 新增倒數';
+  document.getElementById('cd-del-btn').style.display = id ? 'block' : 'none';
+  const rec = id ? (data.countdowns || []).find(c => c.id === id) : null;
+  document.getElementById('cd-input-name').value = rec?.name || '';
+  document.getElementById('cd-input-date').value = rec?.date || '';
+  document.getElementById('cd-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('cd-input-name').focus(), 80);
+}
+async function saveCd() {
+  const name = document.getElementById('cd-input-name').value.trim();
+  const date = document.getElementById('cd-input-date').value;
+  if (!name || !date) { alert('請填寫名稱和日期'); return; }
+  if (!data.countdowns) data.countdowns = [];
+  if (cdEditId) {
+    const i = data.countdowns.findIndex(c => c.id === cdEditId);
+    if (i >= 0) data.countdowns[i] = { id: cdEditId, name, date };
+  } else {
+    data.countdowns.push({ id: Date.now().toString(), name, date });
+  }
+  await save(); closeCdModal(); renderCountdown();
+}
+async function deleteCd() {
+  if (!confirm('確定要刪除這個倒數嗎？')) return;
+  data.countdowns = (data.countdowns || []).filter(c => c.id !== cdEditId);
+  await save(); closeCdModal(); renderCountdown();
+}
+function closeCdModal() { document.getElementById('cd-overlay').classList.remove('show'); cdEditId = null; }
+document.getElementById('cd-overlay').addEventListener('click', e => { if (e.target.id === 'cd-overlay') closeCdModal(); });
 
 load();
 
