@@ -12,7 +12,7 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script type="text/plain" id="app-source">
 
-const { useState, useEffect, useMemo } = React;
+const { useState, useEffect, useMemo, useRef } = React;
 
 function makeIcon(symbol) {
   return function IconComp({ size = 16, style, ...rest }) {
@@ -43,10 +43,12 @@ const FileText = makeIcon("\uD83D\uDCC4");
 const TrendingUp = makeIcon("\uD83D\uDCC8");
 const Pencil = makeIcon("\u270F\uFE0F");
 const UserPlus = makeIcon("\u2795");
+const Mailbox = makeIcon("\uD83D\uDCEE");
+const Download = makeIcon("\uD83D\uDCBE");
 
 
 const TEACHER_NAME = "老師";
-const TODAY = new Date(); // always reflects the real device date
+const TODAY = new Date(); // page-load date (initial calendar month); todayStr() reads the live clock
 const HOLIDAYS = {
   "2026-01-01": "元旦",
   "2026-02-15": "小年夜",
@@ -153,7 +155,7 @@ function effectiveRate(lesson, student, trialRate) {
 
 function pad(n) { return String(n).padStart(2, "0"); }
 function fmt(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
-function todayStr() { return fmt(TODAY); }
+function todayStr() { return fmt(new Date()); } // live: stays correct if the page is left open overnight
 function monthKey(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; }
 function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
 function addDays(dateStr, n) {
@@ -202,23 +204,217 @@ async function saveKey(key, value) {
 // Cloud sync — uses the same Firebase Realtime Database as the old tutor-fees
 // tool, but under its own "tutor_log" path so it never overwrites that data.
 const FB_URL = "https://math-plan-default-rtdb.asia-southeast1.firebasedatabase.app/tutor_log.json";
+// Returns { ok, data }. ok=false means "couldn't reach the cloud" — in that case
+// we must NOT push anything back, or a stale copy would overwrite the cloud.
 async function cloudLoad() {
   try {
-    const r = await fetch(FB_URL);
-    if (!r.ok) return null;
+    const r = await fetch(FB_URL, { cache: "no-store" });
+    if (!r.ok) return { ok: false, data: null };
     const j = await r.json();
-    return j && typeof j === "object" ? j : null;
+    return { ok: true, data: j && typeof j === "object" ? j : null };
   } catch (e) {
-    return null;
+    return { ok: false, data: null };
   }
 }
 async function cloudSave(state) {
   try {
-    await fetch(FB_URL, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(state) });
-    return true;
+    const r = await fetch(FB_URL, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(state) });
+    return r.ok;
   } catch (e) {
     return false;
   }
+}
+
+// ======================= 預約功能 =======================
+// Availability lives in a SEPARATE Firebase database so the public booking page
+// never reveals where the main tutor_log data is. Only free time blocks are
+// published there — no student names, no fees.
+// Booking data lives in the SAME database as everything else, under its own
+// top-level path, the same way tutor_log / tutor_fees / s1_mathplan already do.
+const FB_ROOT = FB_URL.replace(/\/[^/]*\.json$/, "");
+const BOOKING_PATH = "tutor_booking";
+const GRID_START = 6 * 60, GRID_END = 23 * 60; // 06:00–23:00
+const SLOT = 30;
+const ONLINE_TOOLS = ["Google Meet", "Zoom", "LINE 視訊", "Teams", "其他"];
+const DEFAULT_BOOKING = {
+  enabled: false, dbUrl: "", pageUrl: "",
+  note: "段考前要加課，可以直接在這裡選時間送出，老師確認後會再跟您聯絡 🙂",
+  mode: "inperson", area: "", onlineTool: "Google Meet", meetLink: "",
+  daysAhead: 21, minNoticeHours: 12, buffer: 0, durations: [1, 1.5, 2],
+  autoConfirm: false, skipHolidays: true,
+  weekly: {}, overrides: {},
+};
+const BOOKING_DURATIONS = [1, 1.5, 2, 2.5, 3];
+function toMin(t) { const p = String(t || "0:0").split(":"); return (Number(p[0]) || 0) * 60 + (Number(p[1]) || 0); }
+function toTime(m) { return `${pad(Math.floor(m / 60))}:${pad(m % 60)}`; }
+function rangeSlots(start, end) {
+  const out = [];
+  for (let m = toMin(start); m + SLOT <= toMin(end); m += SLOT) out.push(toTime(m));
+  return out;
+}
+// Older saves stored {start,end} ranges; the grid uses explicit 30-min blocks.
+function toSlotList(v) {
+  if (!Array.isArray(v)) return [];
+  const out = [];
+  v.forEach((x) => {
+    if (typeof x === "string") out.push(x);
+    else if (x && x.start && x.end) rangeSlots(x.start, x.end).forEach((t) => out.push(t));
+  });
+  return Array.from(new Set(out)).sort();
+}
+function normalizeBooking(v) {
+  const b = { ...DEFAULT_BOOKING, ...(v && typeof v === "object" ? v : {}) };
+  const weekly = {};
+  for (let d = 0; d < 7; d++) weekly["w" + d] = toSlotList((b.weekly || {})["w" + d]);
+  b.weekly = weekly;
+  const ov = {};
+  Object.entries(b.overrides || {}).forEach(([date, o]) => {
+    if (!o) return;
+    if (o.blocked) ov[date] = { blocked: true };
+    else if (o.slots || o.ranges) ov[date] = { slots: toSlotList(o.slots || o.ranges) };
+  });
+  (b.blockedDates || []).forEach((date) => { if (!ov[date]) ov[date] = { blocked: true }; });
+  delete b.blockedDates;
+  b.overrides = ov;
+  b.durations = (b.durations || []).map(Number).filter((n) => n > 0).sort((a, c) => a - c);
+  return b;
+}
+function dbBase(url) { return String(url || "").trim().replace(/\/+$/, "").replace(/\.json$/, "").replace(/\/+$/, ""); }
+// Where the booking data actually lives. Empty dbUrl = the usual place.
+function bookingBase(bs) { return dbBase(bs && bs.dbUrl) || `${FB_ROOT}/${BOOKING_PATH}`; }
+// Never let a typo point the booking writer at the main data.
+function bookingBaseUnsafe(bs) {
+  const b = bookingBase(bs);
+  return b === FB_ROOT || /\/tutor_log$|\/tutor_fees$/.test(b);
+}
+function defaultBookingPageUrl() {
+  try { return location.href.split(/[?#]/)[0].replace(/[^/]*$/, "") + "booking.html"; } catch (e) { return "booking.html"; }
+}
+function bookingLink(bs) {
+  const page = (bs.pageUrl || "").trim() || defaultBookingPageUrl();
+  return `${page}${page.includes("?") ? "&" : "?"}db=${encodeURIComponent(bookingBase(bs))}`;
+}
+async function bookingReq(bs, path, method = "GET", body) {
+  const base = bookingBase(bs);
+  if (!base || bookingBaseUnsafe(bs)) return { ok: false, data: null };
+  try {
+    const r = await fetch(`${base}/${path}.json`, {
+      method, cache: "no-store",
+      headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+    if (!r.ok) return { ok: false, data: null };
+    return { ok: true, data: method === "DELETE" ? null : await r.json() };
+  } catch (e) {
+    return { ok: false, data: null };
+  }
+}
+// A request still holds a slot while it is pending, or accepted but not yet
+// turned into a lesson.
+function reqHoldsSlot(r) { return r.status === "pending" || (r.status === "accepted" && !r.teacherLessonId); }
+function needsAction(r) { return reqHoldsSlot(r); }
+function occupies(l) { return l.time && l.status !== "leave" && l.courseType !== "請假（不計費）"; }
+function busyOn(date, lessons, requests, buffer, ignoreReqId) {
+  const out = [];
+  lessons.forEach((l) => {
+    if (l.date !== date || !occupies(l)) return;
+    const s = toMin(l.time);
+    out.push({ a: s - buffer, b: s + Number(l.hours || 0) * 60 + buffer, lesson: l });
+  });
+  (requests || []).forEach((r) => {
+    if (!reqHoldsSlot(r) || r.date !== date || r.id === ignoreReqId) return;
+    const s = toMin(r.time);
+    out.push({ a: s - buffer, b: s + Number(r.hours || 0) * 60 + buffer, req: r });
+  });
+  return out;
+}
+// What the weekly template / date override says about one date, before lessons.
+function daySlots(bs, date) {
+  const ov = (bs.overrides || {})[date];
+  if (ov && ov.blocked) return [];
+  if (ov && ov.slots) return ov.slots;
+  if (bs.skipHolidays && HOLIDAYS[date]) return [];
+  return (bs.weekly || {})["w" + new Date(date + "T00:00:00").getDay()] || [];
+}
+function freeBlocksOn(date, bs, lessons, requests, nowMs) {
+  const slots = daySlots(bs, date);
+  if (!slots.length) return [];
+  const busy = busyOn(date, lessons, requests, Number(bs.buffer || 0));
+  const earliest = nowMs + Number(bs.minNoticeHours || 0) * 3600000;
+  return slots.filter((t) => {
+    const m = toMin(t);
+    if (new Date(`${date}T${t}:00`).getTime() < earliest) return false;
+    return !busy.some((x) => m < x.b && m + SLOT > x.a);
+  });
+}
+// Earliest start / latest end anywhere in the schedule, so the student page can
+// draw the same time rows every week.
+function weeklyRange(bs) {
+  let a = 24 * 60, b = 0;
+  const eat = (list) => (list || []).forEach((t) => { a = Math.min(a, toMin(t)); b = Math.max(b, toMin(t) + SLOT); });
+  Object.values(bs.weekly || {}).forEach(eat);
+  Object.values(bs.overrides || {}).forEach((o) => o && o.slots && eat(o.slots));
+  return a < b ? [toTime(a), toTime(b)] : ["16:00", "21:00"];
+}
+function buildAvailability(bs, lessons, requests) {
+  const now = Date.now();
+  const days = {};
+  const start = todayStr();
+  for (let i = 0; i <= Number(bs.daysAhead || 0); i++) {
+    const date = addDays(start, i);
+    const blocks = freeBlocksOn(date, bs, lessons, requests, now);
+    if (blocks.length) days[date] = blocks;
+  }
+  return {
+    updatedAt: now, teacher: TEACHER_NAME, note: bs.note || "",
+    mode: bs.mode, area: bs.area || "", onlineTool: bs.onlineTool || "",
+    autoConfirm: !!bs.autoConfirm, durations: (bs.durations || []).slice().sort((a, b) => a - b),
+    minNoticeHours: Number(bs.minNoticeHours || 0), buffer: Number(bs.buffer || 0),
+    from: start, until: addDays(start, Number(bs.daysAhead || 0)), range: weeklyRange(bs), days,
+  };
+}
+function weekHours(weekly) {
+  return Object.values(weekly || {}).reduce((a, l) => a + (l || []).length, 0) / 2;
+}
+function dateLabel(date) {
+  const d = new Date(date + "T00:00:00");
+  return `${d.getMonth() + 1}/${d.getDate()}（${weekdayLabel(d.getDay())}）`;
+}
+
+// Every key that lives in the cloud copy, with its default. Keeping this in one
+// place guarantees load, save and compare all use the exact same shape.
+function stateDefaults() {
+  return {
+    students: SEED_STUDENTS, lessons: SEED_LESSONS, fees: [], settled: [], quickTally: {},
+    activePeriodic: [], trialRate: 250, weaknessNotes: [], examRecords: [], progressList: [],
+    pointCategories: DEFAULT_POINT_CATEGORIES, pointLogs: [], homeworkList: [], bookingSettings: DEFAULT_BOOKING,
+  };
+}
+const STATE_KEYS = Object.keys(stateDefaults());
+function pickState(src) {
+  const d = stateDefaults();
+  const o = {};
+  STATE_KEYS.forEach((k) => {
+    const v = src ? src[k] : undefined;
+    o[k] = v === undefined || v === null ? d[k] : v;
+  });
+  o.bookingSettings = normalizeBooking(src ? src.bookingSettings : null);
+  return o;
+}
+// Anything in the cloud this version of the app doesn't know about — kept and
+// written back untouched so a save never silently deletes it.
+function extraKeys(cloud) {
+  const o = {};
+  if (cloud) Object.keys(cloud).forEach((k) => { if (!STATE_KEYS.includes(k)) o[k] = cloud[k]; });
+  return o;
+}
+function downloadBackup(state) {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `課跡備份-${todayStr()}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
 function App() {
@@ -236,7 +432,19 @@ function App() {
   const [pointCategories, setPointCategories] = useState(DEFAULT_POINT_CATEGORIES);
   const [pointLogs, setPointLogs] = useState([]);
   const [homeworkList, setHomeworkList] = useState([]);
+  const [bookingSettings, setBookingSettings] = useState(DEFAULT_BOOKING);
   const [syncStatus, setSyncStatus] = useState("syncing"); // syncing | synced | error
+  const [cloudOk, setCloudOk] = useState(false); // true only after we successfully READ the cloud
+  const [, setTick] = useState(0);
+  const lastSyncedRef = useRef("");
+  const extrasRef = useRef({});
+  const offlineBaseRef = useRef("");
+  const stateRef = useRef(null);
+  const [bookingReqs, setBookingReqs] = useState([]);
+  const [bookingFetch, setBookingFetch] = useState({ ok: null, at: 0 });
+  const [publishStatus, setPublishStatus] = useState({ ok: null, at: 0 });
+  const bookingRef = useRef(DEFAULT_BOOKING);
+  bookingRef.current = bookingSettings;
 
   const [tab, setTab] = useState("schedule");
   const [calMode, setCalMode] = useState("month");
@@ -250,86 +458,208 @@ function App() {
   const [editTimeLesson, setEditTimeLesson] = useState(null);
   const [dayPeek, setDayPeek] = useState(null); // { date, lessons }
 
+  const currentState = pickState({
+    students, lessons, fees, settled, quickTally, activePeriodic, trialRate,
+    weaknessNotes, examRecords, progressList, pointCategories, pointLogs, homeworkList, bookingSettings,
+  });
+  stateRef.current = currentState;
+
+  function applyState(st) {
+    setStudents(st.students); setLessons(st.lessons); setFees(st.fees); setSettled(st.settled);
+    setQuickTally(st.quickTally); setActivePeriodic(st.activePeriodic); setTrialRate(st.trialRate);
+    setWeaknessNotes(st.weaknessNotes); setExamRecords(st.examRecords); setProgressList(st.progressList);
+    setPointCategories(st.pointCategories); setPointLogs(st.pointLogs); setHomeworkList(st.homeworkList);
+    setBookingSettings(st.bookingSettings);
+  }
+  function applyCloud(cloud) {
+    const st = pickState(cloud);
+    extrasRef.current = extraKeys(cloud);
+    lastSyncedRef.current = JSON.stringify(st); // what the cloud has now — no need to push it back
+    applyState(st);
+  }
+  async function loadLocal() {
+    const local = {};
+    for (const k of STATE_KEYS) {
+      const v = await loadKey(k, null);
+      if (v !== null && v !== undefined) local[k] = v;
+    }
+    return local;
+  }
+
   useEffect(() => {
     (async () => {
-      const cloud = await cloudLoad();
-      if (cloud) {
-        setStudents(cloud.students || SEED_STUDENTS);
-        setLessons(cloud.lessons || SEED_LESSONS);
-        setFees(cloud.fees || []);
-        setSettled(cloud.settled || []);
-        setQuickTally(cloud.quickTally || {});
-        setActivePeriodic(cloud.activePeriodic || []);
-        setTrialRate(cloud.trialRate ?? 250);
-        setWeaknessNotes(cloud.weaknessNotes || []);
-        setExamRecords(cloud.examRecords || []);
-        setProgressList(cloud.progressList || []);
-        setPointCategories(cloud.pointCategories || DEFAULT_POINT_CATEGORIES);
-        setPointLogs(cloud.pointLogs || []);
-        setHomeworkList(cloud.homeworkList || []);
+      const res = await cloudLoad();
+      if (res.ok && res.data) {
+        applyCloud(res.data);
+        setCloudOk(true);
         setSyncStatus("synced");
+      } else if (res.ok) {
+        // Cloud reachable but empty (first ever use) — start from this device's copy.
+        applyState(pickState(await loadLocal()));
+        setCloudOk(true);
       } else {
-        // Cloud unreachable — fall back to this device's local copy so work isn't lost.
-        const s = await loadKey("students", null);
-        const l = await loadKey("lessons", null);
-        const f = await loadKey("fees", null);
-        const st = await loadKey("settled", null);
-        const qt = await loadKey("quickTally", null);
-        const ap = await loadKey("activePeriodic", null);
-        const tr = await loadKey("trialRate", null);
-        const wn = await loadKey("weaknessNotes", null);
-        const er = await loadKey("examRecords", null);
-        const pl = await loadKey("progressList", null);
-        const pc = await loadKey("pointCategories", null);
-        const pg = await loadKey("pointLogs", null);
-        const hl = await loadKey("homeworkList", null);
-        if (s) setStudents(s);
-        if (l) setLessons(l);
-        if (f) setFees(f);
-        if (st) setSettled(st);
-        if (qt) setQuickTally(qt);
-        if (ap) setActivePeriodic(ap);
-        if (tr != null) setTrialRate(tr);
-        if (wn) setWeaknessNotes(wn);
-        if (er) setExamRecords(er);
-        if (pl) setProgressList(pl);
-        if (pc) setPointCategories(pc);
-        if (pg) setPointLogs(pg);
-        if (hl) setHomeworkList(hl);
+        // Cloud unreachable — use this device's copy so work isn't lost, but DON'T
+        // write to the cloud until we've managed to read it (see retryCloud).
+        const st = pickState(await loadLocal());
+        offlineBaseRef.current = JSON.stringify(st);
+        applyState(st);
         setSyncStatus("error");
       }
       setReady(true);
     })();
   }, []);
 
-  // Debounced write-through: every change gets mirrored to local storage
+  // Debounced write-through: every change is mirrored to local storage
   // immediately, and to the shared cloud database shortly after.
+  const currentJson = JSON.stringify(currentState);
   useEffect(() => {
     if (!ready) return;
-    const state = {
-      students, lessons, fees, settled, quickTally, activePeriodic, trialRate,
-      weaknessNotes, examRecords, progressList, pointCategories, pointLogs, homeworkList,
-    };
-    saveKey("students", students);
-    saveKey("lessons", lessons);
-    saveKey("fees", fees);
-    saveKey("settled", settled);
-    saveKey("quickTally", quickTally);
-    saveKey("activePeriodic", activePeriodic);
-    saveKey("trialRate", trialRate);
-    saveKey("weaknessNotes", weaknessNotes);
-    saveKey("examRecords", examRecords);
-    saveKey("progressList", progressList);
-    saveKey("pointCategories", pointCategories);
-    saveKey("pointLogs", pointLogs);
-    saveKey("homeworkList", homeworkList);
+    STATE_KEYS.forEach((k) => saveKey(k, currentState[k]));
+    if (!cloudOk) { setSyncStatus("error"); return; }
+    if (currentJson === lastSyncedRef.current) { setSyncStatus("synced"); return; }
     setSyncStatus("syncing");
     const t = setTimeout(async () => {
-      const ok = await cloudSave(state);
+      const ok = await cloudSave({ ...extrasRef.current, ...currentState });
+      if (ok) lastSyncedRef.current = currentJson;
       setSyncStatus(ok ? "synced" : "error");
     }, 700);
     return () => clearTimeout(t);
-  }, [students, lessons, fees, settled, quickTally, activePeriodic, trialRate, weaknessNotes, examRecords, progressList, pointCategories, pointLogs, homeworkList, ready]);
+  }, [currentJson, ready, cloudOk]);
+
+  // Manual "reconnect" after the cloud was unreachable at startup.
+  async function retryCloud() {
+    setSyncStatus("syncing");
+    const res = await cloudLoad();
+    if (!res.ok) { setSyncStatus("error"); return; }
+    const changedOffline = JSON.stringify(stateRef.current) !== offlineBaseRef.current;
+    if (res.data && changedOffline) {
+      const upload = window.confirm("雲端連上了！\n\n剛剛離線時你在這台裝置有改過資料。\n按「確定」＝把這台裝置的版本上傳到雲端（會取代雲端上的版本）\n按「取消」＝改用雲端上的版本（這台剛剛的修改會捨棄）");
+      if (upload) { extrasRef.current = extraKeys(res.data); lastSyncedRef.current = ""; }
+      else applyCloud(res.data);
+    } else if (res.data) {
+      applyCloud(res.data);
+    }
+    setCloudOk(true);
+  }
+
+  // Coming back to this tab/app (e.g. after editing on another device): pull the
+  // latest cloud copy so this device can't overwrite newer data.
+  useEffect(() => {
+    async function onVisible() {
+      if (document.visibilityState !== "visible") return;
+      setTick((n) => n + 1);
+      fetchBookingRequests();
+      if (!stateRef.current) return;
+      if (JSON.stringify(stateRef.current) !== lastSyncedRef.current) return; // a save is pending
+      const res = await cloudLoad();
+      if (!res.ok || !res.data) return;
+      if (JSON.stringify(stateRef.current) !== lastSyncedRef.current) return; // edited meanwhile
+      if (JSON.stringify(pickState(res.data)) !== lastSyncedRef.current) applyCloud(res.data);
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
+
+  // ---- Booking: read requests from the booking DB, publish free slots to it ----
+  function makeLessonFromReq(req, sid, courseType) {
+    return {
+      id: uid(), studentId: sid, date: req.date, time: req.time, hours: Number(req.hours),
+      courseType: courseType || "正常上課", status: "scheduled",
+      materials: [], homework: [], extra: {}, seriesId: null, bookingId: req.id,
+    };
+  }
+  async function fetchBookingRequests() {
+    const bs = bookingRef.current;
+    if (!bs.enabled || bookingBaseUnsafe(bs)) return;
+    const [rq, hd] = await Promise.all([bookingReq(bs, "requests"), bookingReq(bs, "holds")]);
+    if (!rq.ok) { setBookingFetch({ ok: false, at: Date.now() }); return; }
+    let list = Object.entries(rq.data || {})
+      .filter(([, v]) => v && typeof v === "object")
+      .map(([id, v]) => ({ ...v, id }));
+    // Auto-confirmed bookings: create the lesson here, but only when the name
+    // matches exactly one student. Anything else stays in the inbox.
+    if (bs.autoConfirm) {
+      for (const r of list) {
+        if (r.status !== "accepted" || r.teacherLessonId) continue;
+        const hit = stateRef.current.students.filter((s) => s.name.trim() === String(r.name || "").trim());
+        if (hit.length !== 1) continue;
+        const lesson = makeLessonFromReq(r, hit[0].id);
+        upsertLesson(lesson);
+        r.teacherLessonId = lesson.id;
+        bookingReq(bs, `requests/${r.id}`, "PATCH", { teacherLessonId: lesson.id, meetLink: bs.meetLink || "" });
+        bookingReq(bs, `holds/${r.id}`, "DELETE");
+      }
+    }
+    // Housekeeping: drop holds that no longer reserve anything, and old handled requests.
+    const holdIds = new Set(list.filter(reqHoldsSlot).map((r) => r.id));
+    Object.keys((hd.ok && hd.data) || {}).forEach((id) => { if (!holdIds.has(id)) bookingReq(bs, `holds/${id}`, "DELETE"); });
+    const cutoff = addDays(todayStr(), -45);
+    list = list.filter((r) => {
+      if (!needsAction(r) && r.date && r.date < cutoff) { bookingReq(bs, `requests/${r.id}`, "DELETE"); return false; }
+      return true;
+    });
+    list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    setBookingReqs(list);
+    setBookingFetch({ ok: true, at: Date.now() });
+  }
+  useEffect(() => {
+    if (!ready) return;
+    fetchBookingRequests();
+    const t = setInterval(fetchBookingRequests, 90 * 1000);
+    return () => clearInterval(t);
+  }, [ready, bookingSettings.enabled, bookingSettings.dbUrl, bookingSettings.autoConfirm]);
+
+  const openReqs = bookingReqs.filter(needsAction);
+  const availabilityJson = useMemo(() => {
+    if (!bookingSettings.enabled) return "";
+    return JSON.stringify({ ...buildAvailability(bookingSettings, lessons, openReqs), updatedAt: 0 });
+  }, [bookingSettings, lessons, bookingReqs, todayStr()]);
+  async function publishAvailability() {
+    const bs = bookingRef.current;
+    if (!bs.enabled || bookingBaseUnsafe(bs)) return false;
+    const payload = buildAvailability(bs, stateRef.current.lessons, bookingReqs.filter(needsAction));
+    const r = await bookingReq(bs, "public", "PUT", payload);
+    setPublishStatus({ ok: r.ok, at: Date.now() });
+    return r.ok;
+  }
+  useEffect(() => {
+    // Only publish once the real lessons are loaded from the cloud, so we never
+    // advertise a slot that's actually taken.
+    if (!ready || !cloudOk || !availabilityJson || bookingBaseUnsafe(bookingSettings)) return;
+    const t = setTimeout(publishAvailability, 1500);
+    return () => clearTimeout(t);
+  }, [availabilityJson, ready, cloudOk, bookingSettings.dbUrl]);
+
+  async function acceptBooking(req, { studentId, courseType }) {
+    let sid = studentId;
+    if (sid === "__new") {
+      sid = uid();
+      setStudents((prev) => [...prev, { id: sid, name: req.name, level: "elem", rate: 600, billingType: "hourly", periodicAmount: 0, household: "", pageUrl: "", textbooks: {}, note: "由預約新增，記得補鐘點費與教材版本" }]);
+    }
+    const bs = bookingRef.current;
+    const lesson = makeLessonFromReq(req, sid, courseType);
+    upsertLesson(lesson);
+    const patch = { status: "accepted", teacherLessonId: lesson.id, meetLink: bs.meetLink || "", handledAt: Date.now() };
+    setBookingReqs((prev) => prev.map((r) => r.id === req.id ? { ...r, ...patch } : r));
+    const r = await bookingReq(bs, `requests/${req.id}`, "PATCH", patch);
+    await bookingReq(bs, `holds/${req.id}`, "DELETE");
+    return r.ok;
+  }
+  async function declineBooking(req, reply) {
+    const patch = { status: "declined", reply: reply || "", handledAt: Date.now() };
+    setBookingReqs((prev) => prev.map((r) => r.id === req.id ? { ...r, ...patch } : r));
+    const bs = bookingRef.current;
+    const r = await bookingReq(bs, `requests/${req.id}`, "PATCH", patch);
+    await bookingReq(bs, `holds/${req.id}`, "DELETE");
+    return r.ok;
+  }
+  async function removeBooking(req) {
+    setBookingReqs((prev) => prev.filter((r) => r.id !== req.id));
+    const bs = bookingRef.current;
+    await bookingReq(bs, `requests/${req.id}`, "DELETE");
+    await bookingReq(bs, `holds/${req.id}`, "DELETE");
+  }
+  function openBookings() { setTab("more"); setMoreView("booking"); }
 
   const studentById = (id) => students.find((s) => s.id === id);
 
@@ -470,11 +800,16 @@ function App() {
     <div style={S.shell}>
       <style>{CSS}</style>
       <div style={S.device}>
-        <Header todayCount={lessonsOn(todayStr()).length} />
+        <Header todayCount={lessonsOn(todayStr()).length} bookingEnabled={bookingSettings.enabled} pendingCount={openReqs.length} onOpenBooking={openBookings} />
         <div style={S.banner}>
           {syncStatus === "syncing" && <span>☁️ 同步中…</span>}
           {syncStatus === "synced" && <span>☁️ 已同步雲端，換裝置打開也看得到最新資料</span>}
-          {syncStatus === "error" && <span style={{ color: "var(--coral-text)" }}>⚠️ 雲端連線失敗，暫時只存在這台裝置的畫面上</span>}
+          {syncStatus === "error" && (
+            <span style={{ color: "var(--coral-text)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              {cloudOk ? "⚠️ 上傳雲端失敗，資料先存在這台裝置，網路恢復後改任何一筆就會再上傳" : "⚠️ 連不到雲端，先用這台裝置上的資料（為了保護雲端資料，暫時不會上傳）"}
+              {!cloudOk && <button style={S.retryBtn} onClick={retryCloud}>重新連線</button>}
+            </span>
+          )}
         </div>
 
         <div style={S.content}>
@@ -486,6 +821,7 @@ function App() {
               selectedDate={selectedDate} setSelectedDate={setSelectedDate}
               lessons={lessons} lessonsOn={lessonsOn} studentById={studentById}
               students={students} examRecords={examRecords}
+              pendingBookings={openReqs} onOpenBookings={openBookings}
               onAddCourse={(date) => setScheduleForm({ date })}
               onOpenLesson={(l) => setActionSheet(l)}
               onBulkAttend={bulkAttendDay}
@@ -531,7 +867,7 @@ function App() {
             />
           )}
           {tab === "more" && !moreView && (
-            <MoreMenu onSelect={setMoreView} />
+            <MoreMenu onSelect={setMoreView} pendingCount={openReqs.length} onBackup={() => downloadBackup(stateRef.current)} />
           )}
           {tab === "more" && moreView && (
             <MoreDetail
@@ -543,6 +879,12 @@ function App() {
               progressList={progressList} setProgressList={setProgressList}
               pointCategories={pointCategories} setPointCategories={setPointCategories}
               pointLogs={pointLogs} setPointLogs={setPointLogs}
+              bookingProps={{
+                settings: bookingSettings, setSettings: setBookingSettings, requests: bookingReqs,
+                students, lessons, studentById, cloudOk, fetchStatus: bookingFetch, publishStatus,
+                onRefresh: async () => { await fetchBookingRequests(); await publishAvailability(); },
+                onAccept: acceptBooking, onDecline: declineBooking, onRemove: removeBooking,
+              }}
             />
           )}
           </TabErrorBoundary>
@@ -654,8 +996,8 @@ class TabErrorBoundary extends React.Component {
   }
 }
 
-function Header({ todayCount }) {
-  const t = TODAY;
+function Header({ todayCount, bookingEnabled, pendingCount, onOpenBooking }) {
+  const t = new Date();
   const greetingDate = `${t.getMonth() + 1}月${t.getDate()}日 星期${weekdayLabel(t.getDay())}`;
   const countText = todayCount > 0 ? `今天有 ${todayCount} 堂課` : "今天沒有排課";
   return (
@@ -664,9 +1006,13 @@ function Header({ todayCount }) {
         <div style={S.brand}>課跡 <span style={S.brandAccent}>Kèjì</span></div>
         <div style={S.brandSub}>{TEACHER_NAME}，你好 👋　{greetingDate}・{countText}</div>
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <button style={S.ghostBtn}>登出</button>
-      </div>
+      {bookingEnabled && (
+        <div style={{ display: "flex", gap: 8 }}>
+          <button style={{ ...S.ghostBtn, ...(pendingCount > 0 ? S.ghostBtnAlert : {}) }} onClick={onOpenBooking}>
+            📮 預約{pendingCount > 0 ? `（${pendingCount}）` : ""}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -698,7 +1044,7 @@ function LevelTag({ level }) {
   return <span style={S.levelTag(level)}>{LEVELS[level] || "國小"}</span>;
 }
 
-function ScheduleTab({ calMode, setCalMode, viewMonth, setViewMonth, selectedDate, setSelectedDate, lessonsOn, studentById, onAddCourse, onOpenLesson, onBulkAttend, onDayClick, students, examRecords }) {
+function ScheduleTab({ calMode, setCalMode, viewMonth, setViewMonth, selectedDate, setSelectedDate, lessonsOn, studentById, onAddCourse, onOpenLesson, onBulkAttend, onDayClick, students, examRecords, pendingBookings = [], onOpenBookings }) {
   const [filterStudentId, setFilterStudentId] = useState("");
   const year = viewMonth.getFullYear(), month = viewMonth.getMonth();
   const first = new Date(year, month, 1);
@@ -768,6 +1114,9 @@ function ScheduleTab({ calMode, setCalMode, viewMonth, setViewMonth, selectedDat
                     <div key={l.id} style={{ ...S.lessonChip(l.status), cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); onOpenLesson(l); }}>{l.time || ""} {studentById(l.studentId)?.name || "學生"}</div>
                   ))}
                   {dayLessons.length > 3 && <div style={S.moreLabel}>還有 {dayLessons.length - 3} 堂 ›</div>}
+                  {!filterStudentId && pendingBookings.filter((r) => r.date === dateStr).map((r) => (
+                    <div key={r.id} style={S.pendingChip} onClick={(e) => { e.stopPropagation(); onOpenBookings && onOpenBookings(); }}>⏳ {r.time} {r.name}</div>
+                  ))}
                 </div>
               );
             })}
@@ -777,6 +1126,7 @@ function ScheduleTab({ calMode, setCalMode, viewMonth, setViewMonth, selectedDat
             <span style={{ ...S.legendDot("#9BC1A8"), marginLeft: 14 }}></span>已出席
             <span style={{ ...S.legendDot("#D98E86"), marginLeft: 14 }}></span>請假
             <span style={{ marginLeft: 14 }}>📝 段考</span>
+            {pendingBookings.length > 0 && <span style={{ marginLeft: 14 }}>⏳ 待確認預約</span>}
           </div>
         </div>
       ) : (
@@ -1717,9 +2067,10 @@ const MORE_ITEMS = [
   { id: "exams", label: "考試成績", icon: FileText },
   { id: "points", label: "點數表現", icon: Star },
   { id: "students", label: "學生名冊", icon: Users },
+  { id: "booking", label: "排課管理・預約", icon: Mailbox },
 ];
 
-function MoreMenu({ onSelect }) {
+function MoreMenu({ onSelect, pendingCount, onBackup }) {
   return (
     <div style={S.card}>
       <div style={S.label}>更多功能</div>
@@ -1727,8 +2078,13 @@ function MoreMenu({ onSelect }) {
         <button key={item.id} style={S.moreRow} onClick={() => onSelect(item.id)}>
           <item.icon size={18} style={{ color: "var(--teal)" }} />
           <span>{item.label}</span>
+          {item.id === "booking" && pendingCount > 0 && <span style={S.badge}>{pendingCount}</span>}
         </button>
       ))}
+      <button style={S.moreRow} onClick={onBackup}>
+        <Download size={18} />
+        <span>下載資料備份（JSON 檔）</span>
+      </button>
     </div>
   );
 }
@@ -1736,7 +2092,7 @@ function MoreMenu({ onSelect }) {
 function MoreDetail({
   view, onBack, students, setStudents, lessons, studentById, onEditLesson, onDeleteLesson,
   weaknessNotes, setWeaknessNotes, examRecords, setExamRecords,
-  progressList, setProgressList, pointCategories, setPointCategories, pointLogs, setPointLogs,
+  progressList, setProgressList, pointCategories, setPointCategories, pointLogs, setPointLogs, bookingProps,
 }) {
   return (
     <div style={S.card}>
@@ -1757,6 +2113,7 @@ function MoreDetail({
           pointLogs={pointLogs} setPointLogs={setPointLogs}
         />
       )}
+      {view === "booking" && <BookingPage {...bookingProps} />}
       {view === "help" && <HelpGuide />}
     </div>
   );
@@ -2401,6 +2758,482 @@ function PointsPage({ students, pointCategories, setPointCategories, pointLogs, 
   );
 }
 
+const WEEK_COLS = [1, 2, 3, 4, 5, 6, 0].map((d) => ({ key: "w" + d, jsDay: d, label: weekdayLabel(d) }));
+
+function Toggle({ on, onChange }) {
+  return <button style={S.toggle(on)} onClick={() => onChange(!on)} aria-pressed={on}><span style={S.toggleKnob(on)} /></button>;
+}
+
+// Tap or drag across cells to paint availability. value: { colKey: ["HH:MM", ...] }
+function SlotGrid({ cols, value, onPaint, compact }) {
+  const mode = useRef(null);
+  const rows = [];
+  for (let m = GRID_START; m < GRID_END; m += SLOT) rows.push(m);
+
+  function cellAt(x, y) {
+    const el = document.elementFromPoint(x, y);
+    const c = el && el.getAttribute && el.getAttribute("data-cell");
+    return c ? c.split("|") : null;
+  }
+  function begin(e, colKey, time) {
+    const on = (value[colKey] || []).includes(time);
+    mode.current = !on;
+    onPaint(colKey, time, mode.current);
+    if (e.currentTarget.setPointerCapture) { try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {} }
+  }
+  function move(e) {
+    if (mode.current === null) return;
+    const c = cellAt(e.clientX, e.clientY);
+    if (c) onPaint(c[0], c[1], mode.current);
+  }
+
+  return (
+    <div
+      style={S.slotGridWrap}
+      onPointerMove={move}
+      onPointerUp={() => { mode.current = null; }}
+      onPointerLeave={() => { mode.current = null; }}
+      onPointerCancel={() => { mode.current = null; }}
+    >
+      <div style={S.slotGrid(cols.length)}>
+        <div />
+        {cols.map((c) => <div key={c.key} style={S.slotHead(c.jsDay === 0 || c.jsDay === 6)}>{c.label}</div>)}
+        {rows.map((m) => {
+          const hour = m % 60 === 0;
+          return (
+            <React.Fragment key={m}>
+              <div style={S.slotTime(hour)}>{hour ? toTime(m) : ""}</div>
+              {cols.map((c) => {
+                const t = toTime(m);
+                const on = (value[c.key] || []).includes(t);
+                return (
+                  <div
+                    key={c.key + t}
+                    data-cell={c.key + "|" + t}
+                    style={S.slotCell(on, hour, compact)}
+                    onPointerDown={(e) => { e.preventDefault(); begin(e, c.key, t); }}
+                  />
+                );
+              })}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function RequestCard({ req, students, lessons, requests, studentById, onAccept, onDecline }) {
+  const matched = students.find((s) => s.name.trim() === String(req.name || "").trim())
+    || students.find((s) => req.name && (s.name.includes(req.name.trim()) || req.name.includes(s.name)));
+  const [studentId, setStudentId] = useState(matched ? matched.id : "");
+  const [courseType, setCourseType] = useState("正常上課");
+  const [declining, setDeclining] = useState(false);
+  const [reply, setReply] = useState("");
+  const [busy, setBusy] = useState(false);
+  const end = toTime(toMin(req.time) + Number(req.hours || 0) * 60);
+  const s0 = toMin(req.time), s1 = s0 + Number(req.hours || 0) * 60;
+  const clashes = busyOn(req.date, lessons, requests, 0, req.id).filter((x) => s0 < x.b && s1 > x.a);
+  const auto = req.status === "accepted";
+
+  return (
+    <div style={S.reqCard(auto)}>
+      <div style={S.rowBetween}>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>{req.name}</div>
+        <span style={auto ? S.greenTag : S.goldTag}>{auto ? "已自動確認・待排課" : "待確認"}</span>
+      </div>
+      <div style={{ fontSize: 14, marginTop: -4 }}>{dateLabel(req.date)} {req.time}–{end}（{req.hours} 小時）</div>
+      {req.contact && <div style={S.muted}>聯絡：{req.contact}</div>}
+      {req.note && <div style={{ ...S.muted, marginTop: 2 }}>備註：{req.note}</div>}
+      <div style={S.hintText}>送出時間：{req.createdAt ? new Date(req.createdAt).toLocaleString("zh-TW", { hour12: false }) : "—"}</div>
+      {auto && <div style={S.infoLine}>學生那邊已經顯示「已確認」，這裡只要指定是哪位學生就會排進課表。</div>}
+      {clashes.length > 0 && (
+        <div style={S.warnBox}>
+          ⚠️ 這個時段跟 {clashes.map((c) => c.lesson ? `${studentById(c.lesson.studentId)?.name || "學生"} ${c.lesson.time} 的課` : `${c.req.name} 的預約`).join("、")} 重疊
+        </div>
+      )}
+      {!declining ? (
+        <>
+          <div style={S.twoCol}>
+            <div>
+              <label style={S.label}>排給哪位學生</label>
+              <select style={S.input} value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+                <option value="">請選擇…</option>
+                {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                <option value="__new">＋ 新增「{req.name}」為新學生</option>
+              </select>
+            </div>
+            <div>
+              <label style={S.label}>課程類型</label>
+              <select style={S.input} value={courseType} onChange={(e) => setCourseType(e.target.value)}>
+                {COURSE_TYPES.filter((c) => c !== "請假（不計費）").map((c) => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={S.btnRow}>
+            {!auto && <button style={S.cancelBtnInline} onClick={() => setDeclining(true)}>婉拒</button>}
+            <button
+              style={S.primaryBtnInline} disabled={!studentId || busy}
+              onClick={async () => { setBusy(true); await onAccept(req, { studentId, courseType }); setBusy(false); }}
+            >{auto ? "排進課表" : "接受並排進課表"}</button>
+          </div>
+        </>
+      ) : (
+        <>
+          <label style={S.label}>要跟學生說的話（選填，學生在預約頁看得到）</label>
+          <input style={S.input} placeholder="例：這個時段剛好有事，改約週六上午可以嗎？" value={reply} onChange={(e) => setReply(e.target.value)} />
+          <div style={S.btnRow}>
+            <button style={S.cancelBtnInline} onClick={() => setDeclining(false)}>返回</button>
+            <button style={{ ...S.primaryBtnInline, background: "var(--coral)" }} disabled={busy}
+              onClick={async () => { setBusy(true); await onDecline(req, reply.trim()); setBusy(false); }}>確定婉拒</button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function OverrideCalendar({ bs, setSettings, lessons }) {
+  const [vm, setVm] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [picked, setPicked] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const year = vm.getFullYear(), month = vm.getMonth();
+  const startWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < startWeekday; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const ov = (date) => (bs.overrides || {})[date];
+  function setOverride(date, val) {
+    setSettings((prev) => {
+      const next = { ...(prev.overrides || {}) };
+      if (val === null) delete next[date]; else next[date] = val;
+      return { ...prev, overrides: next };
+    });
+  }
+  function paintCustom(date, _col, time, add) {
+    setSettings((prev) => {
+      const cur = (prev.overrides || {})[date];
+      const base = cur && cur.slots ? cur.slots : (cur && cur.blocked ? [] : daySlots(prev, date));
+      const set = new Set(base);
+      if (add) set.add(time); else set.delete(time);
+      return { ...prev, overrides: { ...(prev.overrides || {}), [date]: { slots: Array.from(set).sort() } } };
+    });
+  }
+
+  const info = picked ? (() => {
+    const o = ov(picked);
+    const dayLessons = lessons.filter((l) => l.date === picked && occupies(l));
+    return { o, dayLessons, slots: daySlots(bs, picked) };
+  })() : null;
+
+  return (
+    <div>
+      <div style={S.rowBetween}>
+        <div style={S.monthTitle}>{year} 年 {month + 1} 月</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button style={S.smallBtn} onClick={() => { setVm(new Date(year, month - 1, 1)); setPicked(null); }}><ChevronLeft size={16} /></button>
+          <button style={S.smallBtn} onClick={() => { setVm(new Date(year, month + 1, 1)); setPicked(null); }}><ChevronRight size={16} /></button>
+        </div>
+      </div>
+      <div style={S.ovHead}>{WEEKDAYS.map((w) => <div key={w} style={S.gridHeadCell}>{w}</div>)}</div>
+      <div style={S.ovGrid}>
+        {cells.map((d, i) => {
+          if (!d) return <div key={i} />;
+          const date = fmt(new Date(year, month, d));
+          const o = ov(date);
+          const n = daySlots(bs, date).length;
+          const past = date < todayStr();
+          return (
+            <button key={i} style={S.ovCell(date === picked, date === todayStr(), past)} onClick={() => { setPicked(date); setEditing(false); }}>
+              <span>{d}</span>
+              <span style={S.ovDot(o && o.blocked ? "coral" : o && o.slots ? "gold" : n > 0 ? "green" : "none")} />
+            </button>
+          );
+        })}
+      </div>
+      <div style={S.legendRow}>
+        <span style={S.legendDot("#33714A")}></span>有時段
+        <span style={{ ...S.legendDot("#C1533B"), marginLeft: 12 }}></span>已封鎖
+        <span style={{ ...S.legendDot("#C98A2B"), marginLeft: 12 }}></span>自訂時段
+      </div>
+
+      {!picked && <div style={S.emptyState}>點上面的日期，可以針對那一天封鎖或改時段</div>}
+      {picked && (
+        <div style={S.ovPanel}>
+          <div style={S.rowBetween}>
+            <div style={{ fontWeight: 700 }}>{dateLabel(picked)}</div>
+            <X size={16} style={{ cursor: "pointer", color: "var(--ink-soft)" }} onClick={() => setPicked(null)} />
+          </div>
+          <div style={S.muted}>
+            {info.o && info.o.blocked ? "🚫 這天已封鎖，不開放預約"
+              : info.o && info.o.slots ? `✏️ 自訂時段：${info.slots.length ? info.slots.length / 2 + " 小時" : "沒有時段"}`
+              : bs.skipHolidays && HOLIDAYS[picked] ? `🎌 ${HOLIDAYS[picked]}，依設定不開放`
+              : info.slots.length ? `依週模板：${info.slots.length / 2} 小時（${info.slots[0]} 起）` : "週模板這天沒有設定時段"}
+          </div>
+          {info.dayLessons.length > 0 && <div style={S.hintText}>這天已經有 {info.dayLessons.length} 堂課，那些時間本來就不會開放</div>}
+          {!editing ? (
+            <div style={{ ...S.rowInputs, marginTop: 10 }}>
+              {!(info.o && info.o.blocked) && <button style={S.blockBtn} onClick={() => setOverride(picked, { blocked: true })}>🚫 封鎖整天</button>}
+              <button style={S.darkBtn} onClick={() => setEditing(true)}>🕑 自訂時段</button>
+              {info.o && <button style={S.smallBtn} onClick={() => { setOverride(picked, null); setEditing(false); }}>恢復週模板</button>}
+            </div>
+          ) : (
+            <div style={{ marginTop: 8 }}>
+              <div style={S.muted}>點格子選這一天要開放的時間（只影響這天）</div>
+              <SlotGrid
+                cols={[{ key: picked, jsDay: new Date(picked + "T00:00:00").getDay(), label: dateLabel(picked) }]}
+                value={{ [picked]: daySlots(bs, picked) }}
+                onPaint={(col, time, add) => paintCustom(picked, col, time, add)}
+              />
+              <button style={S.darkBtn} onClick={() => setEditing(false)}>完成</button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BookingPage({ settings, setSettings, requests, students, lessons, studentById, cloudOk, fetchStatus, publishStatus, onRefresh, onAccept, onDecline, onRemove }) {
+  const bs = settings;
+  const configured = bs.enabled && !bookingBaseUnsafe(bs);
+  const [page, setPage] = useState(configured ? "inbox" : "settings");
+  const [showDone, setShowDone] = useState(false);
+  const [copied, setCopied] = useState("");
+  const [showAdv, setShowAdv] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const open = requests.filter(needsAction).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  const done = requests.filter((r) => !needsAction(r));
+  const set = (patch) => setSettings((prev) => ({ ...prev, ...patch }));
+  const link = bookingLink(bs);
+  const hrs = weekHours(bs.weekly);
+
+  function paintWeek(colKey, time, add) {
+    setSettings((prev) => {
+      const cur = (prev.weekly || {})[colKey] || [];
+      if (add === cur.includes(time)) return prev;
+      const next = add ? [...cur, time].sort() : cur.filter((t) => t !== time);
+      return { ...prev, weekly: { ...(prev.weekly || {}), [colKey]: next } };
+    });
+  }
+  function preset(kind) {
+    setSettings((prev) => {
+      const w = { ...(prev.weekly || {}) };
+      if (kind === "clear") { WEEK_COLS.forEach((c) => { w[c.key] = []; }); }
+      if (kind === "weeknight") [1, 2, 3, 4, 5].forEach((d) => { w["w" + d] = Array.from(new Set([...(w["w" + d] || []), ...rangeSlots("17:00", "21:00")])).sort(); });
+      if (kind === "weekend") [6, 0].forEach((d) => { w["w" + d] = Array.from(new Set([...(w["w" + d] || []), ...rangeSlots("09:00", "17:00")])).sort(); });
+      return { ...prev, weekly: w };
+    });
+  }
+  async function copy(text, tag) {
+    try { await navigator.clipboard.writeText(text); }
+    catch (e) {
+      const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); } catch (e2) {}
+      document.body.removeChild(ta);
+    }
+    setCopied(tag); setTimeout(() => setCopied(""), 1500);
+  }
+  function confirmMessage(r) {
+    const end = toTime(toMin(r.time) + Number(r.hours || 0) * 60);
+    const where = bs.mode === "online" ? `\n上課方式：線上（${bs.onlineTool || "視訊"}）${bs.meetLink ? "\n連結：" + bs.meetLink : ""}` : "";
+    return `${r.name}家長您好：\n已幫${r.name}安排 ${dateLabel(r.date)} ${r.time}–${end} 的課（${r.hours} 小時）${where}\n到時候見，謝謝您～`;
+  }
+  const statusText = { accepted: "已排課", declined: "已婉拒", cancelled: "學生已取消" };
+
+  return (
+    <div>
+      <div style={S.tabToggle}>
+        <button style={S.tabBtn(page === "inbox")} onClick={() => setPage("inbox")}>預約申請{open.length > 0 ? `（${open.length}）` : ""}</button>
+        <button style={S.tabBtn(page === "settings")} onClick={() => setPage("settings")}>排課設定</button>
+      </div>
+
+      {page === "inbox" && (
+        <div style={{ marginTop: 12 }}>
+          <div style={S.rowBetween}>
+            <div style={S.muted}>
+              {!configured ? "還沒開放預約，先到「排課設定」完成設定" :
+                fetchStatus.ok === false ? "⚠️ 讀取預約資料失敗，檢查一下預約資料庫網址" :
+                fetchStatus.at ? `最後檢查：${new Date(fetchStatus.at).toLocaleTimeString("zh-TW", { hour12: false })}` : "讀取中…"}
+            </div>
+            {configured && (
+              <button style={S.smallBtn} disabled={refreshing} onClick={async () => { setRefreshing(true); await onRefresh(); setRefreshing(false); }}>
+                {refreshing ? "更新中…" : "↻ 重新整理"}
+              </button>
+            )}
+          </div>
+
+          {configured && open.length === 0 && <div style={S.emptyState}>目前沒有待處理的預約 🙌</div>}
+          {open.map((r) => (
+            <RequestCard key={r.id} req={r} students={students} lessons={lessons} requests={requests} studentById={studentById} onAccept={onAccept} onDecline={onDecline} />
+          ))}
+
+          {done.length > 0 && (
+            <>
+              <button style={S.moreToggle} onClick={() => setShowDone(!showDone)}>{showDone ? "－" : "＋"} 已處理的預約（{done.length}）</button>
+              {showDone && done.map((r) => (
+                <div key={r.id} style={S.recordRow}>
+                  <div style={S.rowBetween}>
+                    <div>
+                      <span style={{ fontWeight: 500 }}>{r.name}</span>　{dateLabel(r.date)} {r.time}・{r.hours}hr
+                      <span style={{ ...(r.status === "accepted" ? S.greenTag : S.coralTag), marginLeft: 6 }}>{statusText[r.status] || r.status}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {r.status === "accepted" && <button style={S.copyBtn} onClick={() => copy(confirmMessage(r), r.id)}>{copied === r.id ? "已複製 ✓" : "複製確認訊息"}</button>}
+                      <X size={14} style={{ cursor: "pointer", color: "var(--ink-soft)" }} onClick={() => { if (window.confirm("要把這筆預約紀錄刪掉嗎？（已排進課表的課不會受影響）")) onRemove(r); }} />
+                    </div>
+                  </div>
+                  {r.reply && <div style={S.muted}>回覆：{r.reply}</div>}
+                </div>
+              ))}
+            </>
+          )}
+
+          {configured && (
+            <div style={S.infoBox}>
+              <div style={{ fontWeight: 600, color: "var(--ink)" }}>給學生的預約連結</div>
+              <div style={{ wordBreak: "break-all", margin: "4px 0 8px" }}>{link}</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button style={S.darkBtn} onClick={() => copy(link, "link")}>{copied === "link" ? "已複製 ✓" : "複製連結"}</button>
+                <a style={{ ...S.smallBtn, textDecoration: "none" }} href={link} target="_blank" rel="noopener noreferrer">打開預覽</a>
+              </div>
+              <div style={{ marginTop: 8 }}>
+                {publishStatus.ok === false ? "⚠️ 空檔上傳失敗" : publishStatus.at ? `空檔已更新：${new Date(publishStatus.at).toLocaleTimeString("zh-TW", { hour12: false })}（排課有變動會自動更新）` : !cloudOk ? "等主資料連上雲端後才會更新空檔" : "空檔準備上傳…"}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {page === "settings" && (
+        <div style={{ marginTop: 12 }}>
+          <div style={S.secCard}>
+            <div style={S.rowBetween}>
+              <div>
+                <div style={S.secTitle}>開放學生線上預約</div>
+                <div style={S.muted}>打開後，學生用連結就能看到你的空檔並送出預約</div>
+              </div>
+              <Toggle on={!!bs.enabled} onChange={(v) => set({ enabled: v })} />
+            </div>
+            <div style={S.infoBox}>
+              <div style={{ fontWeight: 600, color: "var(--ink)" }}>第一次設定：在 Firebase 規則裡加一行（約 1 分鐘）</div>
+              預約資料跟你其他資料放在同一個資料庫，路徑是 <b>{BOOKING_PATH}</b>。<br />
+              到 Firebase →「Realtime Database → 規則」，在 rules 裡加這一行後按「發布」：
+              <div style={S.codeBox}>"{BOOKING_PATH}": {"{"} ".read": true, ".write": true {"}"},</div>
+              加好之後，把 booking.html 放上去，複製下面的連結給學生就可以用了。
+            </div>
+            <button style={S.moreToggle} onClick={() => setShowAdv(!showAdv)}>{showAdv ? "－" : "＋"} 進階：預約頁位置、改用別的資料庫</button>
+            {showAdv && (
+              <div style={S.moreBox}>
+                <label style={S.label}>預約頁網址（booking.html 放的位置；留空＝跟這個頁面同一個資料夾）</label>
+                <input style={S.input} placeholder={defaultBookingPageUrl()} value={bs.pageUrl || ""} onChange={(e) => set({ pageUrl: e.target.value.trim() })} />
+                <label style={S.label}>預約資料存放位置（留空＝{FB_ROOT.replace(/^https:\/\//, "").split(".")[0]} 的 {BOOKING_PATH}）</label>
+                <input style={S.input} placeholder={`${FB_ROOT}/${BOOKING_PATH}`} value={bs.dbUrl || ""} onChange={(e) => set({ dbUrl: e.target.value.trim() })} />
+                <div style={S.hintText}>目前使用：{bookingBase(bs)}</div>
+              </div>
+            )}
+            {bookingBaseUnsafe(bs) && (
+              <div style={S.warnBox}>⚠️ 這個位置會蓋掉你的主資料，預約功能暫停。請清空上面的欄位改回預設。</div>
+            )}
+          </div>
+
+          <div style={S.secCard}>
+            <div style={S.secTitle}>上課方式</div>
+            <div style={S.muted}>學生在預約頁上會看到</div>
+            <div style={{ ...S.chipRow, marginBottom: 4 }}>
+              {[["inperson", "面對面"], ["online", "線上"], ["both", "兩種都可以"]].map(([v, label]) => (
+                <button key={v} style={S.chip(bs.mode === v)} onClick={() => set({ mode: v })}>{label}</button>
+              ))}
+            </div>
+            {bs.mode !== "online" && (
+              <>
+                <label style={S.label}>服務區域</label>
+                <input style={S.input} placeholder="例：台北市大安區、可到府教學" value={bs.area || ""} onChange={(e) => set({ area: e.target.value })} />
+              </>
+            )}
+            {bs.mode !== "inperson" && (
+              <>
+                <label style={S.label}>線上上課工具</label>
+                <select style={S.input} value={bs.onlineTool || ""} onChange={(e) => set({ onlineTool: e.target.value })}>
+                  {ONLINE_TOOLS.map((t) => <option key={t}>{t}</option>)}
+                </select>
+                <label style={S.label}>固定上課連結（選填，確認預約後才會給學生看到）</label>
+                <input style={S.input} placeholder="例：https://meet.google.com/abc-defg-hij" value={bs.meetLink || ""} onChange={(e) => set({ meetLink: e.target.value.trim() })} />
+                <div style={S.hintText}>這個頁面沒有連 Google 日曆，不會自動產生會議連結。填一個固定的教室連結最省事。</div>
+              </>
+            )}
+          </div>
+
+          <div style={S.secCard}>
+            <div style={S.rowBetween}>
+              <div>
+                <div style={S.secTitle}>每週可教時段</div>
+                <div style={S.muted}>點格子選時段，可以按著拖曳一次選一片</div>
+              </div>
+              <div style={S.hoursBadge}>{hrs} 小時 / 週</div>
+            </div>
+            <div style={S.chipRow}>
+              <button style={S.chip(false)} onClick={() => preset("weeknight")}>平日晚上</button>
+              <button style={S.chip(false)} onClick={() => preset("weekend")}>週末全天</button>
+              <button style={S.chip(false)} onClick={() => { if (window.confirm("確定要清除所有時段嗎？")) preset("clear"); }}>清除</button>
+            </div>
+            <SlotGrid cols={WEEK_COLS} value={bs.weekly || {}} onPaint={paintWeek} />
+            <div style={S.hintText}>已排的課、待確認的預約會自動扣掉，學生只會看到真的空著的時間。</div>
+          </div>
+
+          <div style={S.secCard}>
+            <div style={S.secTitle}>預約設定</div>
+            <label style={S.label}>學生可以選的上課時長</label>
+            <div style={S.chipRow}>
+              {BOOKING_DURATIONS.map((d) => {
+                const on = (bs.durations || []).includes(d);
+                return <button key={d} style={S.chip(on)} onClick={() => set({ durations: on ? bs.durations.filter((x) => x !== d) : [...(bs.durations || []), d].sort((a, b) => a - b) })}>{d} 小時{on ? " ✓" : ""}</button>;
+              })}
+            </div>
+            <div style={S.twoCol}>
+              <div>
+                <label style={S.label}>最少提前幾小時預約</label>
+                <input style={S.input} type="number" min="0" value={bs.minNoticeHours} onChange={(e) => set({ minNoticeHours: Math.max(0, Number(e.target.value) || 0) })} />
+              </div>
+              <div>
+                <label style={S.label}>開放未來幾天</label>
+                <input style={S.input} type="number" min="1" max="90" value={bs.daysAhead} onChange={(e) => set({ daysAhead: Math.max(1, Math.min(90, Number(e.target.value) || 1)) })} />
+              </div>
+            </div>
+            <label style={S.label}>課與課之間保留休息／交通時間</label>
+            <select style={S.input} value={bs.buffer} onChange={(e) => set({ buffer: Number(e.target.value) })}>
+              <option value={0}>不用保留</option>
+              <option value={30}>前後各 30 分鐘</option>
+              <option value={60}>前後各 1 小時</option>
+            </select>
+            <div style={{ ...S.rowBetween, marginTop: 14 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>自動確認預約</div>
+                <div style={S.muted}>關閉＝每筆都要你按確認。打開＝學生送出後立刻顯示已確認，你這邊只要指定學生就排進課表</div>
+              </div>
+              <Toggle on={!!bs.autoConfirm} onChange={(v) => set({ autoConfirm: v })} />
+            </div>
+            <label style={S.checkboxRow}>
+              <input type="checkbox" checked={!!bs.skipHolidays} onChange={(e) => set({ skipHolidays: e.target.checked })} />
+              國定假日不開放預約
+            </label>
+            <label style={S.label}>給學生看的說明</label>
+            <textarea style={S.textarea} rows={2} value={bs.note || ""} onChange={(e) => set({ note: e.target.value })} />
+          </div>
+
+          <div style={S.secCard}>
+            <div style={S.secTitle}>日期覆蓋</div>
+            <div style={{ ...S.muted, marginBottom: 8 }}>針對特定日期封鎖或自訂可預約時段</div>
+            <OverrideCalendar bs={bs} setSettings={setSettings} lessons={lessons} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HelpGuide() {
   const steps = [
     { t: "三步開始：建學生 → 排課 → 自動算錢", d: "先建學生（姓名、年級、時薪），然後在「排課」新增課或直接「記一課」，月底的學費就會自動算好，不用自己加。" },
@@ -2431,6 +3264,35 @@ const S = {
   brandAccent: { color: "var(--teal)", fontStyle: "italic" },
   brandSub: { fontSize: 13, color: "var(--ink-soft)", marginTop: 4 },
   ghostBtn: { border: "1px solid var(--line)", background: "var(--paper)", borderRadius: 6, padding: "6px 12px", fontSize: 13, cursor: "pointer", color: "var(--ink)" },
+  ghostBtnAlert: { borderColor: "var(--coral)", color: "var(--coral-text)", background: "var(--coral-bg)", fontWeight: 600 },
+  retryBtn: { border: "1px solid var(--coral)", background: "var(--card)", color: "var(--coral-text)", borderRadius: 6, padding: "3px 10px", fontSize: 12, cursor: "pointer" },
+  pendingChip: { fontSize: 10, marginTop: 2, padding: "0px 4px", borderRadius: 3, border: "1px dashed var(--gold)", color: "var(--gold-text)", background: "var(--card)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer" },
+  badge: { marginLeft: "auto", background: "var(--coral)", color: "#fff", borderRadius: 10, fontSize: 11, padding: "1px 8px", fontWeight: 700 },
+  secCard: { background: "var(--card)", border: "1px solid var(--line)", borderRadius: 10, padding: "14px 14px 16px", marginBottom: 14 },
+  secTitle: { fontFamily: "var(--font-serif)", fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 2 },
+  reqCard: (auto) => ({ background: "var(--card)", border: `1px solid ${auto ? "var(--green-text)" : "var(--gold)"}`, borderRadius: 8, padding: "12px 14px", marginBottom: 10 }),
+  warnBox: { background: "var(--coral-bg)", color: "var(--coral-text)", fontSize: 12, borderRadius: 6, padding: "6px 10px", marginTop: 8 },
+  infoLine: { background: "var(--green-bg)", color: "var(--green-text)", fontSize: 12, borderRadius: 6, padding: "6px 10px", marginTop: 8 },
+  codeBox: { fontFamily: "var(--font-mono)", fontSize: 12, background: "var(--card)", border: "1px solid var(--line)", borderRadius: 6, padding: "8px 10px", margin: "6px 0", color: "var(--ink)", wordBreak: "break-all" },
+  infoBox: { background: "var(--banner-bg)", color: "var(--ink-soft)", fontSize: 12, borderRadius: 6, padding: "10px 12px", lineHeight: 1.7, marginTop: 10 },
+  toggle: (on) => ({ width: 46, height: 26, borderRadius: 13, border: "none", background: on ? "var(--teal)" : "#CFC8B6", position: "relative", cursor: "pointer", flex: "0 0 auto", padding: 0, transition: "background .15s" }),
+  toggleKnob: (on) => ({ position: "absolute", top: 3, left: on ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .15s", boxShadow: "0 1px 3px rgba(0,0,0,.2)" }),
+  hoursBadge: { fontSize: 13, color: "var(--teal)", fontWeight: 700, fontFamily: "var(--font-mono)", whiteSpace: "nowrap" },
+  slotGridWrap: { touchAction: "none", userSelect: "none", WebkitUserSelect: "none", marginTop: 10, border: "1px solid var(--line)", borderRadius: 8, padding: "6px 8px 10px", background: "var(--paper)" },
+  slotGrid: (cols) => ({ display: "grid", gridTemplateColumns: `30px repeat(${cols}, 1fr)`, gap: 2, alignItems: "stretch" }),
+  slotHead: (weekend) => ({ textAlign: "center", fontSize: 12, fontWeight: 600, paddingBottom: 4, color: weekend ? "var(--coral-text)" : "var(--ink-soft)" }),
+  slotTime: (hour) => ({ fontSize: 10, color: "var(--ink-soft)", textAlign: "right", paddingRight: 4, lineHeight: 1, transform: "translateY(-3px)", marginTop: hour ? 3 : 0 }),
+  slotCell: (on, hour, compact) => ({ height: compact ? 14 : 16, marginTop: hour ? 3 : 0, borderRadius: 3, cursor: "pointer", background: on ? "var(--ink)" : "var(--empty-cell)", border: on ? "none" : "1px solid #E8E1CF" }),
+  ovHead: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", marginBottom: 2 },
+  ovGrid: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3 },
+  ovCell: (picked, today, past) => ({
+    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, height: 38,
+    border: picked ? "2px solid var(--ink)" : today ? "1px solid var(--teal)" : "1px solid var(--line)",
+    borderRadius: 6, background: "var(--card)", cursor: "pointer", fontSize: 13, color: past ? "#B9B2A0" : "var(--ink)", padding: 0,
+  }),
+  ovDot: (tone) => ({ width: 6, height: 6, borderRadius: "50%", background: tone === "coral" ? "#C1533B" : tone === "gold" ? "#C98A2B" : tone === "green" ? "#33714A" : "transparent" }),
+  ovPanel: { background: "var(--empty-cell)", borderRadius: 8, padding: 12, marginTop: 10 },
+  blockBtn: { display: "flex", alignItems: "center", gap: 4, background: "var(--coral-bg)", color: "var(--coral-text)", border: "1px solid var(--coral)", borderRadius: 6, padding: "7px 12px", fontSize: 13, cursor: "pointer" },
   banner: { background: "var(--banner-bg)", borderBottom: "1px solid var(--line)", padding: "8px 20px", fontSize: 13, color: "var(--ink-soft)" },
   content: { flex: 1, padding: "16px 20px 90px", overflowY: "auto" },
   navBar: { position: "sticky", bottom: 0, display: "flex", alignItems: "center", justifyContent: "space-around", background: "var(--paper)", borderTop: "1px solid var(--line)", padding: "8px 0 10px" },
