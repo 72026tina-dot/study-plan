@@ -45,6 +45,7 @@ const Pencil = makeIcon("\u270F\uFE0F");
 const UserPlus = makeIcon("\u2795");
 const Mailbox = makeIcon("\uD83D\uDCEE");
 const Download = makeIcon("\uD83D\uDCBE");
+const Lock = makeIcon("\uD83D\uDD12");
 
 
 const TEACHER_NAME = "老師";
@@ -204,11 +205,99 @@ async function saveKey(key, value) {
 // Cloud sync — uses the same Firebase Realtime Database as the old tutor-fees
 // tool, but under its own "tutor_log" path so it never overwrites that data.
 const FB_URL = "https://math-plan-default-rtdb.asia-southeast1.firebasedatabase.app/tutor_log.json";
+
+// ---- Sign-in (only needed once the database rules require it) ----
+// Web API key: Firebase 主控台 → 專案設定 → 一般 → 網頁 API 金鑰.
+// Leave it blank and the login screen will ask for it once, then remember it.
+const FB_API_KEY = "";
+const AUTH = { token: null, uid: null, email: null, exp: 0, refresh: null };
+function authApiKey() {
+  try { return FB_API_KEY || localStorage.getItem("kejizhu_apikey") || ""; } catch (e) { return FB_API_KEY; }
+}
+function authSaveApiKey(k) { try { localStorage.setItem("kejizhu_apikey", k); } catch (e) {} }
+function authStore(v) {
+  try {
+    if (v) localStorage.setItem("kejizhu_auth", JSON.stringify(v));
+    else localStorage.removeItem("kejizhu_auth");
+  } catch (e) {}
+}
+function authRead() {
+  try { return JSON.parse(localStorage.getItem("kejizhu_auth") || "null"); } catch (e) { return null; }
+}
+function authApply(idToken, refreshToken, uid, email, expiresIn) {
+  AUTH.token = idToken;
+  AUTH.refresh = refreshToken;
+  AUTH.uid = uid || AUTH.uid;
+  AUTH.email = email || AUTH.email;
+  AUTH.exp = Date.now() + (Number(expiresIn || 3600) * 1000);
+  authStore({ refresh: AUTH.refresh, uid: AUTH.uid, email: AUTH.email });
+}
+async function authSignIn(email, password) {
+  const key = authApiKey();
+  if (!key) return { ok: false, msg: "還沒填網頁 API 金鑰" };
+  try {
+    const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${key}`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, returnSecureToken: true }),
+    });
+    const j = await r.json();
+    if (!r.ok) {
+      const code = (j.error && j.error.message) || "";
+      const msg = /EMAIL_NOT_FOUND|INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD/.test(code) ? "帳號或密碼不對"
+        : /API key not valid|API_KEY/i.test(code) ? "API 金鑰不對"
+        : /PASSWORD_LOGIN_DISABLED|OPERATION_NOT_ALLOWED/.test(code) ? "Firebase 還沒開啟「電子郵件/密碼」登入方式"
+        : /TOO_MANY_ATTEMPTS/.test(code) ? "嘗試太多次，請等幾分鐘再試" : code || "登入失敗";
+      return { ok: false, msg };
+    }
+    authApply(j.idToken, j.refreshToken, j.localId, j.email, j.expiresIn);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, msg: "連不上網路" };
+  }
+}
+async function authRefresh() {
+  const key = authApiKey();
+  const saved = authRead();
+  const rt = AUTH.refresh || (saved && saved.refresh);
+  if (!key || !rt) return null;
+  try {
+    const r = await fetch(`https://securetoken.googleapis.com/v1/token?key=${key}`, {
+      method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(rt)}`,
+    });
+    if (!r.ok) { if (r.status === 400) authStore(null); return null; }
+    const j = await r.json();
+    authApply(j.id_token, j.refresh_token, j.user_id || (saved && saved.uid), saved && saved.email, j.expires_in);
+    return AUTH.token;
+  } catch (e) {
+    return null;
+  }
+}
+async function authToken() {
+  if (AUTH.token && Date.now() < AUTH.exp - 60000) return AUTH.token;
+  return await authRefresh();
+}
+function authSignOut() { AUTH.token = null; AUTH.refresh = null; AUTH.uid = null; AUTH.email = null; AUTH.exp = 0; authStore(null); }
+async function authInit() {
+  const saved = authRead();
+  if (!saved) return false;
+  AUTH.uid = saved.uid; AUTH.email = saved.email; AUTH.refresh = saved.refresh;
+  return !!(await authRefresh());
+}
+// Every call to the database goes through here so it carries the sign-in token
+// whenever we have one. 401/403 means "the rules want a login".
+async function fbFetch(url, options) {
+  const t = await authToken();
+  const full = t ? `${url}${url.includes("?") ? "&" : "?"}auth=${encodeURIComponent(t)}` : url;
+  const r = await fetch(full, options);
+  return { r, denied: r.status === 401 || r.status === 403 };
+}
 // Returns { ok, data }. ok=false means "couldn't reach the cloud" — in that case
 // we must NOT push anything back, or a stale copy would overwrite the cloud.
 async function cloudLoad() {
   try {
-    const r = await fetch(FB_URL, { cache: "no-store" });
+    const { r, denied } = await fbFetch(FB_URL, { cache: "no-store" });
+    if (denied) return { ok: false, needAuth: true, data: null };
     if (!r.ok) return { ok: false, data: null };
     const j = await r.json();
     return { ok: true, data: j && typeof j === "object" ? j : null };
@@ -218,10 +307,10 @@ async function cloudLoad() {
 }
 async function cloudSave(state) {
   try {
-    const r = await fetch(FB_URL, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(state) });
-    return r.ok;
+    const { r, denied } = await fbFetch(FB_URL, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(state) });
+    return { ok: r.ok, needAuth: denied };
   } catch (e) {
-    return false;
+    return { ok: false };
   }
 }
 
@@ -292,18 +381,21 @@ function defaultBookingPageUrl() {
 }
 function bookingLink(bs) {
   const page = (bs.pageUrl || "").trim() || defaultBookingPageUrl();
+  // booking.html already defaults to the usual place, so the common case gets a
+  // short, clean link; only a custom location needs the ?db= suffix.
+  if (bookingBase(bs) === `${FB_ROOT}/${BOOKING_PATH}`) return page;
   return `${page}${page.includes("?") ? "&" : "?"}db=${encodeURIComponent(bookingBase(bs))}`;
 }
 async function bookingReq(bs, path, method = "GET", body) {
   const base = bookingBase(bs);
   if (!base || bookingBaseUnsafe(bs)) return { ok: false, data: null };
   try {
-    const r = await fetch(`${base}/${path}.json`, {
+    const { r, denied } = await fbFetch(`${base}/${path}.json`, {
       method, cache: "no-store",
       headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
-    if (!r.ok) return { ok: false, data: null };
+    if (!r.ok) return { ok: false, needAuth: denied, data: null };
     return { ok: true, data: method === "DELETE" ? null : await r.json() };
   } catch (e) {
     return { ok: false, data: null };
@@ -312,7 +404,7 @@ async function bookingReq(bs, path, method = "GET", body) {
 // A request still holds a slot while it is pending, or accepted but not yet
 // turned into a lesson.
 function reqHoldsSlot(r) { return r.status === "pending" || (r.status === "accepted" && !r.teacherLessonId); }
-function needsAction(r) { return reqHoldsSlot(r); }
+function needsAction(r) { return reqHoldsSlot(r) || !!r.cancelRequested; }
 function occupies(l) { return l.time && l.status !== "leave" && l.courseType !== "請假（不計費）"; }
 function busyOn(date, lessons, requests, buffer, ignoreReqId) {
   const out = [];
@@ -435,6 +527,8 @@ function App() {
   const [bookingSettings, setBookingSettings] = useState(DEFAULT_BOOKING);
   const [syncStatus, setSyncStatus] = useState("syncing"); // syncing | synced | error
   const [cloudOk, setCloudOk] = useState(false); // true only after we successfully READ the cloud
+  const [needAuth, setNeedAuth] = useState(false); // database rules are asking for a login
+  const [signedIn, setSignedIn] = useState(false);
   const [, setTick] = useState(0);
   const lastSyncedRef = useRef("");
   const extrasRef = useRef({});
@@ -486,9 +580,18 @@ function App() {
     return local;
   }
 
-  useEffect(() => {
-    (async () => {
+  async function startup() {
+      const had = await authInit();
+      if (had) setSignedIn(true);
       const res = await cloudLoad();
+      if (res.needAuth) {
+        // Rules require a login and we don't have a valid one.
+        setNeedAuth(true);
+        applyState(pickState(await loadLocal()));
+        setSyncStatus("error");
+        setReady(true);
+        return;
+      }
       if (res.ok && res.data) {
         applyCloud(res.data);
         setCloudOk(true);
@@ -506,8 +609,27 @@ function App() {
         setSyncStatus("error");
       }
       setReady(true);
-    })();
-  }, []);
+  }
+  useEffect(() => { startup(); }, []);
+
+  async function afterSignIn() {
+    setSignedIn(true);
+    setNeedAuth(false);
+    setReady(false);
+    setSyncStatus("syncing");
+    lastSyncedRef.current = "";
+    const res = await cloudLoad();
+    if (res.ok && res.data) { applyCloud(res.data); setCloudOk(true); setSyncStatus("synced"); }
+    else if (res.ok) { setCloudOk(true); setSyncStatus("synced"); }
+    else { setSyncStatus("error"); }
+    setReady(true);
+  }
+  function signOutNow() {
+    authSignOut();
+    setSignedIn(false);
+    setCloudOk(false);
+    setNeedAuth(true);
+  }
 
   // Debounced write-through: every change is mirrored to local storage
   // immediately, and to the shared cloud database shortly after.
@@ -519,9 +641,10 @@ function App() {
     if (currentJson === lastSyncedRef.current) { setSyncStatus("synced"); return; }
     setSyncStatus("syncing");
     const t = setTimeout(async () => {
-      const ok = await cloudSave({ ...extrasRef.current, ...currentState });
-      if (ok) lastSyncedRef.current = currentJson;
-      setSyncStatus(ok ? "synced" : "error");
+      const res = await cloudSave({ ...extrasRef.current, ...currentState });
+      if (res.ok) lastSyncedRef.current = currentJson;
+      if (res.needAuth) { setNeedAuth(true); setCloudOk(false); }
+      setSyncStatus(res.ok ? "synced" : "error");
     }, 700);
     return () => clearTimeout(t);
   }, [currentJson, ready, cloudOk]);
@@ -561,6 +684,11 @@ function App() {
   }, []);
 
   // ---- Booking: read requests from the booking DB, publish free slots to it ----
+  // What stays in the shared booking database after a request is handled:
+  // just the times and the outcome, so no student can read another's details.
+  function strippedReq(req, extra) {
+    return { date: req.date, time: req.time, hours: Number(req.hours), createdAt: req.createdAt || 0, handledAt: Date.now(), ...extra };
+  }
   function makeLessonFromReq(req, sid, courseType) {
     return {
       id: uid(), studentId: sid, date: req.date, time: req.time, hours: Number(req.hours),
@@ -585,8 +713,9 @@ function App() {
         if (hit.length !== 1) continue;
         const lesson = makeLessonFromReq(r, hit[0].id);
         upsertLesson(lesson);
-        r.teacherLessonId = lesson.id;
-        bookingReq(bs, `requests/${r.id}`, "PATCH", { teacherLessonId: lesson.id, meetLink: bs.meetLink || "" });
+        const slim = strippedReq(r, { status: "accepted", teacherLessonId: lesson.id, meetLink: bs.meetLink || "" });
+        Object.assign(r, slim);
+        bookingReq(bs, `requests/${r.id}`, "PUT", slim);
         bookingReq(bs, `holds/${r.id}`, "DELETE");
       }
     }
@@ -639,16 +768,33 @@ function App() {
     const bs = bookingRef.current;
     const lesson = makeLessonFromReq(req, sid, courseType);
     upsertLesson(lesson);
-    const patch = { status: "accepted", teacherLessonId: lesson.id, meetLink: bs.meetLink || "", handledAt: Date.now() };
-    setBookingReqs((prev) => prev.map((r) => r.id === req.id ? { ...r, ...patch } : r));
-    const r = await bookingReq(bs, `requests/${req.id}`, "PATCH", patch);
+    const slim = strippedReq(req, { status: "accepted", teacherLessonId: lesson.id, meetLink: bs.meetLink || "" });
+    setBookingReqs((prev) => prev.map((r) => r.id === req.id ? { ...slim, id: r.id } : r));
+    const r = await bookingReq(bs, `requests/${req.id}`, "PUT", slim);
     await bookingReq(bs, `holds/${req.id}`, "DELETE");
     return r.ok;
   }
   async function declineBooking(req, reply) {
-    const patch = { status: "declined", reply: reply || "", handledAt: Date.now() };
-    setBookingReqs((prev) => prev.map((r) => r.id === req.id ? { ...r, ...patch } : r));
     const bs = bookingRef.current;
+    const slim = strippedReq(req, { status: "declined", reply: reply || "" });
+    setBookingReqs((prev) => prev.map((r) => r.id === req.id ? { ...slim, id: r.id } : r));
+    const r = await bookingReq(bs, `requests/${req.id}`, "PUT", slim);
+    await bookingReq(bs, `holds/${req.id}`, "DELETE");
+    return r.ok;
+  }
+  // Student asked to cancel or move a lesson that was already confirmed.
+  async function resolveCancelRequest(req, agree) {
+    const bs = bookingRef.current;
+    if (agree && req.teacherLessonId) removeLesson(req.teacherLessonId);
+    const patch = agree
+      ? { status: "cancelled", cancelRequested: null, teacherLessonId: null, handledAt: Date.now() }
+      : { cancelRequested: null, keptAt: Date.now() };
+    setBookingReqs((prev) => prev.map((r) => {
+      if (r.id !== req.id) return r;
+      const next = { ...r, ...patch };
+      Object.keys(patch).forEach((k) => { if (patch[k] === null) delete next[k]; });
+      return next;
+    }));
     const r = await bookingReq(bs, `requests/${req.id}`, "PATCH", patch);
     await bookingReq(bs, `holds/${req.id}`, "DELETE");
     return r.ok;
@@ -795,6 +941,17 @@ function App() {
     }
   }
 
+  if (needAuth) {
+    return (
+      <AppErrorBoundary>
+        <div style={S.shell}>
+          <style>{CSS}</style>
+          <LoginScreen onDone={afterSignIn} onSkip={() => { setNeedAuth(false); setSyncStatus("error"); }} />
+        </div>
+      </AppErrorBoundary>
+    );
+  }
+
   return (
     <AppErrorBoundary>
     <div style={S.shell}>
@@ -879,11 +1036,13 @@ function App() {
               progressList={progressList} setProgressList={setProgressList}
               pointCategories={pointCategories} setPointCategories={setPointCategories}
               pointLogs={pointLogs} setPointLogs={setPointLogs}
+              securityProps={{ signedIn, email: AUTH.email, uid: AUTH.uid, onSignOut: signOutNow, onNeedAuth: () => setNeedAuth(true) }}
               bookingProps={{
                 settings: bookingSettings, setSettings: setBookingSettings, requests: bookingReqs,
                 students, lessons, studentById, cloudOk, fetchStatus: bookingFetch, publishStatus,
                 onRefresh: async () => { await fetchBookingRequests(); await publishAvailability(); },
                 onAccept: acceptBooking, onDecline: declineBooking, onRemove: removeBooking,
+                onResolveCancel: resolveCancelRequest,
               }}
             />
           )}
@@ -1006,13 +1165,13 @@ function Header({ todayCount, bookingEnabled, pendingCount, onOpenBooking }) {
         <div style={S.brand}>課跡 <span style={S.brandAccent}>Kèjì</span></div>
         <div style={S.brandSub}>{TEACHER_NAME}，你好 👋　{greetingDate}・{countText}</div>
       </div>
-      {bookingEnabled && (
-        <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        {bookingEnabled && (
           <button style={{ ...S.ghostBtn, ...(pendingCount > 0 ? S.ghostBtnAlert : {}) }} onClick={onOpenBooking}>
             📮 預約{pendingCount > 0 ? `（${pendingCount}）` : ""}
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -2068,6 +2227,7 @@ const MORE_ITEMS = [
   { id: "points", label: "點數表現", icon: Star },
   { id: "students", label: "學生名冊", icon: Users },
   { id: "booking", label: "排課管理・預約", icon: Mailbox },
+  { id: "security", label: "帳號與安全", icon: Lock },
 ];
 
 function MoreMenu({ onSelect, pendingCount, onBackup }) {
@@ -2092,7 +2252,7 @@ function MoreMenu({ onSelect, pendingCount, onBackup }) {
 function MoreDetail({
   view, onBack, students, setStudents, lessons, studentById, onEditLesson, onDeleteLesson,
   weaknessNotes, setWeaknessNotes, examRecords, setExamRecords,
-  progressList, setProgressList, pointCategories, setPointCategories, pointLogs, setPointLogs, bookingProps,
+  progressList, setProgressList, pointCategories, setPointCategories, pointLogs, setPointLogs, bookingProps, securityProps,
 }) {
   return (
     <div style={S.card}>
@@ -2114,6 +2274,7 @@ function MoreDetail({
         />
       )}
       {view === "booking" && <BookingPage {...bookingProps} />}
+      {view === "security" && <SecurityPage {...securityProps} />}
       {view === "help" && <HelpGuide />}
     </div>
   );
@@ -2823,7 +2984,7 @@ function SlotGrid({ cols, value, onPaint, compact }) {
   );
 }
 
-function RequestCard({ req, students, lessons, requests, studentById, onAccept, onDecline }) {
+function RequestCard({ req, students, lessons, requests, studentById, onAccept, onDecline, onResolveCancel, displayName }) {
   const matched = students.find((s) => s.name.trim() === String(req.name || "").trim())
     || students.find((s) => req.name && (s.name.includes(req.name.trim()) || req.name.includes(s.name)));
   const [studentId, setStudentId] = useState(matched ? matched.id : "");
@@ -2835,11 +2996,31 @@ function RequestCard({ req, students, lessons, requests, studentById, onAccept, 
   const s0 = toMin(req.time), s1 = s0 + Number(req.hours || 0) * 60;
   const clashes = busyOn(req.date, lessons, requests, 0, req.id).filter((x) => s0 < x.b && s1 > x.a);
   const auto = req.status === "accepted";
+  const wantsOut = !!req.cancelRequested;
+
+  if (wantsOut) {
+    return (
+      <div style={S.reqCard(false)}>
+        <div style={S.rowBetween}>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>{displayName}</div>
+          <span style={S.coralTag}>學生想取消／改時間</span>
+        </div>
+        <div style={{ fontSize: 14, marginTop: -4 }}>{dateLabel(req.date)} {req.time}–{end}（{req.hours} 小時）</div>
+        <div style={S.hintText}>同意的話，課表上這堂課會一起刪掉，時段也會重新開放預約。</div>
+        <div style={S.btnRow}>
+          <button style={S.cancelBtnInline} disabled={busy}
+            onClick={async () => { setBusy(true); await onResolveCancel(req, false); setBusy(false); }}>不取消，維持原時間</button>
+          <button style={{ ...S.primaryBtnInline, background: "var(--coral)" }} disabled={busy}
+            onClick={async () => { setBusy(true); await onResolveCancel(req, true); setBusy(false); }}>同意取消</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={S.reqCard(auto)}>
       <div style={S.rowBetween}>
-        <div style={{ fontWeight: 700, fontSize: 15 }}>{req.name}</div>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>{displayName}</div>
         <span style={auto ? S.greenTag : S.goldTag}>{auto ? "已自動確認・待排課" : "待確認"}</span>
       </div>
       <div style={{ fontSize: 14, marginTop: -4 }}>{dateLabel(req.date)} {req.time}–{end}（{req.hours} 小時）</div>
@@ -2860,7 +3041,7 @@ function RequestCard({ req, students, lessons, requests, studentById, onAccept, 
               <select style={S.input} value={studentId} onChange={(e) => setStudentId(e.target.value)}>
                 <option value="">請選擇…</option>
                 {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                <option value="__new">＋ 新增「{req.name}」為新學生</option>
+                <option value="__new">＋ 新增「{displayName}」為新學生</option>
               </select>
             </div>
             <div>
@@ -2996,7 +3177,7 @@ function OverrideCalendar({ bs, setSettings, lessons }) {
   );
 }
 
-function BookingPage({ settings, setSettings, requests, students, lessons, studentById, cloudOk, fetchStatus, publishStatus, onRefresh, onAccept, onDecline, onRemove }) {
+function BookingPage({ settings, setSettings, requests, students, lessons, studentById, cloudOk, fetchStatus, publishStatus, onRefresh, onAccept, onDecline, onRemove, onResolveCancel }) {
   const bs = settings;
   const configured = bs.enabled && !bookingBaseUnsafe(bs);
   const [page, setPage] = useState(configured ? "inbox" : "settings");
@@ -3010,6 +3191,14 @@ function BookingPage({ settings, setSettings, requests, students, lessons, stude
   const link = bookingLink(bs);
   const hrs = weekHours(bs.weekly);
 
+  // Handled requests keep no name in the shared database, so read it back from
+  // the lesson it created instead.
+  function reqName(r) {
+    if (r.name) return r.name;
+    const l = r.teacherLessonId && lessons.find((x) => x.id === r.teacherLessonId);
+    const s = l && studentById(l.studentId);
+    return s ? s.name : "（已處理，詳情看課表）";
+  }
   function paintWeek(colKey, time, add) {
     setSettings((prev) => {
       const cur = (prev.weekly || {})[colKey] || [];
@@ -3039,7 +3228,8 @@ function BookingPage({ settings, setSettings, requests, students, lessons, stude
   function confirmMessage(r) {
     const end = toTime(toMin(r.time) + Number(r.hours || 0) * 60);
     const where = bs.mode === "online" ? `\n上課方式：線上（${bs.onlineTool || "視訊"}）${bs.meetLink ? "\n連結：" + bs.meetLink : ""}` : "";
-    return `${r.name}家長您好：\n已幫${r.name}安排 ${dateLabel(r.date)} ${r.time}–${end} 的課（${r.hours} 小時）${where}\n到時候見，謝謝您～`;
+    const nm = reqName(r);
+    return `${nm}家長您好：\n已幫${nm}安排 ${dateLabel(r.date)} ${r.time}–${end} 的課（${r.hours} 小時）${where}\n到時候見，謝謝您～`;
   }
   const statusText = { accepted: "已排課", declined: "已婉拒", cancelled: "學生已取消" };
 
@@ -3067,7 +3257,7 @@ function BookingPage({ settings, setSettings, requests, students, lessons, stude
 
           {configured && open.length === 0 && <div style={S.emptyState}>目前沒有待處理的預約 🙌</div>}
           {open.map((r) => (
-            <RequestCard key={r.id} req={r} students={students} lessons={lessons} requests={requests} studentById={studentById} onAccept={onAccept} onDecline={onDecline} />
+            <RequestCard key={r.id} req={r} students={students} lessons={lessons} requests={requests} studentById={studentById} onAccept={onAccept} onDecline={onDecline} onResolveCancel={onResolveCancel} displayName={reqName(r)} />
           ))}
 
           {done.length > 0 && (
@@ -3077,7 +3267,7 @@ function BookingPage({ settings, setSettings, requests, students, lessons, stude
                 <div key={r.id} style={S.recordRow}>
                   <div style={S.rowBetween}>
                     <div>
-                      <span style={{ fontWeight: 500 }}>{r.name}</span>　{dateLabel(r.date)} {r.time}・{r.hours}hr
+                      <span style={{ fontWeight: 500 }}>{reqName(r)}</span>　{dateLabel(r.date)} {r.time}・{r.hours}hr
                       <span style={{ ...(r.status === "accepted" ? S.greenTag : S.coralTag), marginLeft: 6 }}>{statusText[r.status] || r.status}</span>
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>
@@ -3234,6 +3424,109 @@ function BookingPage({ settings, setSettings, requests, students, lessons, stude
   );
 }
 
+function LoginScreen({ onDone, onSkip }) {
+  const [email, setEmail] = useState(() => { const a = authRead(); return (a && a.email) || ""; });
+  const [password, setPassword] = useState("");
+  const [apiKey, setApiKey] = useState(authApiKey());
+  const [showKey, setShowKey] = useState(!authApiKey());
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    setErr(""); setBusy(true);
+    if (apiKey.trim() && apiKey.trim() !== authApiKey()) authSaveApiKey(apiKey.trim());
+    const res = await authSignIn(email.trim(), password);
+    setBusy(false);
+    if (!res.ok) { setErr(res.msg); return; }
+    onDone();
+  }
+
+  return (
+    <div style={S.loginWrap}>
+      <div style={S.loginCard}>
+        <div style={S.brand}>課跡 <span style={S.brandAccent}>Kèjì</span></div>
+        <div style={{ ...S.muted, marginBottom: 14 }}>資料庫需要登入才能讀取</div>
+        <label style={S.label}>電子郵件</label>
+        <input style={S.input} type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()} />
+        <label style={S.label}>密碼</label>
+        <input style={S.input} type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()} />
+        {!showKey && <button style={S.moreToggle} onClick={() => setShowKey(true)}>＋ 網頁 API 金鑰設定</button>}
+        {showKey && (
+          <>
+            <label style={S.label}>網頁 API 金鑰（Firebase 主控台 → 專案設定 → 一般）</label>
+            <input style={S.input} value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="AIza..." />
+            <div style={S.hintText}>只會存在這台裝置，填一次就好。</div>
+          </>
+        )}
+        {err && <div style={S.warnBox}>{err}</div>}
+        <button style={{ ...S.saveBtn, opacity: busy ? 0.6 : 1 }} disabled={busy} onClick={submit}>{busy ? "登入中…" : "登入"}</button>
+        <button style={S.linkBtnWide} onClick={onSkip}>先不要登入，只看這台裝置上的資料</button>
+        <div style={S.hintText}>不登入的話可以照常使用，但不會同步雲端，也不會動到雲端上的資料。</div>
+      </div>
+    </div>
+  );
+}
+
+function SecurityPage({ signedIn, email, uid, onSignOut, onNeedAuth }) {
+  const [copied, setCopied] = useState("");
+  async function copy(text, tag) {
+    try { await navigator.clipboard.writeText(text); }
+    catch (e) {
+      const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); } catch (e2) {}
+      document.body.removeChild(ta);
+    }
+    setCopied(tag); setTimeout(() => setCopied(""), 1500);
+  }
+  const u = uid || "你的_UID";
+  const rules = `"tutor_log": {\n  ".read": "auth.uid === '${u}'",\n  ".write": "auth.uid === '${u}'"\n},\n"${BOOKING_PATH}": {\n  "public": { ".read": true, ".write": "auth.uid === '${u}'" },\n  "holds":  { ".read": true, ".write": true },\n  "requests": {\n    ".read": "auth.uid === '${u}'",\n    ".write": "auth.uid === '${u}'",\n    "$id": { ".read": true, ".write": true }\n  }\n}`;
+
+  return (
+    <div>
+      <div style={S.secCard}>
+        <div style={S.secTitle}>登入狀態</div>
+        {signedIn ? (
+          <>
+            <div style={{ marginTop: 6 }}>✅ 已登入：<b>{email}</b></div>
+            <div style={S.muted}>這台裝置會記住登入，不用每次重打。</div>
+            <div style={{ ...S.label, marginTop: 12 }}>你的 UID（貼到資料庫規則用）</div>
+            <div style={S.codeBox}>{uid}</div>
+            <button style={S.darkBtn} onClick={() => copy(uid, "uid")}>{copied === "uid" ? "已複製 ✓" : "複製 UID"}</button>
+            <button style={{ ...S.dashedBtn, marginTop: 14, color: "var(--coral)", borderColor: "var(--coral)" }} onClick={() => { if (window.confirm("登出後要重新輸入密碼才能同步雲端。確定嗎？")) onSignOut(); }}>登出</button>
+          </>
+        ) : (
+          <>
+            <div style={{ marginTop: 6 }}>目前沒有登入。資料庫規則還沒要求登入的話，照常可以用。</div>
+            <button style={{ ...S.darkBtn, marginTop: 10 }} onClick={onNeedAuth}>現在登入</button>
+          </>
+        )}
+      </div>
+
+      <div style={S.secCard}>
+        <div style={S.secTitle}>把資料庫鎖起來</div>
+        <div style={S.muted}>照順序做，中間不會有資料讀不到的空窗。</div>
+        <div style={S.stepRow}><b>1.</b> Firebase →「Authentication → Sign-in method」→ 啟用「電子郵件／密碼」</div>
+        <div style={S.stepRow}><b>2.</b>「Users → 新增使用者」填一組信箱密碼（這就是你以後的登入帳號）</div>
+        <div style={S.stepRow}><b>3.</b> 回到這個頁面登入，確認上面有出現你的 UID</div>
+        <div style={S.stepRow}><b>4.</b> Firebase →「Realtime Database → 規則」，把 tutor_log 和 {BOOKING_PATH} 這兩段換成下面這個，按「發布」</div>
+        {!signedIn && <div style={S.warnBox}>先登入，下面才會帶入你的 UID。現在複製的話要自己換掉 你的_UID。</div>}
+        <div style={{ ...S.codeBox, whiteSpace: "pre-wrap" }}>{rules}</div>
+        <button style={S.darkBtn} onClick={() => copy(rules, "rules")}>{copied === "rules" ? "已複製 ✓" : "複製規則"}</button>
+        <div style={S.infoBox}>
+          改完之後：<br />
+          · tutor_log（學生、學費、所有紀錄）只有登入的你讀得到、寫得到<br />
+          · 學生看得到空檔、送得出預約，但看不到別人的預約清單<br />
+          · 學生仍然讀得到自己那一筆的狀態（網址裡的那組亂碼 ID 只有他自己有）<br />
+          · 其他頁面（s1_mathplan 那些）不受影響，規則不用動
+        </div>
+        <div style={S.hintText}>萬一密碼忘了：Firebase 主控台 → Authentication → 該使用者 → 重設密碼。</div>
+      </div>
+    </div>
+  );
+}
+
 function HelpGuide() {
   const steps = [
     { t: "三步開始：建學生 → 排課 → 自動算錢", d: "先建學生（姓名、年級、時薪），然後在「排課」新增課或直接「記一課」，月底的學費就會自動算好，不用自己加。" },
@@ -3273,6 +3566,10 @@ const S = {
   reqCard: (auto) => ({ background: "var(--card)", border: `1px solid ${auto ? "var(--green-text)" : "var(--gold)"}`, borderRadius: 8, padding: "12px 14px", marginBottom: 10 }),
   warnBox: { background: "var(--coral-bg)", color: "var(--coral-text)", fontSize: 12, borderRadius: 6, padding: "6px 10px", marginTop: 8 },
   infoLine: { background: "var(--green-bg)", color: "var(--green-text)", fontSize: 12, borderRadius: 6, padding: "6px 10px", marginTop: 8 },
+  loginWrap: { minHeight: "100vh", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, background: "var(--desk)" },
+  loginCard: { background: "var(--paper)", borderRadius: 12, padding: "26px 22px", width: "100%", maxWidth: 380 },
+  linkBtnWide: { width: "100%", marginTop: 12, border: "none", background: "none", color: "var(--teal)", cursor: "pointer", fontSize: 13 },
+  stepRow: { fontSize: 13, color: "var(--ink)", padding: "7px 0", borderTop: "1px solid var(--line)", lineHeight: 1.6 },
   codeBox: { fontFamily: "var(--font-mono)", fontSize: 12, background: "var(--card)", border: "1px solid var(--line)", borderRadius: 6, padding: "8px 10px", margin: "6px 0", color: "var(--ink)", wordBreak: "break-all" },
   infoBox: { background: "var(--banner-bg)", color: "var(--ink-soft)", fontSize: 12, borderRadius: 6, padding: "10px 12px", lineHeight: 1.7, marginTop: 10 },
   toggle: (on) => ({ width: 46, height: 26, borderRadius: 13, border: "none", background: on ? "var(--teal)" : "#CFC8B6", position: "relative", cursor: "pointer", flex: "0 0 auto", padding: 0, transition: "background .15s" }),

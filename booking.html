@@ -65,7 +65,9 @@ textarea { resize: vertical; font-family: inherit; }
 .tag.pending { background: var(--gold-bg); color: var(--gold-text); }
 .tag.accepted { background: var(--green-bg); color: var(--green-text); }
 .tag.declined, .tag.cancelled { background: var(--coral-bg); color: var(--coral-text); }
-.link { background: none; border: none; color: var(--coral); font-size: 13px; cursor: pointer; padding: 4px 0; }
+.link { background: none; border: none; color: var(--coral); font-size: 13px; cursor: pointer; padding: 4px 6px 4px 0; }
+.link.alt { color: var(--teal); }
+.waiting { font-size: 12px; color: var(--gold-text); background: var(--gold-bg); border-radius: 6px; padding: 4px 8px; display: inline-block; margin-top: 4px; }
 .modeline { font-size: 13px; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin-top: 8px; }
 .meet { display: inline-block; margin-top: 4px; font-size: 13px; color: var(--teal); word-break: break-all; }
 .foot { text-align: center; font-size: 11px; color: var(--ink-soft); margin-top: 18px; }
@@ -253,7 +255,9 @@ textarea { resize: vertical; font-family: inherit; }
       b.onclick = function () { sel.dur = d; renderSheet(); render(); };
       w.appendChild(b);
     });
-    $("summary").textContent = "📅 " + dateLabel(sel.date) + " " + sel.time + "–" + toTime(toMin(sel.time) + sel.dur * 60) + "（" + sel.dur + " 小時）";
+    var txt = dateLabel(sel.date) + " " + sel.time + "–" + toTime(toMin(sel.time) + sel.dur * 60);
+    $("summary").textContent = "📅 " + txt + "（" + sel.dur + " 小時）";
+    $("submit").textContent = "送出　" + txt;
   }
   function closeSheet() { sel = null; $("overlay").classList.add("hidden"); if (pub) render(); }
   $("cancel").onclick = closeSheet;
@@ -322,11 +326,12 @@ textarea { resize: vertical; font-family: inherit; }
       $("msg").value = "";
       weekStart = monday(req.date);
       closeSheet(); renderMine();
-      toast(req.status === "accepted" ? "✅ 預約完成！已經排進老師的課表" : "✅ 預約已送出！老師確認後格子會變成綠色打勾");
+      toast(req.status === "accepted" ? "✅ 預約完成！選錯的話可以在下面改" : "✅ 預約已送出！選錯的話可以在下面取消或改時間");
+      setTimeout(function () { $("mineCard").scrollIntoView({ behavior: "smooth", block: "center" }); }, 150);
     }).catch(function (e) {
       if (e && e.message === "taken") { showErr("這個時段剛剛被別人預約了，請換一個時間 🙏"); renderSheet(); render(); }
       else showErr("送出失敗，請檢查網路後再試一次。");
-    }).then(function () { btn.disabled = false; btn.textContent = "送出預約"; });
+    }).then(function () { btn.disabled = false; if (sel) renderSheet(); else btn.textContent = "送出預約"; });
   };
 
   var STATUS = { pending: "等待老師確認", accepted: "已確認 ✓", declined: "老師婉拒", cancelled: "已取消" };
@@ -347,16 +352,44 @@ textarea { resize: vertical; font-family: inherit; }
       row.appendChild(top);
       if (r.reply) row.appendChild(el("div", "note", "老師回覆：" + r.reply));
       var mr = meetRow(r); if (mr) row.appendChild(mr);
+      function drop(after) {
+        api("requests/" + r.id, "PATCH", { status: "cancelled", handledAt: Date.now() })
+          .then(function () { return api("holds/" + r.id, "DELETE"); })
+          .then(function () {
+            delete holds[r.id]; r.status = "cancelled"; renderMine();
+            if (pub) { weekStart = monday(r.date); render(); }
+            if (after) after();
+          })
+          .catch(function () { alert("操作失敗，請稍後再試"); });
+      }
       if (r.status === "pending") {
-        var c = el("button", "link", "取消這個預約");
-        c.onclick = function () {
-          if (!confirm("確定要取消這個預約嗎？")) return;
-          api("requests/" + r.id, "PATCH", { status: "cancelled", handledAt: Date.now() })
-            .then(function () { return api("holds/" + r.id, "DELETE"); })
-            .then(function () { delete holds[r.id]; r.status = "cancelled"; renderMine(); if (pub) render(); })
-            .catch(function () { alert("取消失敗，請稍後再試"); });
+        var ch = el("button", "link alt", "改時間");
+        ch.onclick = function () {
+          if (!confirm("要取消這個預約，重新選一個時間嗎？")) return;
+          drop(function () {
+            toast("原本的預約已取消，請重新選一個綠色的時段");
+            $("main").scrollIntoView({ behavior: "smooth", block: "start" });
+          });
         };
+        row.appendChild(ch);
+        var c = el("button", "link", "取消這個預約");
+        c.onclick = function () { if (confirm("確定要取消這個預約嗎？")) drop(); };
         row.appendChild(c);
+      }
+      // Already confirmed: the teacher has it in the calendar, so ask rather than cancel.
+      if (r.status === "accepted") {
+        if (r.cancelRequested) {
+          row.appendChild(el("div", "waiting", "⏳ 已通知老師，等老師回覆"));
+        } else {
+          var rq = el("button", "link", "要取消或改時間");
+          rq.onclick = function () {
+            if (!confirm("這堂課老師已經排進課表了。\n要通知老師你想取消或改時間嗎？")) return;
+            api("requests/" + r.id, "PATCH", { cancelRequested: Date.now() })
+              .then(function () { r.cancelRequested = Date.now(); renderMine(); toast("已通知老師，請等老師回覆"); })
+              .catch(function () { alert("送出失敗，請稍後再試"); });
+          };
+          row.appendChild(rq);
+        }
       }
       box.appendChild(row);
     });
@@ -367,7 +400,9 @@ textarea { resize: vertical; font-family: inherit; }
     return Promise.all(ids.map(function (id) { return api("requests/" + id).then(function (r) { return r ? Object.assign({ id: id }, r) : null; }).catch(function () { return null; }); }))
       .then(function (list) {
         var today = fmt(new Date());
-        mine = list.filter(function (r) { return r && r.date >= today; });
+        var prof0 = store("profile") || {};
+        mine = list.filter(function (r) { return r && r.date >= today; })
+                   .map(function (r) { return r.name ? r : Object.assign({ name: prof0.name || "你的預約" }, r); });
         store("ids", ids.filter(function (id) { return mine.some(function (r) { return r.id === id; }); }));
         renderMine(); if (pub) render();
       });
