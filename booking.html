@@ -312,13 +312,16 @@ textarea { resize: vertical; font-family: inherit; }
       status: pub.autoConfirm ? "accepted" : "pending"
     };
     var id = newId();
+    // The public "holds" list uses its own random key, so nobody can read the
+    // holds list and use those keys to open other people's requests.
+    req.holdId = newId();
     // Re-check right before sending in case someone else just took this slot.
     api("holds").catch(function () { return holds; }).then(function (h) {
       holds = h || {};
       if (!fits(req.date, req.time, req.hours)) throw new Error("taken");
       return api("requests/" + id, "PUT", req);
     }).then(function () {
-      return api("holds/" + id, "PUT", { date: req.date, time: req.time, hours: req.hours });
+      return api("holds/" + req.holdId, "PUT", { date: req.date, time: req.time, hours: req.hours });
     }).then(function () {
       var ids = store("ids") || []; ids.unshift(id); store("ids", ids.slice(0, 20));
       store("profile", { name: req.name, contact: req.contact }); store("dur", req.hours);
@@ -354,9 +357,9 @@ textarea { resize: vertical; font-family: inherit; }
       var mr = meetRow(r); if (mr) row.appendChild(mr);
       function drop(after) {
         api("requests/" + r.id, "PATCH", { status: "cancelled", handledAt: Date.now() })
-          .then(function () { return api("holds/" + r.id, "DELETE"); })
+          .then(function () { return api("holds/" + (r.holdId || r.id), "DELETE"); })
           .then(function () {
-            delete holds[r.id]; r.status = "cancelled"; renderMine();
+            delete holds[r.holdId || r.id]; r.status = "cancelled"; renderMine();
             if (pub) { weekStart = monday(r.date); render(); }
             if (after) after();
           })

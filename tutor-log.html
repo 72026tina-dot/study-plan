@@ -726,11 +726,11 @@ function App() {
         const slim = strippedReq(r, { status: "accepted", teacherLessonId: lesson.id, meetLink: bs.meetLink || "" });
         Object.assign(r, slim);
         bookingReq(bs, `requests/${r.id}`, "PUT", slim);
-        bookingReq(bs, `holds/${r.id}`, "DELETE");
+        bookingReq(bs, `holds/${r.holdId || r.id}`, "DELETE");
       }
     }
     // Housekeeping: drop holds that no longer reserve anything, and old handled requests.
-    const holdIds = new Set(list.filter(reqHoldsSlot).map((r) => r.id));
+    const holdIds = new Set(list.filter(reqHoldsSlot).map((r) => r.holdId || r.id));
     Object.keys((hd.ok && hd.data) || {}).forEach((id) => { if (!holdIds.has(id)) bookingReq(bs, `holds/${id}`, "DELETE"); });
     const cutoff = addDays(todayStr(), -45);
     list = list.filter((r) => {
@@ -781,7 +781,7 @@ function App() {
     const slim = strippedReq(req, { status: "accepted", teacherLessonId: lesson.id, meetLink: bs.meetLink || "" });
     setBookingReqs((prev) => prev.map((r) => r.id === req.id ? { ...slim, id: r.id } : r));
     const r = await bookingReq(bs, `requests/${req.id}`, "PUT", slim);
-    await bookingReq(bs, `holds/${req.id}`, "DELETE");
+    await bookingReq(bs, `holds/${req.holdId || req.id}`, "DELETE");
     return r.ok;
   }
   async function declineBooking(req, reply) {
@@ -789,7 +789,7 @@ function App() {
     const slim = strippedReq(req, { status: "declined", reply: reply || "" });
     setBookingReqs((prev) => prev.map((r) => r.id === req.id ? { ...slim, id: r.id } : r));
     const r = await bookingReq(bs, `requests/${req.id}`, "PUT", slim);
-    await bookingReq(bs, `holds/${req.id}`, "DELETE");
+    await bookingReq(bs, `holds/${req.holdId || req.id}`, "DELETE");
     return r.ok;
   }
   // Student asked to cancel or move a lesson that was already confirmed.
@@ -806,14 +806,14 @@ function App() {
       return next;
     }));
     const r = await bookingReq(bs, `requests/${req.id}`, "PATCH", patch);
-    await bookingReq(bs, `holds/${req.id}`, "DELETE");
+    await bookingReq(bs, `holds/${req.holdId || req.id}`, "DELETE");
     return r.ok;
   }
   async function removeBooking(req) {
     setBookingReqs((prev) => prev.filter((r) => r.id !== req.id));
     const bs = bookingRef.current;
     await bookingReq(bs, `requests/${req.id}`, "DELETE");
-    await bookingReq(bs, `holds/${req.id}`, "DELETE");
+    await bookingReq(bs, `holds/${req.holdId || req.id}`, "DELETE");
   }
   function openBookings() { setTab("more"); setMoreView("booking"); }
 
@@ -3495,7 +3495,7 @@ function SecurityPage({ signedIn, email, uid, onSignOut, onNeedAuth }) {
     setCopied(tag); setTimeout(() => setCopied(""), 1500);
   }
   const u = uid || "你的_UID";
-  const rules = `"tutor_log": {\n  ".read": "auth.uid === '${u}'",\n  ".write": "auth.uid === '${u}'"\n},\n"${BOOKING_PATH}": {\n  "public": { ".read": true, ".write": "auth.uid === '${u}'" },\n  "holds":  { ".read": true, ".write": true },\n  "requests": {\n    ".read": "auth.uid === '${u}'",\n    ".write": "auth.uid === '${u}'",\n    "$id": { ".read": true, ".write": true }\n  }\n}`;
+  const rules = `"tutor_log": {\n  ".read": "auth.uid === '${u}'",\n  ".write": "auth.uid === '${u}'"\n},\n"${BOOKING_PATH}": {\n  "public": { ".read": true, ".write": "auth.uid === '${u}'" },\n  "holds":  { ".read": true, "$hid": { ".write": true } },\n  "requests": {\n    ".read": "auth.uid === '${u}'",\n    ".write": "auth.uid === '${u}'",\n    "$id": { ".read": true, ".write": true }\n  }\n}`;
 
   return (
     <div>
