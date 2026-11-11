@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>預約加課</title>
+<style>
+:root {
+  --paper: #F7F3E8; --card: #FBF9F2; --ink: #232A3B; --ink-soft: #6B7280; --line: #DED5C0;
+  --teal: #2F6F62; --coral: #C1533B; --gold: #C98A2B;
+  --green-bg: #DCEBDF; --green-text: #33714A; --coral-bg: #F3DEDA; --coral-text: #A64330;
+  --gold-bg: #F1E1BE; --gold-text: #96690F; --empty: #EFEADC;
+}
+* { box-sizing: border-box; font-family: -apple-system, 'PingFang TC', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif; }
+body { margin: 0; background: var(--paper); color: var(--ink); }
+.wrap { max-width: 720px; margin: 0 auto; padding: 18px 12px 60px; }
+h1 { font-family: Georgia, 'Noto Serif TC', serif; font-size: 22px; margin: 0 0 4px; }
+.note { font-size: 13px; color: var(--ink-soft); line-height: 1.6; white-space: pre-wrap; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 10px; margin-top: 12px; }
+.weekbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.weekbar .title { font-family: Georgia, 'Noto Serif TC', serif; font-size: 17px; font-weight: 700; }
+.weekbar .sub { font-size: 11px; color: var(--ink-soft); }
+.nav { border: 1px solid var(--line); background: var(--paper); color: var(--ink); border-radius: 6px; padding: 7px 12px; font-size: 13px; cursor: pointer; }
+.nav:disabled { opacity: .35; cursor: not-allowed; }
+.grid { display: grid; grid-template-columns: 34px repeat(7, minmax(0, 1fr)); gap: 2px; }
+.dh { text-align: center; padding: 4px 0 6px; border-radius: 6px; }
+.dh .wd { font-size: 11px; color: var(--ink-soft); }
+.dh .d { font-size: 14px; font-weight: 700; }
+.dh.today { background: var(--ink); }
+.dh.today .wd, .dh.today .d { color: #fff; }
+.dh.off .d, .dh.off .wd { color: #B9B2A0; }
+.tl { font-size: 10px; color: var(--ink-soft); text-align: right; padding-right: 4px; line-height: 1; transform: translateY(-4px); }
+.c { height: 30px; border-radius: 4px; background: var(--empty); border: none; padding: 0; font-size: 10px; color: transparent; }
+.c.hour { margin-top: 3px; }
+.tl.hour { margin-top: 3px; }
+.c.free { background: var(--green-bg); color: var(--green-text); cursor: pointer; font-weight: 600; }
+.c.free:active { background: #C5DDCB; }
+.c.sel { background: var(--ink); color: #fff; }
+.c.mine-pending { background: var(--gold-bg); color: var(--gold-text); font-weight: 700; }
+.c.mine-accepted { background: var(--teal); color: #fff; font-weight: 700; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; color: var(--ink-soft); margin-top: 10px; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; }
+.empty { text-align: center; color: var(--ink-soft); font-size: 13px; padding: 10px 0 2px; }
+.overlay { position: fixed; inset: 0; background: rgba(35,42,59,.35); display: flex; align-items: flex-end; justify-content: center; z-index: 20; }
+.sheet { background: var(--paper); width: 100%; max-width: 720px; border-radius: 16px 16px 0 0; padding: 16px 16px 22px; max-height: 88vh; overflow-y: auto; }
+.sheet h2 { font-size: 17px; margin: 0 0 2px; }
+.summary { background: var(--gold-bg); color: var(--gold-text); border-radius: 8px; padding: 9px 12px; font-size: 14px; margin-top: 10px; font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 18px; padding: 8px 14px; font-size: 14px; cursor: pointer; }
+.chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.chip:disabled { opacity: .35; cursor: not-allowed; text-decoration: line-through; }
+label { display: block; font-size: 13px; color: var(--ink-soft); margin: 12px 0 4px; }
+input, textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 16px; background: #fff; color: var(--ink); }
+textarea { resize: vertical; font-family: inherit; }
+.row { display: flex; gap: 10px; margin-top: 14px; }
+.btn { flex: 2; padding: 13px 0; border: none; border-radius: 8px; background: var(--ink); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; }
+.btn:disabled { opacity: .5; }
+.btn.ghost { flex: 1; background: var(--card); color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
+.err { background: var(--coral-bg); color: var(--coral-text); border-radius: 8px; padding: 9px 12px; font-size: 13px; margin-top: 10px; }
+.toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: var(--ink); color: #fff; font-size: 13px; padding: 10px 16px; border-radius: 20px; z-index: 30; max-width: 90%; text-align: center; }
+.step { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.mine { padding: 10px 2px; border-top: 1px solid var(--line); font-size: 14px; }
+.mine:first-of-type { border-top: none; }
+.tag { font-size: 12px; padding: 2px 8px; border-radius: 10px; margin-left: 6px; white-space: nowrap; }
+.tag.pending { background: var(--gold-bg); color: var(--gold-text); }
+.tag.accepted { background: var(--green-bg); color: var(--green-text); }
+.tag.declined, .tag.cancelled { background: var(--coral-bg); color: var(--coral-text); }
+.link { background: none; border: none; color: var(--coral); font-size: 13px; cursor: pointer; padding: 4px 0; }
+.modeline { font-size: 13px; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin-top: 8px; }
+.meet { display: inline-block; margin-top: 4px; font-size: 13px; color: var(--teal); word-break: break-all; }
+.foot { text-align: center; font-size: 11px; color: var(--ink-soft); margin-top: 18px; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>預約加課 📅</h1>
+  <div class="note" id="note">讀取中…</div>
+  <div class="modeline hidden" id="modeline"></div>
+
+  <div id="main" class="card hidden">
+    <div class="weekbar">
+      <button class="nav" id="prev">‹ 上週</button>
+      <div style="text-align:center">
+        <div class="title" id="weekTitle"></div>
+        <div class="sub">點綠色的格子＝從那個時間開始上課</div>
+      </div>
+      <button class="nav" id="next">下週 ›</button>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="empty hidden" id="weekEmpty">這週沒有空檔了，看看下一週 👉</div>
+    <div class="legend">
+      <span><i style="background:var(--green-bg)"></i>可預約</span>
+      <span><i style="background:var(--empty)"></i>沒有空</span>
+      <span><i style="background:var(--gold-bg)"></i>我的預約（待確認）</span>
+      <span><i style="background:var(--teal)"></i>我的預約（已確認）</span>
+    </div>
+  </div>
+
+  <div id="mineCard" class="card hidden">
+    <div class="step">我的預約</div>
+    <div id="mine"></div>
+  </div>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<div class="overlay hidden" id="overlay">
+  <div class="sheet" id="sheet">
+    <h2>預約這個時段</h2>
+    <label>要上多久？</label>
+    <div class="chips" id="durations"></div>
+    <div class="summary" id="summary"></div>
+    <label for="name">學生姓名 *</label>
+    <input id="name" autocomplete="name" placeholder="例：王小明">
+    <label for="contact">聯絡方式（選填）</label>
+    <input id="contact" placeholder="例：媽媽 LINE / 0912-345-678">
+    <label for="msg">想加強的內容／備註（選填）</label>
+    <textarea id="msg" rows="2" placeholder="例：段考範圍 1-1～2-3，想多練應用題"></textarea>
+    <div class="err hidden" id="formErr"></div>
+    <div class="row">
+      <button class="btn ghost" id="cancel">取消</button>
+      <button class="btn" id="submit">送出預約</button>
+    </div>
+  </div>
+</div>
+<div class="toast hidden" id="toast"></div>
+
+<script>
+(function () {
+  // Optional: paste the booking database URL here. If left empty, the page uses
+  // the ?db=... part of the link generated by the tutor app.
+  var DB_URL = "";
+
+  var params = new URLSearchParams(location.search);
+  var BASE = String(DB_URL || params.get("db") || "").trim().replace(/\/+$/, "").replace(/\.json$/, "").replace(/\/+$/, "");
+  var WD = ["日", "一", "二", "三", "四", "五", "六"];
+  var pub = null, holds = {}, mine = [];
+  var weekStart = null, firstWeek = null, lastWeek = null;
+  var sel = null; // { date, time, dur }
+  var $ = function (id) { return document.getElementById(id); };
+
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function fmt(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function addDays(s, n) { var d = new Date(s + "T00:00:00"); d.setDate(d.getDate() + n); return fmt(d); }
+  function monday(s) { var d = new Date(s + "T00:00:00"); return addDays(s, -((d.getDay() + 6) % 7)); }
+  function toMin(t) { var p = String(t).split(":"); return Number(p[0]) * 60 + Number(p[1]); }
+  function toTime(m) { return pad(Math.floor(m / 60)) + ":" + pad(m % 60); }
+  function md(s) { var d = new Date(s + "T00:00:00"); return (d.getMonth() + 1) + "/" + d.getDate(); }
+  function dateLabel(s) { var d = new Date(s + "T00:00:00"); return md(s) + "（" + WD[d.getDay()] + "）"; }
+  function store(key, val) { try { if (val === undefined) return JSON.parse(localStorage.getItem("kejibook_" + key) || "null"); localStorage.setItem("kejibook_" + key, JSON.stringify(val)); } catch (e) { return null; } }
+  function newId() { var s = "", c = "abcdefghijkmnpqrstuvwxyz23456789"; for (var i = 0; i < 20; i++) s += c[Math.floor(Math.random() * c.length)]; return Date.now().toString(36) + s; }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  var toastTimer;
+  function toast(msg) { var t = $("toast"); t.textContent = msg; t.classList.remove("hidden"); clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.classList.add("hidden"); }, 2600); }
+
+  function api(path, method, body) {
+    return fetch(BASE + "/" + path + ".json", {
+      method: method || "GET", cache: "no-store",
+      headers: body ? { "Content-Type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined
+    }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return method === "DELETE" ? null : r.json(); });
+  }
+
+  // Is this single 30-minute block open? (published as free, not too soon,
+  // not inside anyone's pending request)
+  function blockFree(date, m) {
+    if ((pub.days[date] || []).indexOf(toTime(m)) === -1) return false;
+    if (new Date(date + "T" + toTime(m) + ":00").getTime() < Date.now() + Number(pub.minNoticeHours || 0) * 3600000) return false;
+    var buf = Number(pub.buffer || 0);
+    for (var k in holds) {
+      var h = holds[k]; if (!h || h.date !== date) continue;
+      var s = toMin(h.time);
+      if (m < s + Number(h.hours) * 60 + buf && m + 30 > s - buf) return false;
+    }
+    return true;
+  }
+  function fits(date, time, dur) {
+    var s = toMin(time);
+    for (var i = 0; i < Math.round(dur * 2); i++) if (!blockFree(date, s + 30 * i)) return false;
+    return true;
+  }
+  function mineAt(date, m) {
+    for (var i = 0; i < mine.length; i++) {
+      var r = mine[i];
+      if (r.date !== date || (r.status !== "pending" && r.status !== "accepted")) continue;
+      var s = toMin(r.time);
+      if (m >= s && m < s + Number(r.hours) * 60) return { r: r, first: m === s };
+    }
+    return null;
+  }
+
+  function rowRange() {
+    var a = 24 * 60, b = 0;
+    if (pub.range && pub.range.length === 2) { a = toMin(pub.range[0]); b = toMin(pub.range[1]); }
+    Object.keys(pub.days).forEach(function (d) { pub.days[d].forEach(function (t) { a = Math.min(a, toMin(t)); b = Math.max(b, toMin(t) + 30); }); });
+    mine.forEach(function (r) { if (r.status === "pending" || r.status === "accepted") { a = Math.min(a, toMin(r.time)); b = Math.max(b, toMin(r.time) + r.hours * 60); } });
+    if (a >= b) { a = 16 * 60; b = 21 * 60; }
+    return [Math.floor(a / 60) * 60, Math.ceil(b / 60) * 60];
+  }
+
+  function render() {
+    var today = fmt(new Date());
+    var days = []; for (var i = 0; i < 7; i++) days.push(addDays(weekStart, i));
+    $("weekTitle").textContent = md(days[0]) + " – " + md(days[6]);
+    $("prev").disabled = weekStart <= firstWeek;
+    $("next").disabled = weekStart >= lastWeek;
+    var g = $("grid"); g.innerHTML = "";
+    g.appendChild(el("div"));
+    days.forEach(function (d) {
+      var off = d < today || d > pub.until;
+      var h = el("div", "dh" + (d === today ? " today" : "") + (off ? " off" : ""));
+      h.appendChild(el("div", "wd", "週" + WD[new Date(d + "T00:00:00").getDay()]));
+      h.appendChild(el("div", "d", md(d)));
+      g.appendChild(h);
+    });
+    var rr = rowRange(), anyFree = false;
+    for (var m = rr[0]; m < rr[1]; m += 30) {
+      var hour = m % 60 === 0;
+      g.appendChild(el("div", "tl" + (hour ? " hour" : ""), hour ? toTime(m) : ""));
+      days.forEach(function (d) {
+        var mm = m, cls = "c" + (hour ? " hour" : ""), text = "";
+        var mi = mineAt(d, mm);
+        var free = !mi && blockFree(d, mm);
+        if (mi) { cls += " mine-" + mi.r.status; text = mi.first ? (mi.r.status === "accepted" ? "✓" : "待確認") : ""; }
+        else if (free) { cls += " free"; text = toTime(mm); anyFree = true; }
+        if (sel && sel.date === d && mm >= toMin(sel.time) && mm < toMin(sel.time) + sel.dur * 60) cls += " sel";
+        var c = el("button", cls, text);
+        c.setAttribute("data-slot", d + " " + toTime(mm));
+        if (free) c.onclick = function () { openSheet(d, toTime(mm)); };
+        else c.tabIndex = -1;
+        g.appendChild(c);
+      });
+    }
+    $("weekEmpty").classList.toggle("hidden", anyFree || weekStart >= lastWeek);
+  }
+
+  function openSheet(date, time) {
+    var ok = pub.durations.filter(function (d) { return fits(date, time, d); });
+    if (!ok.length) { toast("從 " + time + " 開始，空檔不到 " + pub.durations[0] + " 小時，請選早一點的時間"); return; }
+    var prefer = sel && ok.indexOf(sel.dur) !== -1 ? sel.dur : (store("dur") && ok.indexOf(store("dur")) !== -1 ? store("dur") : (ok.indexOf(1.5) !== -1 ? 1.5 : ok[0]));
+    sel = { date: date, time: time, dur: prefer };
+    showErr("");
+    renderSheet();
+    $("overlay").classList.remove("hidden");
+    render();
+  }
+  function renderSheet() {
+    var w = $("durations"); w.innerHTML = "";
+    pub.durations.forEach(function (d) {
+      var b = el("button", "chip" + (sel.dur === d ? " on" : ""), d + " 小時");
+      if (!fits(sel.date, sel.time, d)) b.disabled = true;
+      b.onclick = function () { sel.dur = d; renderSheet(); render(); };
+      w.appendChild(b);
+    });
+    $("summary").textContent = "📅 " + dateLabel(sel.date) + " " + sel.time + "–" + toTime(toMin(sel.time) + sel.dur * 60) + "（" + sel.dur + " 小時）";
+  }
+  function closeSheet() { sel = null; $("overlay").classList.add("hidden"); if (pub) render(); }
+  $("cancel").onclick = closeSheet;
+  $("overlay").onclick = function (e) { if (e.target === $("overlay")) closeSheet(); };
+  $("prev").onclick = function () { weekStart = addDays(weekStart, -7); render(); };
+  $("next").onclick = function () { weekStart = addDays(weekStart, 7); render(); };
+
+  function load(keepWeek) {
+    if (!BASE) { $("note").textContent = "這個連結少了資料庫設定，請跟老師要正確的預約連結。"; return Promise.resolve(); }
+    return Promise.all([api("public"), api("holds").catch(function () { return {}; })]).then(function (res) {
+      pub = res[0]; holds = res[1] || {};
+      if (!pub) { $("note").textContent = "老師目前還沒開放預約，晚點再來看看～"; return; }
+      pub.days = pub.days || {};
+      pub.durations = (pub.durations && pub.durations.length) ? pub.durations : [1];
+      var today = fmt(new Date());
+      var keys = Object.keys(pub.days).sort();
+      pub.until = pub.until || keys[keys.length - 1] || today;
+      firstWeek = monday(today); lastWeek = monday(pub.until < today ? today : pub.until);
+      if (!keepWeek || !weekStart) {
+        // open on the first week that still has something free
+        weekStart = firstWeek;
+        var firstFree = keys.filter(function (d) { return d >= today; })[0];
+        if (firstFree && monday(firstFree) <= lastWeek) weekStart = monday(firstFree);
+      }
+      $("note").textContent = pub.note || (pub.autoConfirm ? "點一個綠色的時段就完成預約了。" : "點一個綠色的時段送出預約，老師確認後會再跟您聯絡。");
+      var bits = [];
+      if (pub.mode === "online") bits.push("💻 線上上課" + (pub.onlineTool ? "（" + pub.onlineTool + "）" : ""));
+      else if (pub.mode === "both") bits.push("💻 線上／🏠 面對面都可以" + (pub.area ? "・" + pub.area : ""));
+      else if (pub.area) bits.push("🏠 面對面・" + pub.area);
+      if (pub.autoConfirm) bits.push("⚡ 送出後直接完成預約");
+      var ml = $("modeline");
+      ml.textContent = bits.join("　");
+      ml.classList.toggle("hidden", bits.length === 0);
+      $("main").classList.remove("hidden");
+      $("foot").textContent = "空檔更新時間：" + new Date(pub.updatedAt).toLocaleString("zh-TW", { hour12: false });
+      render();
+    }).catch(function () {
+      $("note").textContent = "讀取不到預約資料，請確認網路後重新整理頁面。";
+    });
+  }
+
+  function showErr(msg) { var e = $("formErr"); e.textContent = msg; e.classList.toggle("hidden", !msg); }
+
+  $("submit").onclick = function () {
+    var name = $("name").value.trim();
+    if (!name) { showErr("請填學生姓名"); $("name").focus(); return; }
+    showErr("");
+    var btn = $("submit"); btn.disabled = true; btn.textContent = "送出中…";
+    var req = {
+      name: name.slice(0, 40), contact: $("contact").value.trim().slice(0, 80), note: $("msg").value.trim().slice(0, 300),
+      date: sel.date, time: sel.time, hours: sel.dur, createdAt: Date.now(),
+      status: pub.autoConfirm ? "accepted" : "pending"
+    };
+    var id = newId();
+    // Re-check right before sending in case someone else just took this slot.
+    api("holds").catch(function () { return holds; }).then(function (h) {
+      holds = h || {};
+      if (!fits(req.date, req.time, req.hours)) throw new Error("taken");
+      return api("requests/" + id, "PUT", req);
+    }).then(function () {
+      return api("holds/" + id, "PUT", { date: req.date, time: req.time, hours: req.hours });
+    }).then(function () {
+      var ids = store("ids") || []; ids.unshift(id); store("ids", ids.slice(0, 20));
+      store("profile", { name: req.name, contact: req.contact }); store("dur", req.hours);
+      mine.push(Object.assign({ id: id }, req));
+      $("msg").value = "";
+      weekStart = monday(req.date);
+      closeSheet(); renderMine();
+      toast(req.status === "accepted" ? "✅ 預約完成！已經排進老師的課表" : "✅ 預約已送出！老師確認後格子會變成綠色打勾");
+    }).catch(function (e) {
+      if (e && e.message === "taken") { showErr("這個時段剛剛被別人預約了，請換一個時間 🙏"); renderSheet(); render(); }
+      else showErr("送出失敗，請檢查網路後再試一次。");
+    }).then(function () { btn.disabled = false; btn.textContent = "送出預約"; });
+  };
+
+  var STATUS = { pending: "等待老師確認", accepted: "已確認 ✓", declined: "老師婉拒", cancelled: "已取消" };
+  function meetRow(r) {
+    if (r.status !== "accepted" || !r.meetLink) return null;
+    var a = el("a", "meet", "🔗 上課連結：" + r.meetLink);
+    a.href = r.meetLink; a.target = "_blank"; a.rel = "noopener noreferrer";
+    return a;
+  }
+  function renderMine() {
+    var box = $("mine"); box.innerHTML = "";
+    $("mineCard").classList.toggle("hidden", mine.length === 0);
+    mine.slice().sort(function (a, b) { return (a.date + a.time).localeCompare(b.date + b.time); }).forEach(function (r) {
+      var row = el("div", "mine");
+      var top = el("div");
+      top.appendChild(document.createTextNode(r.name + "・" + dateLabel(r.date) + " " + r.time + "–" + toTime(toMin(r.time) + r.hours * 60)));
+      top.appendChild(el("span", "tag " + r.status, STATUS[r.status] || r.status));
+      row.appendChild(top);
+      if (r.reply) row.appendChild(el("div", "note", "老師回覆：" + r.reply));
+      var mr = meetRow(r); if (mr) row.appendChild(mr);
+      if (r.status === "pending") {
+        var c = el("button", "link", "取消這個預約");
+        c.onclick = function () {
+          if (!confirm("確定要取消這個預約嗎？")) return;
+          api("requests/" + r.id, "PATCH", { status: "cancelled", handledAt: Date.now() })
+            .then(function () { return api("holds/" + r.id, "DELETE"); })
+            .then(function () { delete holds[r.id]; r.status = "cancelled"; renderMine(); if (pub) render(); })
+            .catch(function () { alert("取消失敗，請稍後再試"); });
+        };
+        row.appendChild(c);
+      }
+      box.appendChild(row);
+    });
+  }
+  function loadMine() {
+    var ids = store("ids") || [];
+    if (!ids.length || !BASE) return Promise.resolve();
+    return Promise.all(ids.map(function (id) { return api("requests/" + id).then(function (r) { return r ? Object.assign({ id: id }, r) : null; }).catch(function () { return null; }); }))
+      .then(function (list) {
+        var today = fmt(new Date());
+        mine = list.filter(function (r) { return r && r.date >= today; });
+        store("ids", ids.filter(function (id) { return mine.some(function (r) { return r.id === id; }); }));
+        renderMine(); if (pub) render();
+      });
+  }
+
+  var prof = store("profile");
+  if (prof) { $("name").value = prof.name || ""; $("contact").value = prof.contact || ""; }
+  load().then(loadMine);
+  // Coming back to the page later: refresh so the calendar is never stale.
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && !sel) load(true).then(loadMine);
+  });
+})();
+</script>
+</body>
+</html>
