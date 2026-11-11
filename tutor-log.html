@@ -209,7 +209,7 @@ const FB_URL = "https://math-plan-default-rtdb.asia-southeast1.firebasedatabase.
 // ---- Sign-in (only needed once the database rules require it) ----
 // Web API key: Firebase 主控台 → 專案設定 → 一般 → 網頁 API 金鑰.
 // Leave it blank and the login screen will ask for it once, then remember it.
-const FB_API_KEY = "";
+const FB_API_KEY = "AIzaSyCpkWhJQP6g0PP7SaGCaLIurJuRFiHfQOE";
 const AUTH = { token: null, uid: null, email: null, exp: 0, refresh: null };
 function authApiKey() {
   try { return FB_API_KEY || localStorage.getItem("kejizhu_apikey") || ""; } catch (e) { return FB_API_KEY; }
@@ -297,12 +297,12 @@ async function fbFetch(url, options) {
 async function cloudLoad() {
   try {
     const { r, denied } = await fbFetch(FB_URL, { cache: "no-store" });
-    if (denied) return { ok: false, needAuth: true, data: null };
-    if (!r.ok) return { ok: false, data: null };
+    if (denied) return { ok: false, needAuth: true, reason: "auth", data: null };
+    if (!r.ok) return { ok: false, reason: "http" + r.status, data: null };
     const j = await r.json();
     return { ok: true, data: j && typeof j === "object" ? j : null };
   } catch (e) {
-    return { ok: false, data: null };
+    return { ok: false, reason: (typeof navigator !== "undefined" && navigator.onLine === false) ? "offline" : "network", data: null };
   }
 }
 async function cloudSave(state) {
@@ -529,6 +529,7 @@ function App() {
   const [cloudOk, setCloudOk] = useState(false); // true only after we successfully READ the cloud
   const [needAuth, setNeedAuth] = useState(false); // database rules are asking for a login
   const [signedIn, setSignedIn] = useState(false);
+  const [cloudErr, setCloudErr] = useState(""); // why the cloud couldn't be read: auth | offline | network | httpNNN
   const [, setTick] = useState(0);
   const lastSyncedRef = useRef("");
   const extrasRef = useRef({});
@@ -586,6 +587,7 @@ function App() {
       const res = await cloudLoad();
       if (res.needAuth) {
         // Rules require a login and we don't have a valid one.
+        setCloudErr("auth");
         setNeedAuth(true);
         applyState(pickState(await loadLocal()));
         setSyncStatus("error");
@@ -606,6 +608,7 @@ function App() {
         const st = pickState(await loadLocal());
         offlineBaseRef.current = JSON.stringify(st);
         applyState(st);
+        setCloudErr(res.reason || "network");
         setSyncStatus("error");
       }
       setReady(true);
@@ -621,7 +624,7 @@ function App() {
     const res = await cloudLoad();
     if (res.ok && res.data) { applyCloud(res.data); setCloudOk(true); setSyncStatus("synced"); }
     else if (res.ok) { setCloudOk(true); setSyncStatus("synced"); }
-    else { setSyncStatus("error"); }
+    else { setCloudErr(res.reason || "network"); setSyncStatus("error"); }
     setReady(true);
   }
   function signOutNow() {
@@ -653,7 +656,14 @@ function App() {
   async function retryCloud() {
     setSyncStatus("syncing");
     const res = await cloudLoad();
-    if (!res.ok) { setSyncStatus("error"); return; }
+    if (res.needAuth) {
+      // Not a network problem — the database wants a login. Go to the login screen
+      // (this device's data stays as it is).
+      if (!offlineBaseRef.current) offlineBaseRef.current = JSON.stringify(stateRef.current);
+      setCloudErr("auth"); setNeedAuth(true); setSyncStatus("error"); return;
+    }
+    if (!res.ok) { setCloudErr(res.reason || "network"); setSyncStatus("error"); return; }
+    setCloudErr("");
     const changedOffline = JSON.stringify(stateRef.current) !== offlineBaseRef.current;
     if (res.data && changedOffline) {
       const upload = window.confirm("雲端連上了！\n\n剛剛離線時你在這台裝置有改過資料。\n按「確定」＝把這台裝置的版本上傳到雲端（會取代雲端上的版本）\n按「取消」＝改用雲端上的版本（這台剛剛的修改會捨棄）");
@@ -946,7 +956,7 @@ function App() {
       <AppErrorBoundary>
         <div style={S.shell}>
           <style>{CSS}</style>
-          <LoginScreen onDone={afterSignIn} onSkip={() => { setNeedAuth(false); setSyncStatus("error"); }} />
+          <LoginScreen onDone={afterSignIn} onSkip={() => { setNeedAuth(false); setCloudErr("auth"); if (!offlineBaseRef.current) offlineBaseRef.current = JSON.stringify(stateRef.current); setSyncStatus("error"); }} />
         </div>
       </AppErrorBoundary>
     );
@@ -963,8 +973,12 @@ function App() {
           {syncStatus === "synced" && <span>☁️ 已同步雲端，換裝置打開也看得到最新資料</span>}
           {syncStatus === "error" && (
             <span style={{ color: "var(--coral-text)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              {cloudOk ? "⚠️ 上傳雲端失敗，資料先存在這台裝置，網路恢復後改任何一筆就會再上傳" : "⚠️ 連不到雲端，先用這台裝置上的資料（為了保護雲端資料，暫時不會上傳）"}
-              {!cloudOk && <button style={S.retryBtn} onClick={retryCloud}>重新連線</button>}
+              {cloudOk ? "⚠️ 上傳雲端失敗，資料先存在這台裝置，網路恢復後改任何一筆就會再上傳"
+                : cloudErr === "auth" ? "🔒 還沒登入，先用這台裝置上的資料（登入後才會同步雲端）"
+                : cloudErr === "offline" ? "⚠️ 這台裝置現在沒有網路，先用這台裝置上的資料（暫時不會上傳）"
+                : /^http/.test(cloudErr) ? `⚠️ 雲端回應錯誤（${cloudErr.slice(4)}），先用這台裝置上的資料（暫時不會上傳）`
+                : "⚠️ 連不到雲端，先用這台裝置上的資料（為了保護雲端資料，暫時不會上傳）"}
+              {!cloudOk && <button style={S.retryBtn} onClick={retryCloud}>{cloudErr === "auth" ? "登入" : "重新連線"}</button>}
             </span>
           )}
         </div>
